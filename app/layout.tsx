@@ -1,32 +1,25 @@
-import Link from 'next/link';
+'use client'
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+import { ReactNode } from 'react'
+import Link from 'next/link'
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh">
-      <body>
-        <div className="flex h-screen">
-          <aside className="w-48 bg-gray-800 text-white p-4">
-            <h2 className="text-xl font-bold mb-6">菜单</h2>
-            <ul>
-              <li className="mb-2">
-                <Link href="/">
-                  <a className="hover:text-blue-400">首页</a>
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link href="/books">
-                  <a className="hover:text-blue-400">电子书</a>
-                </Link>
-              </li>
-            </ul>
-          </aside>
-          <main className="flex-1 bg-gray-100 p-6 overflow-auto">{children}</main>
-        </div>
+      <body className="font-sans">
+        <header className="bg-gray-900 text-white p-4 flex justify-between items-center">
+          <h1 className="text-xl font-bold">Weacond</h1>
+          <nav className="space-x-4">
+            <Link href="/" className="hover:underline">主页</Link>
+            <Link href="/books" className="hover:underline">电子书</Link>
+            {/* 后续业务页可加更多按钮 */}
+          </nav>
+        </header>
+        <main>{children}</main>
+        <footer className="bg-gray-100 p-4 text-center text-sm text-gray-600">
+          © 2026 Weacond. 联系邮箱: weacond@gmail.com
+        </footer>
       </body>
     </html>
-  );
+  )
 }
