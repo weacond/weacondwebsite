@@ -1,5 +1,5 @@
 'use client'
-import { books } from '../../data/books';
+import { books } from '../../data/book';
 import { useState } from 'react';
 
 export default function BooksPage() {
