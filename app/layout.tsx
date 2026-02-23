@@ -1,25 +1,40 @@
-'use client'
+import "./globals.css";
+import Link from "next/link";
 
-import { ReactNode } from 'react'
-import Link from 'next/link'
-
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="zh">
-      <body className="font-sans">
-        <header className="bg-gray-900 text-white p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Weacond</h1>
-          <nav className="space-x-4">
-            <Link href="/" className="hover:underline">主页</Link>
-            <Link href="/books" className="hover:underline">电子书</Link>
-            {/* 后续业务页可加更多按钮 */}
-          </nav>
-        </header>
-        <main>{children}</main>
-        <footer className="bg-gray-100 p-4 text-center text-sm text-gray-600">
-          © 2026 Weacond. 联系邮箱: weacond@gmail.com
-        </footer>
+    <html lang="en">
+      <body className="bg-white text-neutral-900">
+        <div className="flex min-h-screen">
+          
+          {/* Sidebar */}
+          <aside className="w-56 border-r border-neutral-200 p-8">
+            <h1 className="text-lg font-medium mb-12">
+              Financial System
+            </h1>
+
+            <nav className="space-y-6 text-sm">
+              <Link href="/" className="block hover:text-neutral-500 transition">
+                我的业务
+              </Link>
+
+              <Link href="/library" className="block hover:text-neutral-500 transition">
+                电子书库
+              </Link>
+            </nav>
+          </aside>
+
+          {/* Content */}
+          <main className="flex-1 px-24 py-20">
+            {children}
+          </main>
+
+        </div>
       </body>
     </html>
-  )
+  );
 }
