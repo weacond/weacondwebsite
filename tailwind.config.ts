@@ -6,7 +6,15 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        apple: {
+          gray: "#86868b",
+          dark: "#1d1d1f",
+          blue: "#0071e3",
+        },
+      },
+    },
   },
   plugins: [],
 };
