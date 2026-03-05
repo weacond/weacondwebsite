@@ -1,10 +1,11 @@
 import Link from 'next/link';
 
 export default function LibraryPage() {
-  // 模拟20本书的数据，实际可结合 Notion API 抓取
+  // 模拟20本书籍数据
   const books = Array.from({ length: 20 }, (_, i) => ({
     id: `book-${i + 1}`,
     title: `Investment Logic Vol. ${i + 1}`,
+    desc: "探索稳定盈利的底层逻辑"
   }));
 
   return (
@@ -12,7 +13,7 @@ export default function LibraryPage() {
       <h2 className="text-5xl font-black tracking-tighter mb-20">Library.</h2>
       
       {/* 横向滑动容器 */}
-      <div className="flex gap-10 overflow-x-auto pb-20 no-scrollbar snap-x cursor-grab active:cursor-grabbing">
+      <div className="flex gap-10 overflow-x-auto pb-20 no-scrollbar snap-x cursor-grab active:cursor-grabbing pr-20">
         {books.map((book) => (
           <Link 
             key={book.id} 
@@ -24,7 +25,7 @@ export default function LibraryPage() {
               <h3 className="text-3xl font-bold leading-tight group-hover:translate-x-2 transition-transform duration-500">
                 {book.title}
               </h3>
-              <p className="text-[9px] text-white/20 uppercase tracking-[0.4em] font-mono">Premium Access</p>
+              <p className="text-[10px] text-white/20 uppercase tracking-widest">{book.desc}</p>
             </div>
           </Link>
         ))}
