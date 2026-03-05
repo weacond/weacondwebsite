@@ -2,43 +2,59 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="bg-black text-[#f5f5f7] min-h-screen selection:bg-[#0071e3]">
-      <aside className="fixed left-0 top-0 h-full w-20 border-r border-[#1d1d1f] flex flex-col items-center py-12 z-50 bg-black/80 backdrop-blur-xl">
-        <div className="mb-16 font-bold text-xl tracking-tighter">W.</div>
-        <nav className="flex flex-col gap-12 text-2xl">
-          <Link href="/business" title="我的业务" className="opacity-40 hover:opacity-100 transition-opacity">💼</Link>
-          <Link href="/library" title="电子书库" className="opacity-40 hover:opacity-100 transition-opacity">📚</Link>
+    <div className="bg-[#050505] text-white min-h-screen font-sans selection:bg-blue-600">
+      {/* 顶部免责声明 - 纯文字防护 */}
+      <div className="fixed top-0 w-full bg-white/5 backdrop-blur-md py-3 text-[10px] text-center text-white/30 z-[100] tracking-[0.3em] uppercase">
+        Disclaimer: For educational purposes only. Not financial advice.
+      </div>
+
+      {/* 左侧文字导航 - 无图标极简设计 */}
+      <aside className="fixed left-0 top-0 h-full w-24 border-r border-white/5 flex flex-col items-center py-24 z-50 bg-black">
+        <div className="mb-20 font-black text-2xl tracking-tighter">W.</div>
+        <nav className="flex flex-col gap-20 [writing-mode:vertical-lr] items-center">
+          <Link href="/business" className="text-[10px] tracking-[0.5em] uppercase opacity-30 hover:opacity-100 transition-all font-bold hover:text-blue-500">Business</Link>
+          <Link href="/library" className="text-[10px] tracking-[0.5em] uppercase opacity-30 hover:opacity-100 transition-all font-bold hover:text-blue-500">Library</Link>
         </nav>
       </aside>
 
-      <main className="pl-20 flex flex-col items-center justify-center min-h-screen text-center px-6">
-        <div className="max-w-4xl space-y-24">
-          <h1 className="text-7xl md:text-9xl font-black tracking-tighter leading-none bg-clip-text text-transparent bg-gradient-to-b from-white to-[#424245]">
+      <main className="pl-24 flex flex-col items-center justify-center min-h-screen text-center px-10">
+        <div className="max-w-4xl space-y-36">
+          {/* 1. 网站名字 */}
+          <h1 className="text-8xl md:text-[11rem] font-black tracking-[-0.05em] leading-none bg-gradient-to-b from-white to-white/10 bg-clip-text text-transparent">
             WEACOND
           </h1>
 
-          <div className="space-y-20">
-            <section>
-              <p className="text-[10px] uppercase tracking-[0.5em] text-[#86868b] mb-4">Our Logic / 我们的逻辑</p>
-              <p className="text-2xl md:text-3xl font-light italic leading-relaxed">
-                “让投资变得轻松、方便、稳定。我们相信稳定性才是真正的力量。”
+          <div className="space-y-28">
+            {/* 2. 我们的逻辑（理念） */}
+            <section className="space-y-8 text-center">
+              <h2 className="text-[10px] uppercase tracking-[0.8em] text-white/20 font-bold">The Logic / 我们的理念</h2>
+              <p className="text-xl md:text-3xl font-light leading-relaxed max-w-2xl mx-auto text-white/90 italic">
+                “让投资变得轻松、方便、稳定。我们相信，稳定与理性才是真正的力量。”
               </p>
             </section>
 
-            <section>
-              <p className="text-[10px] uppercase tracking-[0.5em] text-[#86868b] mb-4">What We Do / 我们是做什么的</p>
-              <p className="text-xl text-[#a1a1a6]">
-                顶级 AI 信号与卖 Put 策略筛选系统，构建智能化投资教育。
+            {/* 3. 我们是做什么的 */}
+            <section className="space-y-8">
+              <h2 className="text-[10px] uppercase tracking-[0.8em] text-white/20 font-bold">Mission / 我们是做什么的</h2>
+              <p className="text-lg md:text-xl text-white/50 leading-loose max-w-xl mx-auto font-light">
+                构建理性投资的教育与智能化系统，让每个人都能理解财富增长的本质。
               </p>
             </section>
 
-            <section className="font-mono text-sm text-[#424245]">
-              weacond@gmail.com
+            {/* 4. 联系方式 & 语言切换 */}
+            <section className="space-y-6">
+              <p className="font-mono text-xs text-white/20 tracking-[0.3em]">CONTACT: WEACOND@GMAIL.COM</p>
+              <div className="flex justify-center gap-8 text-[11px] font-black tracking-[0.4em]">
+                <button className="text-blue-600">EN</button>
+                <span className="text-white/5">/</span>
+                <button className="text-white/30 hover:text-white transition-colors">中文</button>
+              </div>
             </section>
 
-            <section>
-              <Link href="/business" className="inline-block bg-[#0071e3] text-white px-12 py-5 rounded-full font-bold text-lg hover:scale-105 transition-all shadow-2xl shadow-[#0071e3]/20">
-                我的业务 →
+            {/* 5. 行动按钮 */}
+            <section className="pt-10">
+              <Link href="/business" className="inline-block px-20 py-5 border border-white/10 rounded-full text-[10px] tracking-[0.6em] font-bold uppercase hover:bg-white hover:text-black transition-all duration-700">
+                Enter Business →
               </Link>
             </section>
           </div>
