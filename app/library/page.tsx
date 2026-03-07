@@ -1,35 +1,26 @@
-import Link from 'next/link';
+import books from "@/data/books"
+import BookCard from "@/components/BookCard"
 
-export default function LibraryPage() {
-  // 模拟20本书籍数据
-  const books = Array.from({ length: 20 }, (_, i) => ({
-    id: `book-${i + 1}`,
-    title: `Investment Logic Vol. ${i + 1}`,
-    desc: "探索稳定盈利的底层逻辑"
-  }));
+export default function Library(){
 
-  return (
-    <div className="bg-[#050505] min-h-screen pl-32 pt-32 pb-20 text-white overflow-hidden">
-      <h2 className="text-5xl font-black tracking-tighter mb-20">Library.</h2>
-      
-      {/* 横向滑动容器 */}
-      <div className="flex gap-10 overflow-x-auto pb-20 no-scrollbar snap-x cursor-grab active:cursor-grabbing pr-20">
-        {books.map((book) => (
-          <Link 
-            key={book.id} 
-            href={`/library/${book.id}`}
-            className="snap-center min-w-[320px] h-[480px] bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 flex flex-col justify-end hover:border-blue-500/50 transition-all duration-700 group shrink-0"
-          >
-            <div className="space-y-6">
-              <div className="h-0.5 w-10 bg-blue-600"></div>
-              <h3 className="text-3xl font-bold leading-tight group-hover:translate-x-2 transition-transform duration-500">
-                {book.title}
-              </h3>
-              <p className="text-[10px] text-white/20 uppercase tracking-widest">{book.desc}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
+return(
+
+<div>
+
+<h1 className="text-3xl mb-8">
+电子书库
+</h1>
+
+<div className="flex gap-6 overflow-x-auto pb-6">
+
+{books.map(book=>(
+<BookCard key={book.id} book={book}/>
+))}
+
+</div>
+
+</div>
+
+)
+
 }
