@@ -1,4 +1,7 @@
-import "./globals.css"
+<div className="text-center text-sm text-gray-400 p-2 border-b border-slate-700">
+免责声明：本网站所有内容仅用于教育与研究用途，不构成任何投资建议。
+</div>
+  import "./globals.css"
 import Sidebar from "@/components/Sidebar"
 import Navbar from "@/components/Navbar"
 
