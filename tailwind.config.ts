@@ -1,21 +1,8 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
-  content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
+import { defineConfig } from 'tailwindcss';
+export default defineConfig({
+  content: ["./app/**/*.{ts,tsx}", "./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
-    extend: {
-      colors: {
-        apple: {
-          gray: "#86868b",
-          dark: "#1d1d1f",
-          blue: "#0071e3",
-        },
-      },
-    },
+    extend: {},
   },
   plugins: [],
-};
-export default config;
+});
