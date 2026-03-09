@@ -1,27 +1,13 @@
-"use client"
-
-import { useState } from "react"
-
-export default function Navbar() {
-
-  const [lang,setLang] = useState("zh")
-
+export default function Navbar({ toggleLang }: { toggleLang: () => void }) {
   return (
-    <div className="w-full border-b border-slate-700 p-4 flex justify-end">
-
+    <nav className="flex justify-between p-4 bg-white shadow">
+      <div className="font-bold text-xl">Weacond</div>
       <button
-        className="mr-3"
-        onClick={()=>setLang("zh")}
+        onClick={toggleLang}
+        className="bg-blue-500 text-white px-3 py-1 rounded"
       >
-        中文
+        切换语言
       </button>
-
-      <button
-        onClick={()=>setLang("en")}
-      >
-        English
-      </button>
-
-    </div>
-  )
+    </nav>
+  );
 }
