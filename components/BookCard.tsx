@@ -1,19 +1,11 @@
-import Link from "next/link"
+import Link from "next/link";
 
-export default function BookCard({book}){
-
-return(
-
-<Link href={`/book/${book.id}`}>
-
-<div className="min-w-[200px] h-[260px] bg-slate-800 rounded-xl p-6 flex items-center justify-center text-center">
-
-{book.title}
-
-</div>
-
-</Link>
-
-)
-
+export default function BookCard({ book }: { book: any }) {
+  return (
+    <Link href={`/book/${book.id}`}>
+      <div className="w-36 h-48 bg-white shadow flex items-center justify-center font-bold text-2xl cursor-pointer">
+        {book.cover || book.id} {/* 封面暂时用编号 */}
+      </div>
+    </Link>
+  );
 }
