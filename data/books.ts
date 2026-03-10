@@ -1,26 +1,13 @@
-const books = [
-
-{
-id:"book1",
-title:"理性投资基础",
-description:"讲解投资的基本逻辑",
-chapters:[
-"第一章 投资是什么",
-"第二章 风险与回报",
-"第三章 长期主义"
-]
-},
-
-{
-id:"book2",
-title:"自动化交易",
-description:"介绍自动交易系统",
-chapters:[
-"第一章 自动化原理",
-"第二章 风控系统"
-]
+export type Book = {
+  id: string
+  titleCN: string
+  titleEN: string
+  chapters: string[]
 }
 
-]
-
-export default books
+export const books: Book[] = Array.from({ length: 20 }).map((_, i) => ({
+  id: (i + 1).toString(),
+  titleCN: `书籍 ${i + 1}`,
+  titleEN: `Book ${i + 1}`,
+  chapters: Array.from({ length: 5 }).map((_, j) => `章节 ${j + 1}`) 
+}))
