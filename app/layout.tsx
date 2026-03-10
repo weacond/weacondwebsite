@@ -1,31 +1,21 @@
-<div className="text-center text-sm text-gray-400 p-2 border-b border-slate-700">
-免责声明：本网站所有内容仅用于教育与研究用途，不构成任何投资建议。
-</div>
-  import "./globals.css"
-import Sidebar from "@/components/Sidebar"
-import Navbar from "@/components/Navbar"
+import '../styles/globals.css'
+import Navbar from '../components/Navbar'
+import Sidebar from '../components/Sidebar'
+import { useState } from 'react'
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [lang, setLang] = useState<'cn' | 'en'>('cn')
+
+  const toggleLang = () => setLang(prev => (prev === 'cn' ? 'en' : 'cn'))
+
   return (
-    <html lang="zh">
-      <body className="bg-slate-900 text-gray-200">
-
-        <Navbar />
-
-        <div className="flex">
-
-          <Sidebar />
-
-          <main className="flex-1 p-10 max-w-4xl mx-auto">
-            {children}
-          </main>
-
+    <html lang={lang}>
+      <body className="bg-slate-900 text-gray-200 flex">
+        <Sidebar />
+        <div className="flex-1 min-h-screen flex flex-col">
+          <Navbar toggleLang={toggleLang} />
+          <main className="flex-1 p-4">{children}</main>
         </div>
-
       </body>
     </html>
   )
