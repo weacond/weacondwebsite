@@ -1,17 +1,31 @@
-type NavbarProps = {
-  toggleLang: () => void
-}
+"use client"
 
-export default function Navbar({ toggleLang }: NavbarProps) {
+import { useState } from "react"
+
+export default function Navbar() {
+
+  const [lang,setLang] = useState("CN")
+
+  function toggleLang(){
+    setLang(lang === "CN" ? "EN" : "CN")
+  }
+
   return (
+
     <nav className="flex justify-between items-center p-4 bg-slate-800">
-      <div className="text-xl font-bold">Weacond</div>
+
+      <div className="text-xl font-bold">
+        Weacond
+      </div>
+
       <button
-        className="bg-gray-700 text-white px-3 py-1 rounded"
         onClick={toggleLang}
+        className="bg-gray-700 px-3 py-1 rounded"
       >
-        切换语言
+        {lang}
       </button>
+
     </nav>
+
   )
 }
