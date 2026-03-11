@@ -1,13 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import useSWR from 'swr';
 import axios from 'axios';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const fetcher = url => axios.get(url).then(res => res.data);
 
 export default function Ebooks() {
-  const [lang, setLang] = useState('zh');
-  const [bookLang, setBookLang] = useState('zh');
+  const { lang } = useLanguage();   // 使用全局语言
+  const [bookLang, setBookLang] = useState(lang); // 默认电子书语言与全局语言一致
+
+  useEffect(() => {
+    setBookLang(lang);  // 页面打开时同步全局语言
+  }, [lang]);
 
   const { data, error } = useSWR(`/api/ebooks?lang=${bookLang}`, fetcher);
 
@@ -18,7 +23,7 @@ export default function Ebooks() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <Navbar lang={lang} setLang={setLang} />
+      <Navbar />
 
       <div className="py-20 px-6 max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">{lang === 'zh' ? '电子书' : 'Ebooks'}</h1>
