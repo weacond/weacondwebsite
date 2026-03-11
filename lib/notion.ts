@@ -1,14 +1,22 @@
 import { Client } from "@notionhq/client";
 
-const notion = new Client({
+export const notion = new Client({
   auth: process.env.NOTION_API_KEY,
 });
 
-export async function getBooksDatabase(databaseId: string) {
-  const response = await notion.databases.query({ database_id: databaseId });
-  return response.results;
-}
+export async function getBooks(language: string) {
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_BOOKS_DB_ID,
+    filter: {
+      property: "Language",
+      select: { equals: language },
+    },
+    sorts: [{ property: "Title", direction: "ascending" }],
+  });
 
-export async function getBookPage(pageId: string) {
-  return await notion.pages.retrieve({ page_id: pageId });
+  return response.results.map((book) => ({
+    id: book.id,
+    title: book.properties.Title.title[0]?.plain_text || "",
+    cover: book.properties.Cover.files[0]?.file.url || "",
+  }));
 }
