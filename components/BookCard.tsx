@@ -1,17 +1,17 @@
-import Link from 'next/link'
-import { Book } from '../data/books'
+"use client";
 
-type BookCardProps = {
-  book: Book
+import Link from "next/link";
+
+interface BookCardProps {
+  id: string;
+  title: string;
 }
 
-export default function BookCard({ book }: BookCardProps) {
+export default function BookCard({ id, title }: BookCardProps) {
   return (
-    <Link href={`/library/${book.id}`}>
-      <a className="flex flex-col items-center bg-slate-700 rounded p-4 m-2 w-32 hover:bg-slate-600">
-        <div className="text-2xl font-bold">{book.id}</div> {/* 封面暂时用编号 */}
-        <div className="mt-2 text-center">{book.titleCN}</div>
-      </a>
+    <Link href={`/book/${id}`} className="block w-40 h-56 bg-slate-700 m-2 p-2 rounded hover:bg-slate-600">
+      <div className="text-center font-bold">{title}</div>
+      <div className="text-6xl text-center mt-8">{id}</div>
     </Link>
-  )
+  );
 }
