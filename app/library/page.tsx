@@ -1,12 +1,15 @@
-import { books } from '../../data/books'
-import BookCard from '../../components/BookCard'
+"use client";
+
+import BookCard from "../../components/BookCard";
 
 export default function LibraryPage() {
+  const books = Array.from({ length: 20 }, (_, i) => ({ id: (i+1).toString(), title: `Book ${i+1}` }));
+
   return (
-    <div className="flex overflow-x-auto gap-4 p-4">
-      {books.map(book => (
-        <BookCard key={book.id} book={book} />
+    <div className="p-6 flex overflow-x-auto space-x-4">
+      {books.map((b) => (
+        <BookCard key={b.id} id={b.id} title={b.title} />
       ))}
     </div>
-  )
+  );
 }
