@@ -1,25 +1,23 @@
-import '../styles/globals.css'
-import Navbar from '../components/Navbar'
-import Sidebar from '../components/Sidebar'
+"use client";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
+import { useState } from "react";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [lang, setLang] = useState<"cn" | "en">("cn");
+
+  const toggleLang = () => setLang(lang === "cn" ? "en" : "cn");
+
   return (
-    <html lang="en">
-      <body className="bg-slate-900 text-gray-200 flex">
+    <html lang={lang}>
+      <body className="flex">
         <Sidebar />
-
-        <div className="flex-1 min-h-screen flex flex-col">
-          <Navbar />
-          <main className="flex-1 p-4">
-            {children}
-          </main>
+        <div className="flex-1">
+          <Navbar toggleLang={toggleLang} lang={lang} />
+          <main>{children}</main>
         </div>
-
       </body>
     </html>
-  )
+  );
 }
