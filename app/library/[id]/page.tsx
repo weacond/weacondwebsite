@@ -1,18 +1,22 @@
-import { books } from '../../../data/books'
+"use client";
 
-export default function BookDetailPage({ params }: { params: { id: string } }) {
-  const book = books.find(b => b.id === params.id)
-  if (!book) return <div>书籍不存在</div>
+import { usePathname } from "next/navigation";
+
+export default function BookPage() {
+  const pathname = usePathname();
+  const id = pathname.split("/").pop();
 
   return (
-    <div className="p-4">
-      <h1 className="text-3xl font-bold">{book.titleCN}</h1>
-      <h2 className="text-xl">{book.titleEN}</h2>
-      <ul className="mt-4 flex flex-col gap-2">
-        {book.chapters.map(ch => (
-          <li key={ch} className="bg-slate-700 p-2 rounded">{ch}</li>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Book {id}</h1>
+      <p>书籍内容示例（章节列表）</p>
+      <ul className="list-disc pl-6 mt-2">
+        {Array.from({ length: 10 }, (_, i) => (
+          <li key={i} className="mt-1 cursor-pointer hover:text-white">
+            Chapter {i + 1} - 未读
+          </li>
         ))}
       </ul>
     </div>
-  )
+  );
 }
