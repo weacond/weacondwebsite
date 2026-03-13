@@ -1,15 +1,22 @@
-// contexts/LanguageContext.js
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from "react";
 
 const LanguageContext = createContext();
 
-export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState('zh'); // 默认中文
+/**
+ * langValues:
+ *  - ui language: 'zh' or 'en' (for site UI)
+ *  - book language keys (data from Notion) expected: 'cn', 'bilingual', 'en'
+ */
+
+export function LanguageProvider({ children }) {
+  const [lang, setLang] = useState("zh"); // UI language: 'zh' or 'en'
   return (
     <LanguageContext.Provider value={{ lang, setLang }}>
       {children}
     </LanguageContext.Provider>
   );
-};
+}
 
-export const useLanguage = () => useContext(LanguageContext);
+export function useLanguage() {
+  return useContext(LanguageContext);
+}
