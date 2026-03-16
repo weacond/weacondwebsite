@@ -6,7 +6,7 @@ export default function Home() {
   const { lang } = useLanguage();
 
   const t = {
-    zh: {
+    cn: {
       heroTitle: "让投资变得轻松、方便、稳定",
       heroSubtitle: "Weacond — 专注于理性投资教育与智能化系统",
       explore: "探索电子书",
