@@ -5,28 +5,19 @@ import { useEffect, useState } from "react";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-/**
- * UI language (lang) = 'zh' | 'en' (for labels)
- * Book language keys from Notion expected: 'cn' | 'bilingual' | 'en'
- *
- * Default bookLang mapping:
- *   if UI lang is 'zh' -> show 'cn'
- *   if UI lang is 'en' -> show 'en'
- *
- * User can override with the book language selector.
- */
-
 export default function Ebooks() {
   const { lang } = useLanguage();
+
+  // 默认 bookLang：UI zh -> cn，否则 en
   const [bookLang, setBookLang] = useState(lang === "zh" ? "cn" : "en");
+
   const { data, error, isLoading } = useSWR("/api/ebooks", fetcher, { revalidateOnFocus: false });
 
   useEffect(() => {
-    // when UI language changes, update default bookLang but don't override if user manually changed
+    // when UI language change, map to default bookLang (but user override will persist)
     setBookLang((prev) => {
-      // if user didn't change from default mapping, sync; else keep
       const defaultForUi = lang === "zh" ? "cn" : "en";
-      return prev === "cn" || prev === "en" || prev === "bilingual" ? defaultForUi : defaultForUi;
+      return defaultForUi;
     });
   }, [lang]);
 
@@ -65,24 +56,33 @@ export default function Ebooks() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {data && data.map((book) => {
+              // safe access: payload may be undefined if this book lacks current language
               const payload = book[bookLang] || {};
+              const title = payload.title || (lang === "zh" ? "未提供该语言的书名" : "Title not provided");
+              const description = payload.description || "";
+              const link = payload.link || null;
+
               return (
                 <article key={book.number} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h2 className="text-xl font-semibold">{payload.title || `#${book.number}`}</h2>
-                      <p className="text-sm text-gray-600 mt-2">{payload.description || ""}</p>
+                      <h2 className="text-xl font-semibold">{title}</h2>
+                      <p className="text-sm text-gray-600 mt-2">{description}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-400">#{book.number}</p>
-                      <a
-                        href={payload.link || "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-4 inline-block bg-primary text-white px-4 py-2 rounded"
-                      >
-                        {labels.read}
-                      </a>
+                      {link ? (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 inline-block bg-primary text-white px-4 py-2 rounded"
+                        >
+                          {labels.read}
+                        </a>
+                      ) : (
+                        <div className="mt-4 inline-block bg-gray-200 text-gray-600 px-4 py-2 rounded">{lang === "zh" ? "未提供" : "Not available"}</div>
+                      )}
                     </div>
                   </div>
                 </article>
