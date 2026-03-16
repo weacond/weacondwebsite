@@ -4,7 +4,7 @@ const LanguageContext = createContext();
 
 /**
  * lang:
- *  - UI language: 'cn' or 'en' (controls labels)
+ *  - UI language: 'zh' or 'en' (controls labels)
  *  - Book language keys from Notion are expected to be: 'cn', 'bilingual', 'en'
  */
 
