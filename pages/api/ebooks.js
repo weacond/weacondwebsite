@@ -254,7 +254,7 @@ export default async function handler(req, res) {
 
     // fallback to sample so UI still works
 
-    return res.status(200).json(sampleBooks);
+    return res.status(500).json({ error: "Notion fetch failed", message: err.message });
 
   }
 
