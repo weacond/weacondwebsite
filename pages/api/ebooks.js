@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   try {
     const response = await fetch(
-      "https://raw.githubusercontent.com/你的用户名/ebook-data/main/data/ebooks.json"
+      "https://raw.githubusercontent.com/weacond/weacondwebsite/refs/heads/main/data/ebooks.json"
     );
 
     const data = await response.json();
