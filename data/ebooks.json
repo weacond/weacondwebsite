@@ -1,0 +1,38 @@
+[
+  {
+    "number": 1,
+    "cn": {
+      "title": "货币的本质 (示例)",
+      "description": "示例：这是中文版本。",
+      "link": "#"
+    },
+    "bilingual": {
+      "title": "货币的本质 / The Nature (示例)",
+      "description": "示例：双语版本。",
+      "link": "#"
+    },
+    "en": {
+      "title": "The Nature of Money (Sample)",
+      "description": "Sample English description.",
+      "link": "#"
+    }
+  },
+  {
+    "number": 2,
+    "cn": {
+      "title": "财富心理学 (示例)",
+      "description": "示例：这是中文版本。",
+      "link": "#"
+    },
+    "bilingual": {
+      "title": "财富心理学 / Wealth Psychology (示例)",
+      "description": "示例：双语版本。",
+      "link": "#"
+    },
+    "en": {
+      "title": "Wealth Psychology (Sample)",
+      "description": "Sample English description.",
+      "link": "#"
+    }
+  }
+]
