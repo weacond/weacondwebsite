@@ -7,7 +7,12 @@ export default function EbookPage() {
 
   if (!slug) return <p>加载中...</p>;
 
-  const book = ebooks.find(b => b.slug === slug);
+  // 在 JSON 里找对应的书和语言
+  let book = null;
+  for (const b of ebooks) {
+    book = b.lang.find(l => l.slug === slug);
+    if (book) break;
+  }
 
   if (!book) return <p>书不存在</p>;
 
@@ -15,7 +20,6 @@ export default function EbookPage() {
     <div style={{ padding: "20px" }}>
       <h1>{book.title}</h1>
       <p>{book.description}</p>
-      {/* 如果你有 PDF 文件，可以用 iframe 嵌入 */}
       {book.link && (
         <iframe
           src={book.link}
