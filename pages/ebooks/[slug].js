@@ -1,28 +1,37 @@
 import { useRouter } from "next/router";
-import ebooks from "../../data/ebooks.json";
+import useSWR from "swr";
+
+const fetcher = (url) => fetch(url).then((r) => r.json());
 
 export default function EbookPage() {
   const router = useRouter();
   const { slug } = router.query;
 
-  if (!slug) return <p>加载中...</p>;
+  const { data, isLoading } = useSWR("/api/ebooks", fetcher);
 
-  // 在 JSON 里找对应的书和语言
-  let book = null;
-  for (const b of ebooks) {
-    book = b.lang.find(l => l.slug === slug);
-    if (book) break;
+  if (!slug || isLoading) return <p>Loading...</p>;
+
+  let bookData = null;
+
+  for (const book of data) {
+    if (slug.startsWith(book.number)) {
+      const lang = slug.split("-")[1];
+      bookData = book[lang];
+      break;
+    }
   }
 
-  if (!book) return <p>书不存在</p>;
+  if (!bookData) return <p>Book not found</p>;
 
   return (
     <div style={{ padding: "20px" }}>
-      <h1>{book.title}</h1>
-      <p>{book.description}</p>
-      {book.link && (
+      <h1>{bookData.title}</h1>
+      <p>{bookData.description}</p>
+
+      {/* 如果你有 Notion / PDF 链接 */}
+      {bookData.link && bookData.link !== "#" && (
         <iframe
-          src={book.link}
+          src={bookData.link}
           width="100%"
           height="800px"
           style={{ border: "none", marginTop: "20px" }}
