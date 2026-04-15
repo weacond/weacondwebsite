@@ -1,5 +1,5 @@
-import { Client } from "@notionhq/client";
-import fs from "fs";
+const { Client } = require("@notionhq/client");
+const fs = require("fs");
 
 const notion = new Client({
   auth: process.env.NOTION_API_KEY,
