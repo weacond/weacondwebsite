@@ -1,4 +1,4 @@
-name: Sync Notion to JSO
+name: Sync Notion to JSON
 
 on:
   workflow_dispatch:
