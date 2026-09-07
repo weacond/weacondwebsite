@@ -82,15 +82,16 @@ export default function EbookPage({ title, description, content, pageId, lang })
           ← {labels.back}
         </Link>
 
-        <h1 className="text-3xl font-bold mb-4">{title}</h1>
-        <p className="text-gray-600 mb-6 text-lg">{description}</p>
+        <h1 className="text-3xl font-bold mb-4 text-gray-900">{title}</h1>
+        <p className="text-gray-600 mb-8 text-lg">{description}</p>
 
-        <div className="prose max-w-none mb-8 whitespace-pre-wrap">
+        {/* ✅ 修正：移除 prose 类，使用基础样式保证排版安全 */}
+        <div className="text-gray-800 leading-relaxed whitespace-pre-wrap mb-8 text-lg">
           {content}
         </div>
 
         <div className="border-t pt-4">
-          <span className="font-medium mr-2">{labels.switchLang}:</span>
+          <span className="font-medium mr-2 text-gray-700">{labels.switchLang}:</span>
           {langOptions.map((l) => (
             <Link key={l} href={`/ebooks/${pageId}-${l}`} className="text-blue-600 hover:underline mr-4">
               {l === "cn" ? "中文" : l === "en" ? "English" : "双语"}
