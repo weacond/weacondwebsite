@@ -45,7 +45,7 @@ export async function getStaticProps({ params }) {
 
   try {
     const pageId = slug.replace(/-/g, "");
-    
+
     let title = "";
     let number = "";
     let desc = "";
@@ -110,7 +110,6 @@ export async function getStaticProps({ params }) {
       revalidate: 60,
     };
   } catch (error) {
-    console.error("Notion API Error:", error);
     return {
       props: {
         number: "",
@@ -143,25 +142,36 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
       }, 100);
     }
 
-    let timer = null;
-    const handleScroll = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        const currentScrollY = window.scrollY;
-        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+    let ticking = false;
+    let saveTimer = null;
 
-        if (totalHeight > 0) {
-          const progress = Math.min(100, Math.max(0, (currentScrollY / totalHeight) * 100));
-          setReadingProgress(progress);
-          localStorage.setItem(`ebook_progress_${currentSlug}`, currentScrollY.toString());
-        }
-      }, 200);
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+
+          if (totalHeight > 0) {
+            const progress = Math.min(100, Math.max(0, (currentScrollY / totalHeight) * 100));
+            setReadingProgress(progress);
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        localStorage.setItem(`ebook_progress_${currentSlug}`, window.scrollY.toString());
+      }, 300);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (timer) clearTimeout(timer);
+      if (saveTimer) clearTimeout(saveTimer);
     };
   }, [router.query.slug]);
 
@@ -173,7 +183,7 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <div
-        className="fixed top-0 left-0 h-1 bg-blue-600 z-50 transition-all duration-150 ease-out"
+        className="fixed top-0 left-0 h-1.5 bg-blue-600 z-[9999] transition-all duration-75 ease-out"
         style={{ width: `${readingProgress}%` }}
       />
 
