@@ -1,70 +1,84 @@
+import { Client } from "@notionhq/client";
+import Link from "next/link";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
-import Link from "next/link";
-import { Client } from "@notionhq/client";
 
-// 1. 获取所有电子书数据用于列表展示
+// 1. 获取所有书籍（不分语言），构建时只跑一次
 export async function getStaticProps() {
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
   const database_id = process.env.NOTION_EBOOK_DATABASE_ID;
-  
-  if (!database_id) return { props: { ebooks: [] } };
+
+  if (!database_id) return { props: { books: [] } };
 
   try {
-    const response = await notion.databases.query({ database_id });
-    // 提取书名和 ID
-    const ebooks = response.results.map((page) => ({
-      id: page.id,
-      title: page.properties["书名"]?.title?.[0]?.plain_text || "未命名书籍",
-      englishTitle: page.properties["English Title"]?.title?.[0]?.plain_text || "",
-      description: page.properties["描述"]?.rich_text?.map(t => t.plain_text).join("") || "",
-    }));
-    return { props: { ebooks }, revalidate: 60 };
-  } catch (e) {
-    console.error("Failed to fetch ebooks:", e);
-    return { props: { ebooks: [] } };
+    const response = await notion.databases.query({
+      database_id,
+      sorts: [{ property: "Number", direction: "ascending" }],
+    });
+
+    const books = response.results.map((page) => {
+      const props = page.properties;
+      const getText = (prop) => {
+        if (!prop) return "";
+        if (prop.title) return prop.title.map((t) => t.plain_text).join("");
+        if (prop.rich_text) return prop.rich_text.map((t) => t.plain_text).join("");
+        return "";
+      };
+
+      return {
+        id: page.id,
+        number: getText(props["Number"]), // 获取 "1A" 或 "1B"
+        title: getText(props["Title"]),
+        desc: getText(props["Description"]),
+      };
+    });
+
+    return { props: { books }, revalidate: 60 };
+  } catch (error) {
+    console.error(error);
+    return { props: { books: [] } };
   }
 }
 
-export default function EbooksList({ ebooks }) {
-  const { lang } = useLanguage();
-  
-  const labels = {
-    zh: { title: "电子书图书馆", noBooks: "暂无电子书，请检查 Notion 配置。", read: "阅读" },
-    en: { title: "Ebook Library", noBooks: "No ebooks available. Please check Notion config.", read: "Read" },
-  }[lang];
+export default function EbooksList({ books }) {
+  const { lang } = useLanguage(); // ✅ 在这里使用 Hook
+
+  // ✅ 在客户端根据语言过滤：英文看 A，中文看 B
+  const filteredBooks = books.filter((book) => {
+    if (lang === "zh") return book.number.endsWith("B");
+    return book.number.endsWith("A");
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">{labels.title}</h1>
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">
+          {lang === "zh" ? "电子书库" : "eBook Library"}
+        </h1>
         
-        {ebooks.length === 0 ? (
-          <div className="text-center text-gray-500 py-12">
-            {labels.noBooks}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {ebooks.map((book) => (
-              <Link 
-                key={book.id} 
-                href={`/ebooks/${book.id}-cn`} 
-                className="block bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
-              >
-                <div className="p-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">{book.title}</h2>
-                  <p className="text-sm text-gray-500 mb-4 line-clamp-2">{book.englishTitle}</p>
-                  <p className="text-gray-600 text-sm line-clamp-3 mb-4">{book.description}</p>
-                  <div className="text-blue-600 font-medium text-sm flex items-center">
-                    {labels.read} &rarr;
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+        {filteredBooks.length === 0 && (
+          <p className="text-gray-500 text-center py-10">
+            {lang === "zh" ? "暂无该语言版本的书籍" : "No books available in this language."}
+          </p>
         )}
-      </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {filteredBooks.map((book) => (
+            <Link
+              key={book.id}
+              href={`/ebooks/${book.id}`}
+              className="block p-6 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition"
+            >
+              <span className="text-xs font-semibold px-2 py-1 bg-blue-100 text-blue-800 rounded mb-2 inline-block">
+                {book.number}
+              </span>
+              <h2 className="text-xl font-bold mb-2">{book.title}</h2>
+              <p className="text-gray-600 text-sm line-clamp-3">{book.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </main>
     </div>
   );
 }
