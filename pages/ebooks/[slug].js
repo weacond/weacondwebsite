@@ -24,7 +24,11 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   const { slug } = params;
-  const [pageId, lang] = slug.split("-");
+  
+  // ✅ 修复 Bug：正确解析包含连字符的 Notion ID
+  const parts = slug.split("-");
+  const lang = parts.pop(); // 取出最后一部分作为语言（如 cn, en）
+  const pageId = parts.join("-"); // 剩下的部分重新组合成完整的 ID
   
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
@@ -85,7 +89,6 @@ export default function EbookPage({ title, description, content, pageId, lang })
         <h1 className="text-3xl font-bold mb-4 text-gray-900">{title}</h1>
         <p className="text-gray-600 mb-8 text-lg">{description}</p>
 
-        {/* ✅ 修正：移除 prose 类，使用基础样式保证排版安全 */}
         <div className="text-gray-800 leading-relaxed whitespace-pre-wrap mb-8 text-lg">
           {content}
         </div>
