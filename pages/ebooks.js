@@ -1,13 +1,11 @@
 import { Client } from "@notionhq/client";
-import Navbar from "../../components/Navbar";
+import Navbar from "../components/Navbar";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useLanguage } from "../../contexts/LanguageContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { useEffect, useState } from "react";
 
-// --- 1. 静态路径生成 ---
 export async function getStaticPaths() {
-  // 安全检查：如果没有配置 Key，直接返回空，避免报错
   if (!process.env.NOTION_API_KEY || !process.env.NOTION_EBOOK_DATABASE_ID) {
     return { paths: [], fallback: false };
   }
@@ -20,7 +18,6 @@ export async function getStaticPaths() {
     const paths = response.results.map((page) => ({
       params: { slug: page.id },
     }));
-    // 使用 blocking 模式，允许访问未预构建的页面
     return { paths, fallback: "blocking" };
   } catch (e) {
     console.error("Notion API Error in getStaticPaths:", e);
@@ -28,11 +25,9 @@ export async function getStaticPaths() {
   }
 }
 
-// --- 2. 静态属性获取 (含长文分页逻辑) ---
 export async function getStaticProps({ params }) {
   const { slug } = params;
-  
-  // 安全检查
+
   if (!process.env.NOTION_API_KEY) {
     return { props: { title: "Error", contentBlocks: [] } };
   }
@@ -40,7 +35,6 @@ export async function getStaticProps({ params }) {
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
   try {
-    // 1. 获取页面元数据
     const page = await notion.pages.retrieve({ page_id: slug });
     const props = page.properties;
 
@@ -51,20 +45,17 @@ export async function getStaticProps({ params }) {
       return "";
     };
 
-    // 2. 分页获取正文 (核心修复：防止长文截断)
     let contentBlocks = [];
     let nextCursor = null;
-    
-    // 循环直到没有更多数据
+
     do {
       const blocksResponse = await notion.blocks.children.list({
         block_id: slug,
-        page_size: 100, // Notion 允许的最大值
+        page_size: 100,
         start_cursor: nextCursor,
       });
-      
+
       blocksResponse.results.forEach((block) => {
-        // 使用 Optional Chaining (?.) 防止空指针崩溃
         if (block.type === "paragraph") {
           const text = block.paragraph?.rich_text?.map((t) => t.plain_text).join("");
           if (text) contentBlocks.push({ type: 'p', text });
@@ -75,8 +66,8 @@ export async function getStaticProps({ params }) {
           if (text) contentBlocks.push({ type: `h${level}`, text });
         }
         if (block.type === "quote") {
-           const text = block.quote?.rich_text?.map((t) => t.plain_text).join("");
-           if (text) contentBlocks.push({ type: 'quote', text });
+          const text = block.quote?.rich_text?.map((t) => t.plain_text).join("");
+          if (text) contentBlocks.push({ type: 'quote', text });
         }
       });
 
@@ -90,7 +81,7 @@ export async function getStaticProps({ params }) {
         desc: getText(props["Description"]),
         contentBlocks: contentBlocks,
       },
-      revalidate: 60, // 每 60 秒增量生成一次
+      revalidate: 60,
     };
   } catch (error) {
     console.error("Notion API Error in getStaticProps:", error);
@@ -105,18 +96,15 @@ export async function getStaticProps({ params }) {
   }
 }
 
-// --- 3. 页面组件 (含阅读进度) ---
 export default function EbookPage({ number, title, desc, contentBlocks }) {
   const { lang, setLang } = useLanguage();
   const router = useRouter();
   const [readingProgress, setReadingProgress] = useState(0);
 
-  // 阅读进度逻辑
   useEffect(() => {
     if (!router.query.slug) return;
     const currentSlug = router.query.slug;
 
-    // 恢复进度
     const savedPosition = localStorage.getItem(`ebook_progress_${currentSlug}`);
     if (savedPosition) {
       setTimeout(() => {
@@ -127,14 +115,13 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
       }, 100);
     }
 
-    // 保存进度
     let timer = null;
     const handleScroll = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         const currentScrollY = window.scrollY;
         const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-        
+
         if (totalHeight > 0) {
           const progress = Math.min(100, Math.max(0, (currentScrollY / totalHeight) * 100));
           setReadingProgress(progress);
@@ -157,14 +144,13 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* 顶部进度条 */}
       <div 
         className="fixed top-0 left-0 h-1 bg-blue-600 z-50 transition-all duration-150 ease-out"
         style={{ width: `${readingProgress}%` }}
       />
-      
+
       <Navbar />
-      
+
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <Link href="/ebooks" className="text-blue-600 hover:underline flex items-center">
@@ -182,9 +168,9 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
           <span className="text-sm font-semibold text-blue-600 mb-2 block">{number}</span>
           <h1 className="text-3xl font-bold mb-4">{title}</h1>
           {desc && <p className="text-gray-600 italic mb-6 text-lg border-l-4 border-blue-500 pl-4">{desc}</p>}
-          
+
           <hr className="my-6 border-gray-200" />
-          
+
           <div className="prose max-w-none text-gray-800 leading-relaxed space-y-4">
             {contentBlocks.map((block, idx) => {
               if (block.type === 'p') return <p key={idx} className="mb-4">{block.text}</p>;
