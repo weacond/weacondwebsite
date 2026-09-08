@@ -7,7 +7,7 @@ export async function getStaticPaths() {
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
   const database_id = process.env.NOTION_EBOOK_DATABASE_ID;
   
-  if (!database_id) return { paths: [], fallback: false };
+  if (!database_id) return { paths: [], fallback: 'blocking' };
 
   try {
     const response = await notion.databases.query({ database_id });
@@ -16,19 +16,18 @@ export async function getStaticPaths() {
         params: { slug: `${page.id}-${lang}` },
       }))
     );
-    return { paths, fallback: false };
+    return { paths, fallback: 'blocking' };
   } catch (e) {
-    return { paths: [], fallback: false };
+    return { paths: [], fallback: 'blocking' };
   }
 }
 
 export async function getStaticProps({ params }) {
   const { slug } = params;
   
-  // ✅ 修复 Bug：正确解析包含连字符的 Notion ID
   const parts = slug.split("-");
-  const lang = parts.pop(); // 取出最后一部分作为语言（如 cn, en）
-  const pageId = parts.join("-"); // 剩下的部分重新组合成完整的 ID
+  const lang = parts.pop();
+  const pageId = parts.join("-");
   
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
