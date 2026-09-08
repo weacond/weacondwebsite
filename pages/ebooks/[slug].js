@@ -157,7 +157,7 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 pt-24 pb-8">
         <div className="flex justify-between items-center mb-6">
           <Link href="/ebooks" className="text-blue-600 hover:underline flex items-center">
             ← {lang === "zh" ? "返回列表" : "Back to List"}
