@@ -49,7 +49,7 @@ export default function EbooksList({ books }) {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <Navbar />
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 pt-36 pb-12">
         <h1 className="text-3xl font-bold mb-6">
           {lang === "zh" ? "电子书" : "Ebooks"}
         </h1>
