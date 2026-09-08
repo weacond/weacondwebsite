@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 
 export async function getStaticPaths() {
   if (!process.env.NOTION_API_KEY || !process.env.NOTION_EBOOK_DATABASE_ID) {
-    return { paths: [], fallback: false };
+    return { paths: [], fallback: "blocking" };
   }
 
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
@@ -23,38 +23,57 @@ export async function getStaticPaths() {
 
     return { paths, fallback: "blocking" };
   } catch (e) {
-    return { paths: [], fallback: false };
+    return { paths: [], fallback: "blocking" };
   }
 }
 
 export async function getStaticProps({ params }) {
   const { slug } = params;
 
-  if (!process.env.NOTION_API_KEY) {
-    return { props: { title: "Error", contentBlocks: [] } };
+  if (!process.env.NOTION_API_KEY || !slug) {
+    return {
+      props: {
+        number: "",
+        title: "Error Loading Book",
+        desc: "",
+        contentBlocks: [],
+      },
+    };
   }
 
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
   try {
-    const page = await notion.pages.retrieve({ page_id: slug });
-    const props = page.properties;
+    const pageId = slug.replace(/-/g, "");
+    
+    let title = "";
+    let number = "";
+    let desc = "";
 
-    const getText = (prop) => {
-      if (!prop) return "";
-      if (prop.title) return prop.title.map((t) => t.plain_text).join("");
-      if (prop.rich_text) return prop.rich_text.map((t) => t.plain_text).join("");
-      return "";
-    };
+    try {
+      const page = await notion.pages.retrieve({ page_id: pageId });
+      const props = page.properties;
+
+      const getText = (prop) => {
+        if (!prop) return "";
+        if (prop.title) return prop.title.map((t) => t.plain_text).join("");
+        if (prop.rich_text) return prop.rich_text.map((t) => t.plain_text).join("");
+        return "";
+      };
+
+      title = getText(props["Title"]) || getText(props["Name"]);
+      number = getText(props["Number"]);
+      desc = getText(props["Description"]);
+    } catch (e) {}
 
     let contentBlocks = [];
     let nextCursor = null;
 
     do {
       const blocksResponse = await notion.blocks.children.list({
-        block_id: slug,
+        block_id: pageId,
         page_size: 100,
-        start_cursor: nextCursor,
+        start_cursor: nextCursor || undefined,
       });
 
       blocksResponse.results.forEach((block) => {
@@ -79,24 +98,27 @@ export async function getStaticProps({ params }) {
       });
 
       nextCursor = blocksResponse.next_cursor;
-    } while (blocksResponse.has_more);
+    } while (nextCursor);
 
     return {
       props: {
-        number: getText(props["Number"]),
-        title: getText(props["Title"]) || getText(props["Name"]),
-        desc: getText(props["Description"]),
+        number,
+        title: title || "Untitled",
+        desc,
         contentBlocks,
       },
       revalidate: 60,
     };
   } catch (error) {
+    console.error("Notion API Error:", error);
     return {
       props: {
         number: "",
         title: "Error Loading Book",
         desc: "",
-        contentBlocks: [{ type: "p", text: "Failed to load content. Please try again later." }],
+        contentBlocks: [
+          { type: "p", text: "Failed to load content. Please try again later." },
+        ],
       },
     };
   }
@@ -157,7 +179,7 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-4 pt-24 pb-8">
+      <main className="max-w-4xl mx-auto px-4 pt-36 pb-12">
         <div className="flex justify-between items-center mb-6">
           <Link href="/ebooks" className="text-blue-600 hover:underline flex items-center">
             ← {lang === "zh" ? "返回列表" : "Back to List"}
