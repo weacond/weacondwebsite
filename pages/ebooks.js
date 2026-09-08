@@ -5,28 +5,8 @@ import { useRouter } from "next/router";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useEffect, useState } from "react";
 
-export async function getStaticPaths() {
-  if (!process.env.NOTION_API_KEY || !process.env.NOTION_EBOOK_DATABASE_ID) {
-    return { paths: [], fallback: false };
-  }
-
-  const notion = new Client({ auth: process.env.NOTION_API_KEY });
-  const database_id = process.env.NOTION_EBOOK_DATABASE_ID;
-
-  try {
-    const response = await notion.databases.query({ database_id });
-    const paths = response.results.map((page) => ({
-      params: { slug: page.id },
-    }));
-    return { paths, fallback: "blocking" };
-  } catch (e) {
-    console.error("Notion API Error in getStaticPaths:", e);
-    return { paths: [], fallback: false };
-  }
-}
-
 export async function getStaticProps({ params }) {
-  const { slug } = params;
+  const slug = params?.slug || null;
 
   if (!process.env.NOTION_API_KEY) {
     return { props: { title: "Error", contentBlocks: [] } };
@@ -35,6 +15,17 @@ export async function getStaticProps({ params }) {
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
   try {
+    if (!slug) {
+      return {
+        props: {
+          number: "",
+          title: "Ebooks",
+          desc: "",
+          contentBlocks: [],
+        },
+      };
+    }
+
     const page = await notion.pages.retrieve({ page_id: slug });
     const props = page.properties;
 
