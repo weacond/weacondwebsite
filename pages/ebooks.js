@@ -1,44 +1,41 @@
 import { Client } from "@notionhq/client";
-import Navbar from "../components/Navbar";
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 
+// 1. 获取所有书籍（不分语言），构建时只跑一次
 export async function getStaticProps() {
-  if (!process.env.NOTION_API_KEY || !process.env.NOTION_EBOOK_DATABASE_ID) {
-    return { props: { books: [] } };
-  }
-
   const notion = new Client({ auth: process.env.NOTION_API_KEY });
+  const database_id = process.env.NOTION_EBOOK_DATABASE_ID;
+
+  if (!database_id) return { props: { books: [] } };
 
   try {
     const response = await notion.databases.query({
-      database_id: process.env.NOTION_EBOOK_DATABASE_ID,
+      database_id,
+      sorts: [{ property: "Number", direction: "ascending" }],
     });
 
-    const books = response.results
-      .map((page) => {
-        const props = page.properties;
-        const getPropText = (prop) => {
-          if (!prop) return "";
-          if (prop.title) return prop.title.map((t) => t.plain_text).join("");
-          if (prop.rich_text) return prop.rich_text.map((t) => t.plain_text).join("");
-          return "";
-        };
+    const books = response.results.map((page) => {
+      const props = page.properties;
+      const getText = (prop) => {
+        if (!prop) return "";
+        if (prop.title) return prop.title.map((t) => t.plain_text).join("");
+        if (prop.rich_text) return prop.rich_text.map((t) => t.plain_text).join("");
+        return "";
+      };
 
-        return {
-          id: page.id,
-          number: getPropText(props["Number"]),
-          title: getPropText(props["Title"]) || getPropText(props["Name"]),
-          desc: getPropText(props["Description"]),
-        };
-      })
-      .filter((book) => book.title.trim() !== "");
+      return {
+        id: page.id,
+        number: getText(props["Number"]), // 获取 "1A" 或 "1B"
+        title: getText(props["Title"]),
+        desc: getText(props["Description"]),
+      };
+    });
 
-    return {
-      props: { books },
-      revalidate: 60,
-    };
+    return { props: { books }, revalidate: 60 };
   } catch (error) {
+    console.error(error);
     return { props: { books: [] } };
   }
 }
@@ -46,40 +43,41 @@ export async function getStaticProps() {
 export default function EbooksList({ books }) {
   const { lang } = useLanguage();
 
+  // ✅ 严格隔离：英文看 A，中文看 B
+  const filteredBooks = books.filter((book) => {
+    if (lang === "zh") return book.number.endsWith("B");
+    return book.number.endsWith("A");
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <main className="max-w-4xl mx-auto px-4 pt-36 pb-12">
-        <h1 className="text-3xl font-bold mb-6">
-          {lang === "zh" ? "电子书" : "Ebooks"}
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8 text-slate-900">
+          {lang === "zh" ? "电子书库" : "eBook Library"}
         </h1>
-        {books.length === 0 ? (
-          <p className="text-gray-500">
-            {lang === "zh" ? "暂无电子书内容" : "No ebooks available."}
+        
+        {filteredBooks.length === 0 && (
+          <p className="text-slate-500 text-center py-10">
+            {lang === "zh" ? "暂无该语言版本的书籍" : "No books available in this language."}
           </p>
-        ) : (
-          <div className="space-y-4">
-            {books.map((book) => (
-              <Link
-                key={book.id}
-                href={`/ebooks/${book.id}`}
-                className="block p-6 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-bold">{book.title}</h2>
-                  {book.number && (
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full">
-                      {book.number}
-                    </span>
-                  )}
-                </div>
-                {book.desc && (
-                  <p className="text-gray-600 mt-1 text-sm">{book.desc}</p>
-                )}
-              </Link>
-            ))}
-          </div>
         )}
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {filteredBooks.map((book) => (
+            <Link
+              key={book.id}
+              href={`/ebooks/${book.id}`}
+              className="block p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition"
+            >
+              <span className="text-xs font-semibold px-2 py-1 bg-indigo-100 text-indigo-800 rounded mb-2 inline-block">
+                {book.number}
+              </span>
+              <h2 className="text-xl font-bold mb-2 text-slate-800">{book.title}</h2>
+              <p className="text-slate-600 text-sm line-clamp-3">{book.desc}</p>
+            </Link>
+          ))}
+        </div>
       </main>
     </div>
   );
