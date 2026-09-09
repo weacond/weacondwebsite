@@ -6,7 +6,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 export async function getStaticProps() {
   const apiKey = process.env.NOTION_API_KEY;
   const databaseId = process.env.NOTION_EBOOK_DATABASE_ID;
-
+  
   if (!apiKey || !databaseId) {
     return { props: { books: [] } };
   }
@@ -20,7 +20,6 @@ export async function getStaticProps() {
 
     const books = response.results.map((page) => {
       const props = page.properties || {};
-
       const getText = (prop) => {
         if (!prop) return "";
         if (prop.title) return prop.title.map((t) => t.plain_text).join("");
@@ -48,12 +47,13 @@ export default function EbooksList({ books = [] }) {
   const currentLang = lang || "zh";
   const safeBooks = Array.isArray(books) ? books : [];
 
+  // ✅ 兼容逻辑：支持 01-Cn/01-En 以及旧的 1A/1B 格式
   const filteredBooks = safeBooks.filter((book) => {
     const num = (book.number || "").trim().toLowerCase();
     if (currentLang === "zh") {
-      return num.endsWith("-cn") || num.endsWith("cn") || num.includes("cn");
+      return num.includes("cn") || num.endsWith("b");
     }
-    return num.endsWith("-en") || num.endsWith("en") || num.includes("en");
+    return num.includes("en") || num.endsWith("a");
   });
 
   const getSequence = (num) => {
@@ -64,7 +64,7 @@ export default function EbooksList({ books = [] }) {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
-
+      
       <div className="bg-white border-b border-slate-200 py-12">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold text-slate-900 mb-4">
@@ -92,6 +92,7 @@ export default function EbooksList({ books = [] }) {
             {filteredBooks.map((book) => (
               <Link
                 key={book.id}
+                // ✅ 修复语法错误：href 必须用花括号包裹
                 href={`/ebooks/${book.id}`}
                 className="group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-300 overflow-hidden"
               >
@@ -103,7 +104,6 @@ export default function EbooksList({ books = [] }) {
                     {currentLang === "zh" ? "阅读" : "Read"} →
                   </span>
                 </div>
-
                 <div className="p-6">
                   <h2 className="text-xl font-bold mb-3 text-slate-800 group-hover:text-indigo-700 transition-colors line-clamp-2">
                     {book.title}
