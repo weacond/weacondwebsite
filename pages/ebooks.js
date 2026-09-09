@@ -38,7 +38,6 @@ export async function getStaticProps() {
 
     return { props: { books }, revalidate: 60 };
   } catch (error) {
-    console.error("Notion API Error:", error);
     return { props: { books: [] } };
   }
 }
@@ -50,9 +49,11 @@ export default function EbooksList({ books = [] }) {
   const safeBooks = Array.isArray(books) ? books : [];
 
   const filteredBooks = safeBooks.filter((book) => {
-    const num = book.number || "";
-    if (currentLang === "zh") return num.endsWith("B");
-    return num.endsWith("A");
+    const num = (book.number || "").trim().toLowerCase();
+    if (currentLang === "zh") {
+      return num.endsWith("-cn") || num.endsWith("cn") || num.endsWith("b");
+    }
+    return num.endsWith("-en") || num.endsWith("en") || num.endsWith("a");
   });
 
   return (
