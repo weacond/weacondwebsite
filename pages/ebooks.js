@@ -71,8 +71,8 @@ export default function EbooksList({ books = [] }) {
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             {currentLang === "zh"
-              ? "精选 20+ 经典著作，构建你的理性思维系统。"
-              : "20+ curated classics to build your rational thinking system."}
+              ? "精选经典著作，构建你的理性思维系统。"
+              : "curated classics to build your rational thinking system."}
           </p>
         </div>
       </div>
