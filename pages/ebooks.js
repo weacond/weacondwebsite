@@ -64,7 +64,7 @@ export default function EbooksList({ books = [] }) {
     <div className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <div className="bg-white border-b border-slate-200 pt-20 pb-15">
+      <div className="bg-white border-b border-slate-200 pt-20 pb-17">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold text-slate-900 mb-4 pt-2">
             {currentLang === "zh" ? "投资书房" : "Investment Library"}
