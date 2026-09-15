@@ -1,6 +1,7 @@
 import { Client } from "@notionhq/client";
 import Navbar from "../../components/Navbar";
 import Link from "next/link";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useEffect, useState } from "react";
@@ -182,12 +183,17 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div
+       <Head>
+         <title>{title} — Weacond</title>
+         {desc && <meta name="description" content={desc} />}
+         <meta property="og:title" content={title} />
+         <meta property="og:type" content="article" />
+         {desc && <meta property="og:description" content={desc} />}
+       </Head>
+        <div
         className="fixed top-0 left-0 h-1.5 bg-blue-600 z-[9999] transition-all duration-75 ease-out"
         style={{ width: `${readingProgress}%` }}
-      />
-
-      <Navbar />
+        />
 
       <main className="max-w-4xl mx-auto px-4 pt-36 pb-12">
         <div className="flex justify-between items-center mb-6">
@@ -211,8 +217,8 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
           <hr className="my-6 border-gray-200" />
 
-          <div className="prose max-w-none text-gray-800 leading-relaxed space-y-4">
-            {contentBlocks.map((block, idx) => {
+           <div className="prose max-w-none text-gray-800 leading-relaxed space-y-4">
+             {contentBlocks.map((block, idx) => {
               if (block.type === "p") return <p key={idx} className="mb-4">{block.text}</p>;
               if (block.type === "h1") return <h1 key={idx} className="text-2xl font-bold mt-6 mb-4">{block.text}</h1>;
               if (block.type === "h2") return <h2 key={idx} className="text-xl font-bold mt-5 mb-3">{block.text}</h2>;
@@ -223,8 +229,8 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
               if (block.type === "callout") return <div key={idx} className="p-4 bg-gray-100 rounded-lg my-4">{block.text}</div>;
               return null;
             })}
-          </div>
-        </article>
+             </div>
+           </article>
       </main>
     </div>
   );
