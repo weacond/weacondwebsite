@@ -2,6 +2,39 @@ import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import Link from "next/link";
 
+export const metadata = {
+  title: "Weacond — 让投资变得轻松、便捷、稳健",
+  description:
+    "Weacond 专注于理性投资教育与智能系统，帮助个人投资者建立稳定、系统化的财富思维。",
+  keywords: [
+    "Weacond",
+    "投资教育",
+    "理性投资",
+    "财务自由",
+    "电子书",
+    "financial education",
+  ],
+  // 社交分享（Facebook / Twitter / 微信 等抓取）
+  openGraph: {
+    title: "Weacond — 让投资变得轻松、便捷、稳健",
+    description:
+      "Weacond 专注于理性投资教育与智能系统，帮助个人投资者建立稳定、系统化的财富思维。",
+    type: "website",
+    locale: "zh_CN",
+    siteName: "Weacond",
+  },
+  twitter: {
+    card: "summary",
+    title: "Weacond — 让投资变得轻松、便捷、稳健",
+    description:
+      "Weacond 专注于理性投资教育与智能系统，帮助个人投资者建立稳定、系统化的财富思维。",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
 export default function Home() {
   const { lang } = useLanguage();
   const currentLang = lang || "zh";
@@ -96,7 +129,7 @@ export default function Home() {
 
       <footer className="bg-slate-900 text-slate-400 py-12 text-center">
         <p className="text-sm mb-2">{t.disclaimer}</p>
-        <p className="text-xs">&copy; 2024 Weacond. All rights reserved.</p>
+         <p className="text-xs">&copy; {new Date().getFullYear()} Weacond. All rights reserved.</p>
       </footer>
     </div>
   );
