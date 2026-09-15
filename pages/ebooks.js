@@ -2,6 +2,18 @@ import { Client } from "@notionhq/client";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useEffect, useState } from "react";
+
+export const metadata = {
+  title: "投资书房 · 电子书 — Weacond",
+  description:
+     "Weacond 投资书房：精选经典投资著作，构建你的理性思维系统。中英双语电子书。",
+  keywords: ["电子书", "投资", "书房", "Weacond", "ebooks"],
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export async function getStaticProps() {
   const apiKey = process.env.NOTION_API_KEY;
@@ -47,6 +59,12 @@ export default function EbooksList({ books = [] }) {
   const currentLang = lang || "zh";
   const safeBooks = Array.isArray(books) ? books : [];
 
+  // 首屏数据到达前展示骨架屏，避免内容突现闪烁
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
   const filteredBooks = safeBooks.filter((book) => {
     const num = (book.number || "").trim().toLowerCase();
     if (currentLang === "zh") {
@@ -78,7 +96,23 @@ export default function EbooksList({ books = [] }) {
       </div>
 
       <main className="max-w-5xl mx-auto px-4 py-12">
-        {filteredBooks.length === 0 ? (
+         {!ready ? (
+           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" aria-busy="true" aria-label="Loading">
+             {Array.from({ length: 6 }).map((_, i) => (
+               <div
+                key={i}
+                className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse"
+               >
+                 <div className="h-10 bg-slate-100" />
+                 <div className="p-6 space-y-3">
+                   <div className="h-5 w-3/4 bg-slate-200 rounded" />
+                   <div className="h-3 w-full bg-slate-100 rounded" />
+                   <div className="h-3 w-2/3 bg-slate-100 rounded" />
+                 </div>
+               </div>
+             ))}
+           </div>
+         ) : filteredBooks.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-slate-500 text-lg">
               {currentLang === "zh"
