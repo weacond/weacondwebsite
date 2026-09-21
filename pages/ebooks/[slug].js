@@ -181,6 +181,22 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
     router.push("/ebooks");
   };
 
+   // 把连续的同类列表项合并成一组，渲染时分别包进 <ol>/<ul>，
+   // 使计数在每组从 1 重新开始，避免裸 <li> 跨整篇共用计数器导致的号码叠加。
+  const groupedBlocks = [];
+  contentBlocks.forEach((block) => {
+    if (block.type === "number" || block.type === "bullet") {
+      const last = groupedBlocks[groupedBlocks.length - 1];
+      if (last && last.type === "list" && last.items && last.items[0].type === block.type) {
+        last.items.push(block);
+      } else {
+        groupedBlocks.push({ type: "list", listType: block.type, items: [block] });
+      }
+      return;
+    }
+    groupedBlocks.push(block);
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
        <Head>
@@ -218,14 +234,26 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
           <hr className="my-6 border-gray-200" />
 
            <div className="prose max-w-none text-gray-800 leading-relaxed space-y-4">
-             {contentBlocks.map((block, idx) => {
+             {groupedBlocks.map((block, idx) => {
               if (block.type === "p") return <p key={idx} className="mb-4">{block.text}</p>;
               if (block.type === "h1") return <h1 key={idx} className="text-2xl font-bold mt-6 mb-4">{block.text}</h1>;
               if (block.type === "h2") return <h2 key={idx} className="text-xl font-bold mt-5 mb-3">{block.text}</h2>;
               if (block.type === "h3") return <h3 key={idx} className="text-lg font-bold mt-4 mb-2">{block.text}</h3>;
               if (block.type === "quote") return <blockquote key={idx} className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">{block.text}</blockquote>;
-              if (block.type === "bullet") return <li key={idx} className="ml-4 list-disc">{block.text}</li>;
-              if (block.type === "number") return <li key={idx} className="ml-4 list-decimal">{block.text}</li>;
+              if (block.type === "list") {
+                const isOrdered = block.listType === "number";
+                const ListTag = isOrdered ? "ol" : "ul";
+                return (
+                     <ListTag
+                    key={idx}
+                    className={"space-y-2 my-4 pl-6 " + (isOrdered ? "list-decimal" : "list-disc") + " marker:text-gray-500"}
+                    >
+                      {block.items.map((item, ii) => (
+                        <li key={ii} className="list-none pl-0 marker:content-none">{item.text}</li>
+                      ))}
+                    </ListTag>
+                  );
+                }
               if (block.type === "callout") return <div key={idx} className="p-4 bg-gray-100 rounded-lg my-4">{block.text}</div>;
               return null;
             })}
