@@ -181,13 +181,14 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
     router.push("/ebooks");
   };
 
-   // 把连续的同类列表项合并成一组，渲染时分别包进 <ol>/<ul>，
-   // 使计数在每组从 1 重新开始，避免裸 <li> 跨整篇共用计数器导致的号码叠加。
+  // 把连续的同类列表项（number/bullet）合并成一个列表组，
+  // 渲染时分别包进 <ol>/<ul>，使计数在每组从 1 重新开始，
+  // 避免裸 <li> 跨整篇共用计数器导致的"号码无限叠加"。
   const groupedBlocks = [];
   contentBlocks.forEach((block) => {
     if (block.type === "number" || block.type === "bullet") {
       const last = groupedBlocks[groupedBlocks.length - 1];
-      if (last && last.type === "list" && last.items && last.items[0].type === block.type) {
+      if (last && last.type === "list" && last.items[0].type === block.type) {
         last.items.push(block);
       } else {
         groupedBlocks.push({ type: "list", listType: block.type, items: [block] });
@@ -199,17 +200,17 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-       <Head>
-         <title>{title} — Weacond</title>
-         {desc && <meta name="description" content={desc} />}
-         <meta property="og:title" content={title} />
-         <meta property="og:type" content="article" />
-         {desc && <meta property="og:description" content={desc} />}
-       </Head>
-        <div
+      <Head>
+        <title>{title} — Weacond</title>
+        {desc && <meta name="description" content={desc} />}
+        <meta property="og:title" content={title} />
+        <meta property="og:type" content="article" />
+        {desc && <meta property="og:description" content={desc} />}
+      </Head>
+      <div
         className="fixed top-0 left-0 h-1.5 bg-blue-600 z-[9999] transition-all duration-75 ease-out"
         style={{ width: `${readingProgress}%` }}
-        />
+      />
 
       <main className="max-w-4xl mx-auto px-4 pt-36 pb-12">
         <div className="flex justify-between items-center mb-6">
@@ -233,32 +234,36 @@ export default function EbookPage({ number, title, desc, contentBlocks }) {
 
           <hr className="my-6 border-gray-200" />
 
-           <div className="prose max-w-none text-gray-800 leading-relaxed space-y-4">
-             {groupedBlocks.map((block, idx) => {
+          <div className="prose max-w-none text-gray-800 leading-relaxed space-y-4">
+            {groupedBlocks.map((block, idx) => {
               if (block.type === "p") return <p key={idx} className="mb-4">{block.text}</p>;
               if (block.type === "h1") return <h1 key={idx} className="text-2xl font-bold mt-6 mb-4">{block.text}</h1>;
               if (block.type === "h2") return <h2 key={idx} className="text-xl font-bold mt-5 mb-3">{block.text}</h2>;
               if (block.type === "h3") return <h3 key={idx} className="text-lg font-bold mt-4 mb-2">{block.text}</h3>;
               if (block.type === "quote") return <blockquote key={idx} className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">{block.text}</blockquote>;
+              if (block.type === "callout") return <div key={idx} className="p-4 bg-gray-100 rounded-lg my-4">{block.text}</div>;
               if (block.type === "list") {
                 const isOrdered = block.listType === "number";
-                const ListTag = isOrdered ? "ol" : "ul";
+                const Tag = isOrdered ? "ol" : "ul";
                 return (
-                     <ListTag
+                  <Tag
                     key={idx}
-                    className={"space-y-2 my-4 pl-6 " + (isOrdered ? "list-decimal" : "list-disc") + " marker:text-gray-500"}
-                    >
-                      {block.items.map((item, ii) => (
-                        <li key={ii} className="list-none pl-0 marker:content-none">{item.text}</li>
-                      ))}
-                    </ListTag>
-                  );
-                }
-              if (block.type === "callout") return <div key={idx} className="p-4 bg-gray-100 rounded-lg my-4">{block.text}</div>;
+                    className={
+                      "space-y-2 my-4 pl-6 " +
+                      (isOrdered ? "list-decimal" : "list-disc") +
+                      " marker:text-gray-500"
+                    }
+                  >
+                    {block.items.map((item, i) => (
+                      <li key={i}>{item.text}</li>
+                    ))}
+                  </Tag>
+                );
+              }
               return null;
             })}
-             </div>
-           </article>
+          </div>
+        </article>
       </main>
     </div>
   );
