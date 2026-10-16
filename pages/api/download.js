@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // GET /api/download?slug=xxx&format=pdf
 // 验证用户购买记录，返回 R2 签名 URL 或重定向
 // 需要 Cookie 中的 Supabase access token 或 query param email

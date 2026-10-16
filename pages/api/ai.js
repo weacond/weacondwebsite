@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // AI 云端降级 API — POST /api/ai
 // 当 WebGPU 不可用时，使用云端 LLM
 // 生产环境: 接入 OpenAI / Anthropic / 本地服务器

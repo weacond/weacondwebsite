@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // 回测 API — POST /api/backtest
 // Body: { strategy, params, config, preset }
 // 使用 lib/backtest.js + lib/marketdata.js 运行回测

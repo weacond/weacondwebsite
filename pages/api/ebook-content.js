@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // GET /api/ebook-content?slug=xxx
 // 返回电子书【完整正文】。安全设计（不会泄漏）：
 //   - 全文永远只从【私有桶】读取（R2_API_TOKEN + 私有桶名），公开桶里只有第1章预览。

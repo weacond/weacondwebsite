@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // GET /api/purchases  — 返回当前用户已购书籍 slug 列表（服务端真实来源）
 //
 // 安全设计：

@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // 行情数据 API — GET /api/marketdata
 // 查询参数: ?symbol=SPY&source=alphaVantage&apiKey=xxx
 // 返回: { candles: [...], fundamentals: {...} }

@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 // Stripe Checkout 创建接口
 // POST /api/checkout  { bookSlug: "equity-pricing" | "bundle-all", email: "user@example.com" }
 // 返回 Stripe Checkout Session URL
