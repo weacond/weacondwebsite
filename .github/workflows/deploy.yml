@@ -42,13 +42,22 @@ jobs:
           command: "pages deploy .vercel/output/static --project-name weacond"
           # 服务端环境变量（只在运行时使用，不进前端）。
           # wrangler-action@v3 的输入名是 `secrets`（不是 secretVars）。
-          secrets: |
-            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
-            R2_API_TOKEN=${{ secrets.R2_API_TOKEN }}
-            R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }}
+          # wrangler-action@v3 的 `secrets` 输入：只列密钥【变量名】，值从该 step 的 env 读取。
+          secrets:
+            - STRIPE_SECRET_KEY
+            - STRIPE_WEBHOOK_SECRET
+            - SUPABASE_SERVICE_ROLE_KEY
+            - R2_ACCOUNT_ID
+            - R2_API_TOKEN
+            - R2_PUBLIC_URL
+        # 各密钥的值（仅运行时使用，不进前端）。空值也只是设为空，不会让部署失败。
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_API_TOKEN: ${{ secrets.R2_API_TOKEN }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
 
   # Job 2: 只同步【预览 + 目录】到公开 R2 桶（绝不传全文）
   sync-public-r2:
