@@ -1,5 +1,3 @@
-export const runtime = "experimental-edge";
-
 import Navbar from "../../components/Navbar";
 import Link from "next/link";
 import Head from "next/head";
@@ -9,9 +7,17 @@ import { useEffect, useState } from "react";
 import { fetchEbookIndex, markdownToBlocks } from "../../lib/r2";
 import Watermark from "../../components/Watermark";
 import { buyBook } from "../../lib/checkoutClient";
+import { BOOK_CATALOG, BUNDLE } from "../../lib/stripe";
 
+// 全量静态预渲染：把 25 本 + 套装在构建时一次性生成 26 个页面。
+// 这样该页面变为纯静态，不再需要 Edge/ISR，规避 Cloudflare Edge 运行时限制。
+// 价格/标题等 meta 来自 R2 公开桶（CI 可直接访问，无需密钥）。
 export async function getStaticPaths() {
-  return { paths: [], fallback: "blocking" };
+  const slugs = [BUNDLE.slug, ...BOOK_CATALOG.map((b) => b.slug)];
+  return {
+    paths: slugs.map((slug) => ({ params: { slug } })),
+    fallback: false,
+  };
 }
 
 export async function getStaticProps({ params }) {
