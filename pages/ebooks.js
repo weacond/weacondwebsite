@@ -1,114 +1,126 @@
-import { Client } from "@notionhq/client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
+import { fetchEbookIndex } from "../lib/r2";
+import { buyBook } from "../lib/checkoutClient";
+
+export const metadata = {
+  title: "投资书房 · 电子书 — Weacond",
+  description: "Weacond 投资书房：精选经典投资著作，构建你的理性思维系统。中英双语电子书。",
+  keywords: ["电子书", "投资", "书房", "Weacond", "ebooks"],
+  robots: { index: true, follow: true },
+};
 
 export async function getStaticProps() {
-  const apiKey = process.env.NOTION_API_KEY;
-  const databaseId = process.env.NOTION_EBOOK_DATABASE_ID;
-
-  if (!apiKey || !databaseId) {
-    return { props: { books: [] } };
-  }
-
   try {
-    const notion = new Client({ auth: apiKey });
-    const response = await notion.databases.query({
-      database_id: databaseId,
-      sorts: [{ property: "Number", direction: "ascending" }],
-    });
-
-    const books = response.results.map((page) => {
-      const props = page.properties || {};
-      const getText = (prop) => {
-        if (!prop) return "";
-        if (prop.title) return prop.title.map((t) => t.plain_text).join("");
-        if (prop.rich_text) return prop.rich_text.map((t) => t.plain_text).join("");
-        return "";
-      };
-
-      return {
-        id: page.id,
-        number: getText(props["Number"]) || "",
-        title: getText(props["Title"]) || getText(props["Name"]) || "Untitled",
-        desc: getText(props["Description"]) || "",
-      };
-    });
-
-    return { props: { books }, revalidate: 60 };
+    const books = await fetchEbookIndex();
+    return { props: { books }, revalidate: 300 };
   } catch (error) {
-    console.error(error);
+    console.error("R2 index fetch failed:", error);
     return { props: { books: [] } };
   }
 }
 
 export default function EbooksList({ books = [] }) {
   const { lang } = useLanguage();
-  const currentLang = lang || "zh";
   const safeBooks = Array.isArray(books) ? books : [];
 
-  const filteredBooks = safeBooks.filter((book) => {
-    const num = (book.number || "").trim().toLowerCase();
-    if (currentLang === "zh") {
-      return num.includes("cn") || num.endsWith("b");
-    }
-    return num.includes("en") || num.endsWith("a");
-  });
-
-  const getSequence = (num) => {
-    if (!num) return "";
-    return num.split("-")[0];
-  };
+  // 已购集合：先读本地缓存，再向 /api/purchases 核对服务端真实记录（绕开 RLS 的隐私风险）
+  const [owned, setOwned] = useState(new Set());
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem("weacond_purchases") || "[]");
+      if (Array.isArray(cached) && cached.length) setOwned(new Set(cached));
+    } catch {}
+    fetch("/api/purchases", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { slugs: [] }))
+      .then((d) => {
+        const slugs = Array.isArray(d.slugs) ? d.slugs : [];
+        if (slugs.length) {
+          localStorage.setItem("weacond_purchases", JSON.stringify(slugs));
+          setOwned(new Set(slugs));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
-
       <div className="bg-white border-b border-slate-200 pt-20 pb-17">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold text-slate-900 mb-4 pt-2">
-            {currentLang === "zh" ? "投资书房" : "Investment Library"}
+            {lang === "zh" ? "投资书房" : "Investment Library"}
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            {currentLang === "zh"
-              ? "精选经典著作，构建你的理性思维系统。"
-              : "curated classics to build your rational thinking system."}
+            {lang === "zh" ? "精选经典著作，构建你的理性思维系统。" : "Curated classics to build your rational thinking system."}
           </p>
         </div>
       </div>
-
       <main className="max-w-5xl mx-auto px-4 py-12">
-        {filteredBooks.length === 0 ? (
+        {safeBooks.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-slate-500 text-lg">
-              {currentLang === "zh"
-                ? "暂无该语言版本的书籍"
-                : "No books available in this language."}
+              {lang === "zh" ? "暂无书籍" : "No books available."}
             </p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredBooks.map((book) => (
+            {safeBooks.map((book) => (
               <Link
                 key={book.id}
-                href={`/ebooks/${book.id}`}
+                href={`/ebooks/${book.slug}`}
                 className="group block bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-300 overflow-hidden"
               >
                 <div className="bg-slate-50 px-6 py-3 border-b border-slate-100 flex justify-between items-center">
-                  <span className="text-xs font-bold text-indigo-600 tracking-wider">
-                    #{getSequence(book.number)}
-                  </span>
+                  <span className="text-xs font-bold text-indigo-600 tracking-wider">#{book.number}</span>
                   <span className="text-xs text-slate-400 group-hover:text-indigo-500 transition-colors">
-                    {currentLang === "zh" ? "阅读" : "Read"} →
+                    {lang === "zh" ? "阅读" : "Read"} →
                   </span>
                 </div>
                 <div className="p-6">
                   <h2 className="text-xl font-bold mb-3 text-slate-800 group-hover:text-indigo-700 transition-colors line-clamp-2">
-                    {book.title}
+                    {lang === "en" ? (book.title_en || book.title) : (book.title_cn || book.title)}
                   </h2>
                   <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">
-                    {book.desc}
+                    {lang === "en" ? (book.desc_en || book.desc) : (book.desc_cn || book.desc)}
                   </p>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                    {book.price > 0 ? (
+                      <span className="text-lg font-bold text-indigo-600">${book.price}</span>
+                    ) : (
+                      <span className="text-sm font-medium text-green-600">
+                        {lang === "zh" ? "免费" : "Free"}
+                      </span>
+                    )}
+                    {owned.has(book.slug) || owned.has("bundle-all") ? (
+                      <span className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">
+                        {lang === "zh" ? "已购 ✓" : "Owned ✓"}
+                      </span>
+                    ) : book.price > 0 ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          buyBook(book.slug, {
+                            titleCn: book.title_cn,
+                            titleEn: book.title_en,
+                          });
+                        }}
+                        className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">
+                        {lang === "zh" ? "购买" : "Buy"}
+                      </button>
+                    ) : (
+                      <a
+                        href={`/api/download?slug=${book.slug}&format=pdf`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-500 transition-colors">
+                        {lang === "zh" ? "下载 PDF" : "Download PDF"}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </Link>
             ))}

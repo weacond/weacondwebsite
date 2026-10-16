@@ -1,0 +1,27 @@
+# Cloudflare Worker 配置（通过 @cloudflare/next-on-pages 生成）
+# 实际部署文件在 .next-on-pages/cloudflare-workers/
+# 此文件为参考，主要配置在 deploy.yml 中
+
+name = "weacond"
+main = ".next-on-pages/cloudflare-workers/_worker.js"
+compatibility_date = "2024-10-01"
+
+# R2 桶绑定
+# 在 Cloudflare Dashboard → R2 → 创建两个桶：weacond-public 和 weacond-private
+# 然后在此处绑定
+
+[[r2_buckets]]
+binding = "R2_PUBLIC"
+bucket_name = "weacond-public"
+
+[[r2_buckets]]
+binding = "R2_PRIVATE"
+bucket_name = "weacond-private"
+
+# 环境变量在 Cloudflare Dashboard 设置，不要在这里写实际值！
+# 需要设置的环境变量：
+#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+#   SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, SUPABASE_ANON_KEY
+#   R2_ACCOUNT_ID, R2_API_TOKEN, R2_PUBLIC_URL
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY

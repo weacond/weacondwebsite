@@ -1,0 +1,12 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob: *.r2.cloudflarestorage.com; font-src 'self' https:; connect-src 'self' https://*.supabase.co https://api.stripe.com
+
+/ebooks/*
+  X-Robots-Tag: noindex, nofollow
+
+/ebooks/preview/*
+  X-Robots-Tag: noindex, nofollow

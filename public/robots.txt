@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /ebooks/
+Allow: /ebooks/preview/
+Disallow: /api/
+
+Sitemap: https://weacond.com/sitemap.xml

@@ -1,21 +1,28 @@
 {
   "name": "weacond-website",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/checkLeak.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint",
+    "deploy": "npx @cloudflare/next-on-pages --init && npx wrangler deploy .next-on-pages/cloudflare-workers"
   },
   "dependencies": {
     "next": "14.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "@notionhq/client": "^3.1.0"
+    "@supabase/supabase-js": "^2.57.0",
+    "@stripe/stripe-js": "^3.5.0",
+    "stripe": "^14.21.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.3.3",
     "postcss": "^8.4.26",
-    "autoprefixer": "^10.4.14"
+    "autoprefixer": "^10.4.14",
+    "@cloudflare/workers-types": "^4.20240501.0",
+    "wrangler": "^3.57.0"
   }
 }
