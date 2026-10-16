@@ -30,20 +30,24 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
-      - name: Deploy to Cloudflare
+      # 第 1 步：纯部署（不传密钥）——让静态站 + Edge Functions 立刻上线。
+      # 运行时密钥需 CLOUDFLARE_API_TOKEN 具备 "Workers Scripts: Write" 权限，见第 2 步。
+      - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          # next-on-pages 1.13.5 产出的是 Cloudflare Pages 项目（.vercel/output/static/）：
-          # 静态 HTML + _worker.js/index.js（9 个 API 路由被打成 Edge Function）+ _routes.json。
-          # 所以用 `pages deploy` 部署该目录（旧版的 .next-on-pages/cloudflare-workers 已废弃）。
-          # R2 访问走 R2_API_TOKEN（环境变量），不是 bucket binding，故 secretVars 即可满足 API 路由需求。
           command: "pages deploy .vercel/output/static --project-name weacond"
-          # 服务端环境变量（只在运行时使用，不进前端）。
-          # wrangler-action@v3 的输入名是 `secrets`（不是 secretVars）。
-          # wrangler-action@v3 的 `secrets` 输入是【多行字符串】（每行一个密钥名，不能是 YAML 数组）；
-          # 各密钥的【值】由下方 env 块按同名变量注入。
+
+      # 第 2 步：写入运行时密钥（非阻断）。token 权限不足时本步失败，
+      # 但 continue-on-error 不让它阻断——站点由第 1 步成功部署。权限修好后本步自动写入密钥。
+      - name: Set Cloudflare runtime secrets (non-blocking)
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          # wrangler-action@v3 的 secrets 输入是多行字符串（每行一个密钥名），值从下方 env 注入。
           secrets: |
             STRIPE_SECRET_KEY
             STRIPE_WEBHOOK_SECRET
@@ -51,7 +55,7 @@ jobs:
             R2_ACCOUNT_ID
             R2_API_TOKEN
             R2_PUBLIC_URL
-        # 各密钥的值（仅运行时使用，不进前端）。空值也只是设为空，不会让部署失败。
+          command: "pages deploy .vercel/output/static --project-name weacond"
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -59,6 +63,7 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_API_TOKEN: ${{ secrets.R2_API_TOKEN }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+
 
   # Job 2: 只同步【预览 + 目录】到公开 R2 桶（绝不传全文）
   sync-public-r2:
