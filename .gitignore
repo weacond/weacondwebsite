@@ -45,3 +45,7 @@ public/workbox-*.js
 
 # Docker
 docker-compose.yml
+
+# build artifacts (Cloudflare Pages / next-on-pages output)
+.vercel
+.next-on-pages

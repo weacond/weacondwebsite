@@ -34,7 +34,11 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: "deploy .next-on-pages/cloudflare-workers --name weacond --compatibility-date=2024-10-01"
+          # next-on-pages 1.13.5 产出的是 Cloudflare Pages 项目（.vercel/output/static/）：
+          # 静态 HTML + _worker.js/index.js（9 个 API 路由被打成 Edge Function）+ _routes.json。
+          # 所以用 `pages deploy` 部署该目录（旧版的 .next-on-pages/cloudflare-workers 已废弃）。
+          # R2 访问走 R2_API_TOKEN（环境变量），不是 bucket binding，故 secretVars 即可满足 API 路由需求。
+          command: "pages deploy .vercel/output/static --project-name weacond"
           # 服务端环境变量（只在运行时使用，不进前端）
           secretVars: |
             STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
