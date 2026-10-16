@@ -21,11 +21,9 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
-      - name: Install next-on-pages + Vercel build tool
-        # vercel@34.4.0 自带 @vercel/next@4.3.2（与 Next 14.2.0 同年代），
-        # 这是 next-on-pages 把代码转成 Cloudflare Worker 时需要的构建零件。
-        # 注意：这只是“构建期”借用的工具，线上网站 100% 跑在 Cloudflare，不花 Vercel 一分钱。
-        run: npm install @cloudflare/next-on-pages@1.13.5 vercel@34.4.0 --no-save
+      # next-on-pages + vercel 已列入 package.json 的 devDependencies，
+      # 由上面的 `npm ci` 完整安装（进 lockfile，不会被 next-on-pages 内部二次 install 删除）。
+      # 注意：这只是“构建期”借用的工具，线上网站 100% 跑在 Cloudflare，不花 Vercel 一分钱。
       - name: Build with next-on-pages
         run: npx @cloudflare/next-on-pages
         env:
