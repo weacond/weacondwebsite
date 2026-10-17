@@ -1,16 +1,40 @@
 export const runtime = "edge";
 
-// 临时极简 handler：零 import，用于定位 /api/* 500 是运行时/框架问题还是依赖问题。
+// Stripe Checkout 创建接口
+// POST /api/checkout  { bookSlug: "equity-pricing" | "bundle-all", email: "user@example.com" }
+// 返回 Stripe Checkout Session URL
+//
+// 动态定价：价格直接来自 lib/stripe.js 的 BOOK_CATALOG / BUNDLE，
+// 不需要在 Stripe 后台预先创建 22 个产品。
+
+import { createCheckoutSession } from "../../lib/stripe";
+
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: "Stripe not configured" });
+  }
+
+  let body = {};
   try {
-    res.status(200).json({
-      ok: true,
-      message: "checkout handler 运行时正常",
-      method: req.method,
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-      keyPrefix: process.env.STRIPE_SECRET_KEY ? String(process.env.STRIPE_SECRET_KEY).slice(0, 8) : null,
-    });
-  } catch (e) {
-    res.status(500).json({ error: "handler crash", detail: e && e.message ? e.message : String(e) });
+    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+  } catch {
+    body = {};
+  }
+  const { bookSlug, email } = body;
+  if (!bookSlug || !email) {
+    return res.status(400).json({ error: "Missing bookSlug or email" });
+  }
+
+  try {
+    const session = await createCheckoutSession(bookSlug, email);
+    res.status(200).json({ url: session.url });
+  } catch (err) {
+    const detail = err && err.message ? err.message : String(err);
+    console.error("Stripe checkout error:", detail);
+    res.status(500).json({ error: "Checkout failed", detail });
   }
 }
