@@ -13,17 +13,19 @@ compatibility_flags = ["nodejs_compat"]
 # 不能用 Worker 的 main（二者互斥，会冲突导致构建失败）。
 pages_build_output_dir = ".vercel/output/static"
 
-# R2 桶绑定
-# 在 Cloudflare Dashboard → R2 → 创建两个桶：weacond-public 和 weacond-private
-# 然后在此处绑定
-
-[[r2_buckets]]
-binding = "R2_PUBLIC"
-bucket_name = "weacond-public"
-
-[[r2_buckets]]
-binding = "R2_PRIVATE"
-bucket_name = "weacond-private"
+# R2 桶绑定暂时移除：
+# 原绑定 weacond-public / weacond-private 在 Cloudflare 账号中不存在/不可达（HTTP 000），
+# 导致 next-on-pages 生成的 worker 初始化失败、所有 /api/* 路由 500。
+# 书列表已改为构建期本地 index.json 兜底，不依赖 R2；下载功能需后续重建 R2 桶再恢复。
+#
+# 待 R2 桶就绪后，恢复：
+# [[r2_buckets]]
+# binding = "R2_PUBLIC"
+# bucket_name = "weacond-public"
+#
+# [[r2_buckets]]
+# binding = "R2_PRIVATE"
+# bucket_name = "weacond-private"
 
 # 环境变量在 Cloudflare Dashboard 设置，不要在这里写实际值！
 # 需要设置的环境变量：
