@@ -37,7 +37,7 @@ jobs:
           curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            --data '{"name":"weacond"}' | head -c 600
+            --data '{"name":"weacond","production_branch":"main"}' | head -c 600
           echo ""
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
