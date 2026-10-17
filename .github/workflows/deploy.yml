@@ -30,6 +30,18 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      # 第 0 步：确保 Pages 项目 weacond 存在（wrangler 偶发不自动创建，先手动 POST 建一次）
+      - name: Ensure Pages project exists
+        run: |
+          echo "Creating/ensuring Pages project 'weacond' in account ${CLOUDFLARE_ACCOUNT_ID} ..."
+          curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"name":"weacond"}' | head -c 600
+          echo ""
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
       # 第 1 步：纯部署（不传密钥）——让静态站 + Edge Functions 立刻上线。
       # 运行时密钥需 CLOUDFLARE_API_TOKEN 具备 "Workers Scripts: Write" 权限，见第 2 步。
       - name: Deploy to Cloudflare Pages
