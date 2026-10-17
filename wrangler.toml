@@ -3,11 +3,10 @@
 # 此文件为参考，主要配置在 deploy.yml 中
 
 name = "weacond"
-main = ".next-on-pages/cloudflare-workers/_worker.js"
 compatibility_date = "2024-10-01"
 
-# Cloudflare Pages 部署必需：指向 Vercel 构建产物里的静态文件目录
-# （缺失会导致 wrangler pages deploy 配置错误、Pages Functions 500）
+# 这是 Pages 项目（wrangler pages deploy），用 pages_build_output_dir 指向静态产物，
+# 不能用 Worker 的 main（二者互斥，会冲突导致构建失败）。
 pages_build_output_dir = ".vercel/output/static"
 
 # R2 桶绑定
