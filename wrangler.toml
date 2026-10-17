@@ -3,11 +3,13 @@
 # 此文件为参考，主要配置在 deploy.yml 中
 
 name = "weacond"
-compatibility_date = "2024-10-01"
+# 注意：compatibility_date 在下方统一定义为 2025-01-01（配合 nodejs_compat_v2）
 
 # @cloudflare/next-on-pages 生成的函数需要 nodejs_compat 兼容标志，
 # 缺失会导致所有 /api/* 路由 503 "no nodejs_compat compatibility flag"。
-compatibility_flags = ["nodejs_compat"]
+# 用 nodejs_compat_v2 + 较新的 compatibility_date（next-on-pages + Next 14 已知 async_hooks/async__chunk 500 bug 的缓解）。
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat_v2"]
 
 # 这是 Pages 项目（wrangler pages deploy），用 pages_build_output_dir 指向静态产物，
 # 不能用 Worker 的 main（二者互斥，会冲突导致构建失败）。
