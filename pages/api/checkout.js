@@ -27,7 +27,9 @@ export default async function handler(req, res) {
     const session = await createCheckoutSession(bookSlug, email);
     res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error("Stripe checkout error:", err.message || err);
-    res.status(500).json({ error: "Checkout failed" });
+    const detail = err && err.message ? err.message : String(err);
+    console.error("Stripe checkout error:", detail);
+    // 临时返回真实错误便于排查（生产上线前可去掉 detail 字段）
+    res.status(500).json({ error: "Checkout failed", detail, hasKey: !!process.env.STRIPE_SECRET_KEY });
   }
 }
