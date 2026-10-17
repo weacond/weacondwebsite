@@ -6,6 +6,10 @@ name = "weacond"
 main = ".next-on-pages/cloudflare-workers/_worker.js"
 compatibility_date = "2024-10-01"
 
+# Cloudflare Pages 部署必需：指向 Vercel 构建产物里的静态文件目录
+# （缺失会导致 wrangler pages deploy 配置错误、Pages Functions 500）
+pages_build_output_dir = ".vercel/output/static"
+
 # R2 桶绑定
 # 在 Cloudflare Dashboard → R2 → 创建两个桶：weacond-public 和 weacond-private
 # 然后在此处绑定

@@ -10,35 +10,31 @@ export const runtime = "edge";
 import { createCheckoutSession } from "../../lib/stripe";
 
 export default async function handler(req, res) {
-  // 顶层防御：任何异常都返回 JSON（含诊断），避免通用 500 页掩盖真因
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: "Stripe not configured" });
+  }
+
+  let body = {};
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method Not Allowed" });
-    }
-    // Edge 运行时 req.body 可能是字符串/流，安全解析
-    let body = {};
-    try {
-      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
-    } catch {
-      body = {};
-    }
-    const { bookSlug, email } = body;
-    // 诊断：揭示密钥是否注入、是否解析到参数（暂不调用 Stripe）
-    return res.status(200).json({
-      ok: false,
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-      stripeKeyPrefix: process.env.STRIPE_SECRET_KEY ? String(process.env.STRIPE_SECRET_KEY).slice(0, 8) : null,
-      keyLength: process.env.STRIPE_SECRET_KEY ? String(process.env.STRIPE_SECRET_KEY).length : 0,
-      hasSupabase: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      gotBookSlug: !!bookSlug,
-      gotEmail: !!email,
-      note: "诊断响应，未真正调用 Stripe",
-    });
-  } catch (topErr) {
-    res.status(500).json({
-      error: "Top-level",
-      detail: topErr && topErr.message ? topErr.message : String(topErr),
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-    });
+    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+  } catch {
+    body = {};
+  }
+  const { bookSlug, email } = body;
+  if (!bookSlug || !email) {
+    return res.status(400).json({ error: "Missing bookSlug or email" });
+  }
+
+  try {
+    const session = await createCheckoutSession(bookSlug, email);
+    res.status(200).json({ url: session.url });
+  } catch (err) {
+    const detail = err && err.message ? err.message : String(err);
+    console.error("Stripe checkout error:", detail);
+    res.status(500).json({ error: "Checkout failed", detail });
   }
 }
