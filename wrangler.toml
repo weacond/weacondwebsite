@@ -5,6 +5,10 @@
 name = "weacond"
 compatibility_date = "2024-10-01"
 
+# @cloudflare/next-on-pages 生成的函数需要 nodejs_compat 兼容标志，
+# 缺失会导致所有 /api/* 路由 503 "no nodejs_compat compatibility flag"。
+compatibility_flags = ["nodejs_compat"]
+
 # 这是 Pages 项目（wrangler pages deploy），用 pages_build_output_dir 指向静态产物，
 # 不能用 Worker 的 main（二者互斥，会冲突导致构建失败）。
 pages_build_output_dir = ".vercel/output/static"
