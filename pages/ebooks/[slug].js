@@ -4,7 +4,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useEffect, useState } from "react";
-import { fetchEbookIndex, markdownToBlocks } from "../../lib/r2";
+import { fetchEbookIndex, normalizeBook, markdownToBlocks } from "../../lib/r2";
 import Watermark from "../../components/Watermark";
 import { buyBook } from "../../lib/checkoutClient";
 import { BOOK_CATALOG, BUNDLE } from "../../lib/stripe";
@@ -22,10 +22,24 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   const { slug } = params;
+  let meta = {}, previewBlocks = [];
   try {
-    const index = await fetchEbookIndex();
-    const meta = index.find((b) => b.slug === slug) || {};
-    let previewBlocks = [];
+    // 1. 优先 R2 公开桶
+    let index = await fetchEbookIndex();
+    // 2. R2 不可用 → 回退本地目录（构建期 Node 上下文，fs 安全）
+    if (!Array.isArray(index) || index.length === 0) {
+      try {
+        const fs = await import("fs");
+        const path = await import("path");
+        const p = path.join(process.cwd(), "public", "ebooks", "index.json");
+        const raw = JSON.parse(fs.readFileSync(p, "utf-8"));
+        index = Array.isArray(raw) ? raw.map(normalizeBook) : [];
+      } catch (e) {
+        console.error("ebooks/[slug] 本地目录兜底失败:", e.message);
+      }
+    }
+    meta = index.find((b) => b.slug === slug) || {};
+    // 3. 预览章节：读本地图 preview/{slug}.md（Markdown，构建期 fs 安全）
     try {
       const previewPath = meta.preview ? "/ebooks/" + meta.preview : "";
       if (previewPath) {
@@ -40,8 +54,8 @@ export async function getStaticProps({ params }) {
     } catch {}
     return { props: { meta, previewBlocks, slug } };
   } catch (error) {
-    console.error("R2 index fetch failed:", error);
-    return { props: { meta: {}, previewBlocks: [], slug } };
+    console.error("ebooks/[slug] index fetch failed:", error.message);
+    return { props: { meta, previewBlocks, slug } };
   }
 }
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
-import { fetchEbookIndex } from "../lib/r2";
+import { fetchEbookIndex, normalizeBook } from "../lib/r2";
 import { buyBook } from "../lib/checkoutClient";
 
 export const metadata = {
@@ -13,13 +13,27 @@ export const metadata = {
 };
 
 export async function getStaticProps() {
+  let books = [];
+  // 1. 优先 R2 公开桶（线上数据源）
   try {
-    const books = await fetchEbookIndex();
-    return { props: { books }, revalidate: 300 };
+    books = await fetchEbookIndex();
   } catch (error) {
-    console.error("R2 index fetch failed:", error);
-    return { props: { books: [] } };
+    console.error("R2 index fetch failed:", error.message);
   }
+  // 2. R2 不可用 → 回退本地打包目录（构建期 Node 上下文，fs 安全，不进 Edge 包）
+  if (!Array.isArray(books) || books.length === 0) {
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const p = path.join(process.cwd(), "public", "ebooks", "index.json");
+      const raw = JSON.parse(fs.readFileSync(p, "utf-8"));
+      books = Array.isArray(raw) ? raw.map(normalizeBook) : [];
+      console.warn(`ebooks: 使用本地 index.json 兜底（${books.length} 本）`);
+    } catch (e) {
+      console.error("ebooks 本地兜底失败:", e.message);
+    }
+  }
+  return { props: { books }, revalidate: 300 };
 }
 
 export default function EbooksList({ books = [] }) {
