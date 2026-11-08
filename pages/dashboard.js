@@ -1,4 +1,5 @@
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -146,6 +147,7 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { fetchEbookIndex, normalizeBook } from "../lib/r2";
 import { buyBook } from "../lib/checkoutClient";
@@ -128,7 +129,7 @@ export default function EbooksList({ books = [] }) {
                       </button>
                     ) : (
                       <a
-                        href={`/api/download?slug=${book.slug}&format=pdf`}
+                        href={`/api/download?slug=${book.slug}&format=pdf&lang=${lang}`}
                         onClick={(e) => e.stopPropagation()}
                         className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-500 transition-colors">
                         {lang === "zh" ? "下载 PDF" : "Download PDF"}
@@ -141,6 +142,7 @@ export default function EbooksList({ books = [] }) {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

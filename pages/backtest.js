@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -211,6 +212,7 @@ export default function BacktestPage() {
           {error && (<div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200 text-sm">{error}</div>)}
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

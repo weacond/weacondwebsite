@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -95,6 +96,7 @@ export default function BlackSwanPage() {
           <p className="mt-6 text-center text-xs text-slate-400">{L.disclaimer}</p>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

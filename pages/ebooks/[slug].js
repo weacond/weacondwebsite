@@ -4,7 +4,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useEffect, useState } from "react";
-import { fetchEbookIndex, normalizeBook, markdownToBlocks } from "../../lib/r2";
+import { fetchEbookIndex, normalizeBook, markdownToBlocks, resolvePath } from "../../lib/r2";
 import Watermark from "../../components/Watermark";
 import { buyBook } from "../../lib/checkoutClient";
 import { BOOK_CATALOG, BUNDLE } from "../../lib/stripe";
@@ -22,7 +22,7 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   const { slug } = params;
-  let meta = {}, previewBlocks = [];
+  let meta = {}, previewBlocksZh = [], previewBlocksEn = [];
   try {
     // 1. 优先 R2 公开桶
     let index = await fetchEbookIndex();
@@ -39,32 +39,42 @@ export async function getStaticProps({ params }) {
       }
     }
     meta = index.find((b) => b.slug === slug) || {};
-    // 3. 预览章节：读本地图 preview/{slug}.md（Markdown，构建期 fs 安全）
+    // 3. 预览章节：按语言各读一份（英文文件缺失则回退中文；构建期 fs 安全）
     try {
-      const previewPath = meta.preview ? "/ebooks/" + meta.preview : "";
-      if (previewPath) {
-        const fs = await import("fs");
-        const path = await import("path");
-        const previewFile = path.join(process.cwd(), "public", previewPath);
-        if (fs.existsSync(previewFile)) {
-          const md = fs.readFileSync(previewFile, "utf-8");
-          previewBlocks = markdownToBlocks(md);
-        }
-      }
+      const fs = await import("fs");
+      const path = await import("path");
+      const readLangPreview = (langKey) => {
+        const rel = resolvePath(meta.preview, langKey);
+        if (!rel) return [];
+        const f = path.join(process.cwd(), "public", "/ebooks/" + rel);
+        return fs.existsSync(f) ? markdownToBlocks(fs.readFileSync(f, "utf-8")) : [];
+      };
+      previewBlocksEn = readLangPreview("en");  // 英文=默认，必有
+      previewBlocksZh = readLangPreview("zh");  // 中文 .cn.md
+      if (!previewBlocksZh.length) previewBlocksZh = previewBlocksEn; // 中文缺失回退英文
     } catch {}
-    return { props: { meta, previewBlocks, slug } };
+    return { props: { meta, previewBlocksZh, previewBlocksEn, slug } };
   } catch (error) {
     console.error("ebooks/[slug] index fetch failed:", error.message);
-    return { props: { meta, previewBlocks, slug } };
+    return { props: { meta, previewBlocksZh, previewBlocksEn, slug } };
   }
 }
 
-export default function EbookPage({ meta = {}, previewBlocks = [], slug }) {
+export default function EbookPage({ meta = {}, previewBlocksZh = [], previewBlocksEn = [], slug }) {
   const { lang } = useLanguage();
   const [purchased, setPurchased] = useState(false);
   const [fullBlocks, setFullBlocks] = useState([]);
   const [loadingFull, setLoadingFull] = useState(false);
   const [showFull, setShowFull] = useState(false);
+
+  // 按当前语言选预览块（中文缺失已在构建期回退英文，故两支必有值）
+  const previewBlocks = lang === "en" ? previewBlocksEn : previewBlocksZh;
+
+  // 切换语言时收起已展开的全文，避免显示旧语言内容（需重新点开拉取新语言）
+  useEffect(() => {
+    setShowFull(false);
+    setFullBlocks([]);
+  }, [lang]);
 
   const displayTitle = meta.title_cn ? (lang === "zh" ? meta.title_cn : meta.title_en) : "Untitled";
   const displayDesc = meta.desc_cn ? (lang === "zh" ? meta.desc_cn : meta.desc_en) : "";
@@ -91,7 +101,7 @@ export default function EbookPage({ meta = {}, previewBlocks = [], slug }) {
     if (showFull) return;
     setLoadingFull(true);
     try {
-      const res = await fetch("/api/ebook-content?slug=" + slug, { credentials: "include" });
+      const res = await fetch("/api/ebook-content?slug=" + slug + "&lang=" + lang, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setFullBlocks(markdownToBlocks(data.content || ""));
@@ -211,7 +221,7 @@ export default function EbookPage({ meta = {}, previewBlocks = [], slug }) {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {["pdf", "epub", "html"].map((fmt) => (
-                  <a key={fmt} href={canReadFull ? "/api/download?slug=" + slug + "&format=" + fmt : "#"}
+                  <a key={fmt} href={canReadFull ? "/api/download?slug=" + slug + "&format=" + fmt + "&lang=" + lang : "#"}
                     className={"text-center py-3 px-4 rounded-lg text-sm font-medium " + (canReadFull ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-slate-100 text-slate-400 cursor-not-allowed")}
                     onClick={(e) => { if (!canReadFull) { e.preventDefault(); alert("请先购买"); } }}>
                     {fmt.toUpperCase()}{!canReadFull ? " 🔒" : ""}

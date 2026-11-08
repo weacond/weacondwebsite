@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { slug } = req.query;
+  const { slug, lang } = req.query;
   if (!slug) {
     return res.status(400).json({ error: "Missing slug" });
   }
@@ -76,13 +76,25 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. 全文只从【私有桶】读取，绝不碰公开桶
-    const key = getR2Key(slug); // content/{slug}.md
+    // 3. 全文只从【私有】读取。英文=默认(content/{slug}.md)；中文=content/{slug}.cn.md（缺失回退英文）
+    const keyEn = getR2Key(slug, "en"); // 默认英文
+    const keyZh = getR2Key(slug, "zh"); // 中文 .cn.md
+    const wantZh = lang === "zh" || lang === "cn";
     try {
-      const content = await fetchPrivateContent(key);
+      let content;
+      if (wantZh && keyZh && keyZh !== keyEn) {
+        try {
+          content = await fetchPrivateContent(keyZh);
+        } catch (zhErr) {
+          content = await fetchPrivateContent(keyEn); // 中文缺失 → 回退英文
+        }
+      } else {
+        content = await fetchPrivateContent(keyEn);
+      }
       return res.status(200).json({
         slug,
         content,
+        lang: wantZh ? "zh" : "en",
         isPreview: false,
         isFree,
       });

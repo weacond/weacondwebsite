@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -131,6 +132,7 @@ export default function AIPage() {
           )}
         </div>
       </section>
+      <Footer />
     </div>
   );
 }
