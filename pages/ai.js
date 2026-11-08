@@ -5,7 +5,12 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
-import Link from "next/link";
+import {
+  loadLocalModel,
+  localInferenceStream,
+  cloudFallback,
+  checkWebGPUSupport,
+} from "../lib/ai";
 
 export const metadata = {
   title: "本地 AI 助手 — Weacond",
@@ -13,11 +18,12 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
+// UI 模型简写（经 lib/ai.js MODEL_MAP 解析为 web-llm 真实模型 ID）
 const MODELS = [
-  { id: "qwen-1.8b", name: "Qwen 1.8B", size: "1.2GB", quality: "快速", ctx: "2K", best: "简单问答" },
-  { id: "qwen-4b", name: "Qwen 4B", size: "2.5GB", quality: "均衡", ctx: "4K", best: "一般任务" },
-  { id: "llama-3-8b", name: "Llama 3 8B", size: "5GB", quality: "高质量", ctx: "8K", best: "复杂推理" },
-  { id: "phi-3-4b", name: "Phi-3 4B", size: "2.3GB", quality: "均衡", ctx: "4K", best: "代码生成" },
+  { id: "qwen-1.8b", name: "Qwen 1.8B", size: "≈1GB", quality: "快速", ctx: "4K", best: "简单问答" },
+  { id: "qwen-4b", name: "Qwen 4B", size: "≈2GB", quality: "均衡", ctx: "4K", best: "一般任务" },
+  { id: "llama-3-8b", name: "Llama 3 8B", size: "≈5GB", quality: "高质量", ctx: "8K", best: "复杂推理" },
+  { id: "phi-3-4b", name: "Phi-3 4B", size: "≈2GB", quality: "均衡", ctx: "4K", best: "代码生成" },
 ];
 
 const SUGGESTIONS = [
@@ -31,31 +37,84 @@ export default function AIPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
   const [selectedModel, setSelectedModel] = useState(null);
+  const [engine, setEngine] = useState(null); // 已加载的 web-llm engine（本地推理用）
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState("idle"); // idle | loading | ready
+  const [progress, setProgress] = useState(0); // 0-100 模型下载/加载进度
+  const [errorMsg, setErrorMsg] = useState("");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [webgpuSupported, setWebgpuSupported] = useState(null);
 
-  useEffect(() => { setWebgpuSupported(!!(navigator.gpu || true)); }, []);
+  useEffect(() => {
+    setWebgpuSupported(checkWebGPUSupport());
+  }, []);
 
-  const loadModel = async (modelId) => {
-    setLoading(true); setStatus("loading"); setSelectedModel(modelId);
-    await new Promise((r) => setTimeout(r, 2000));
-    setStatus("ready"); setLoading(false);
+  // 加载本地模型到 WebGPU（带进度；失败回退并提示用云端）
+  const loadModel = async (uiId) => {
+    setLoading(true);
+    setStatus("loading");
+    setSelectedModel(uiId);
+    setProgress(0);
+    setErrorMsg("");
+    try {
+      const { engine } = await loadLocalModel(uiId, (report) => {
+        setProgress(report.progressPercent || 0);
+      });
+      setEngine(engine);
+      setStatus("ready");
+    } catch (e) {
+      setEngine(null);
+      setStatus("idle");
+      setSelectedModel(null);
+      setErrorMsg((e && e.message) || "Failed to load model");
+      console.error("[ai] loadModel failed:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // 发送：有 engine 走本地流式推理；否则降级到云端 /api/ai
   const sendMessage = async () => {
-    if (!input.trim() || !selectedModel) return;
-    setMessages((m) => [...m, { role: "user", content: input, time: new Date().toISOString() }]);
-    setInput(""); setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setMessages((m) => [...m, { role: "assistant", content: L.mockResponse, time: new Date().toISOString(), model: selectedModel }]);
-    setLoading(false);
+    const text = input.trim();
+    if (!text || loading) return;
+    const userMsg = { role: "user", content: text, time: new Date().toISOString() };
+    const history = [...messages, userMsg];
+    setMessages((m) => [...m, userMsg]);
+    setInput("");
+    setLoading(true);
+    // 追加一个占位 assistant 消息，随后流式填充
+    setMessages((m) => [...m, { role: "assistant", content: "", time: new Date().toISOString(), streaming: true }]);
+
+    const updateLast = (patch) =>
+      setMessages((m) => {
+        const copy = [...m];
+        copy[copy.length - 1] = { ...copy[copy.length - 1], ...patch };
+        return copy;
+      });
+
+    try {
+      if (engine) {
+        const msgs = history.map((h) => ({ role: h.role, content: h.content }));
+        let acc = "";
+        for await (const token of localInferenceStream(engine, msgs, { maxTokens: 512, temperature: 0.7 })) {
+          acc += token;
+          updateLast({ content: acc });
+        }
+        updateLast({ content: acc || L.noOutput, streaming: false, model: "local" });
+      } else {
+        updateLast({ content: L.thinking });
+        const resp = await cloudFallback(text, "You are a helpful financial assistant.");
+        updateLast({ content: resp, streaming: false, model: "cloud" });
+      }
+    } catch (e) {
+      updateLast({ content: L.error + " " + ((e && e.message) || ""), streaming: false });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+  return (    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -74,10 +133,26 @@ export default function AIPage() {
                     className={`text-left p-4 rounded-lg border transition-all ${selectedModel === m.id ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:border-indigo-200"}`}>
                     <div className="font-semibold">{m.name}</div>
                     <div className="text-xs text-slate-400 mt-1">{m.size} | {m.ctx} ctx | {m.best}</div>
-                    {loading && selectedModel === m.id && (<div className="mt-2 text-xs text-indigo-600">{L.loadingModel}...</div>)}
+                    {loading && selectedModel === m.id && (
+                      <div className="mt-2">
+                        <div className="text-xs text-indigo-600">{L.loadingModel} {progress}%</div>
+                        <div className="mt-1 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
+              {errorMsg && (
+                <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                  ⚠️ {errorMsg}
+                  <div className="mt-2 text-xs text-slate-500">{L.loadFailedHint}</div>
+                </div>
+              )}
+              {!webgpuSupported && (
+                <p className="mt-3 text-xs text-amber-600">{L.cloudModeHint}</p>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
@@ -86,7 +161,7 @@ export default function AIPage() {
                   <span className="font-semibold">{MODELS.find((m) => m.id === selectedModel)?.name}</span>
                   <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{L.localInference}</span>
                 </div>
-                <button onClick={() => { setStatus("idle"); setSelectedModel(null); setMessages([]); }}
+                <button onClick={() => { setStatus("idle"); setSelectedModel(null); setEngine(null); setMessages([]); }}
                   className="text-sm text-slate-400 hover:text-slate-600">{L.switchModel}</button>
               </div>
               <div className="space-y-4 min-h-[300px] max-h-[400px] overflow-y-auto mb-4">
@@ -105,13 +180,14 @@ export default function AIPage() {
                 )}
                 {messages.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] px-4 py-3 rounded-xl text-sm ${m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-800"}`}>
+                    <div className={`max-w-[80%] px-4 py-3 rounded-xl text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-800"}`}>
                       {m.content}
-                      {m.model && <div className="text-xs text-slate-400 mt-2">🔒 {L.processedLocally}</div>}
+                      {m.model === "local" && <div className="text-xs text-slate-400 mt-2">🔒 {L.processedLocally}</div>}
+                      {m.model === "cloud" && <div className="text-xs text-amber-500 mt-2">☁️ {L.processedCloud}</div>}
                     </div>
                   </div>
                 ))}
-                {loading && (
+                {loading && messages[messages.length - 1] && messages[messages.length - 1].streaming && !messages[messages.length - 1].content && (
                   <div className="flex justify-start">
                     <div className="bg-slate-100 px-4 py-3 rounded-xl text-sm text-slate-400 animate-pulse">{L.thinking}...</div>
                   </div>
@@ -136,7 +212,6 @@ export default function AIPage() {
     </div>
   );
 }
-
 const zh = {
   title: "本地 AI 助手",
   subtitle: "WebGPU 本地推理，交易数据永不离开你的设备",
@@ -144,15 +219,19 @@ const zh = {
   gpuNotSupported: "⚠ 当前浏览器不支持 WebGPU — 将使用云端降级方案",
   selectModel: "选择模型",
   loadingModel: "加载模型",
+  loadFailedHint: "模型加载失败（可能是网络或显存不足）。可改选更小模型，或直接在下方用云端降级发送。",
+  cloudModeHint: "无 WebGPU：发送消息时将自动走云端 /api/ai（数据会上行服务端）。",
   localInference: "本地运行",
   switchModel: "切换模型",
   startConversation: "开始对话，或选择以下建议：",
   inputPlaceholder: "输入你的问题...",
   send: "发送",
   thinking: "思考中",
+  noOutput: "（模型未返回内容）",
   processedLocally: "本地处理，数据未上传",
+  processedCloud: "云端处理（降级）",
+  error: "推理出错：",
   privacyNote: "所有推理在本地完成，交易数据和策略参数不会上传到服务器",
-  mockResponse: "这是一个演示响应。接入 WebGPU 后，AI 将在本地处理你的请求。当前为 MVP 阶段，使用模拟响应。",
 };
 const en = {
   title: "Local AI Assistant",
@@ -161,14 +240,17 @@ const en = {
   gpuNotSupported: "⚠ WebGPU not supported — cloud fallback will be used",
   selectModel: "Select Model",
   loadingModel: "Loading model",
+  loadFailedHint: "Model failed to load (network or insufficient VRAM). Pick a smaller model, or just send via the cloud fallback below.",
+  cloudModeHint: "No WebGPU: messages will automatically use the cloud /api/ai (data is sent to the server).",
   localInference: "Local",
   switchModel: "Switch model",
   startConversation: "Start a conversation, or pick a suggestion:",
   inputPlaceholder: "Type your question...",
   send: "Send",
   thinking: "Thinking",
+  noOutput: "(model returned no content)",
   processedLocally: "Processed locally, no upload",
+  processedCloud: "Processed in cloud (fallback)",
+  error: "Inference error: ",
   privacyNote: "All inference runs locally. Trading data and strategy params never leave your device.",
-  mockResponse: "This is a demo response. With WebGPU integrated, the AI will process locally. Currently MVP phase with simulated responses.",
 };
-
