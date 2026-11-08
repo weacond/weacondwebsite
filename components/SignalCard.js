@@ -94,7 +94,7 @@ export default function SignalCard({ signal }) {
       {/* 三柱串联：回测 + AI 解读 */}
       <div className="flex gap-2">
         <Link
-          href="/backtest"
+          href={`/backtest?symbol=${encodeURIComponent(ticker)}`}
           className="flex-1 text-center text-xs bg-slate-100 text-slate-700 py-2 px-3 rounded-lg hover:bg-slate-200 transition-colors"
         >
           {L.viewBacktest} →

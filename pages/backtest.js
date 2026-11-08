@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 
@@ -32,6 +33,8 @@ const METRIC_KEYS = [
 export default function BacktestPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
+  const router = useRouter();
+  const symbolFromQuery = router?.query?.symbol ? String(router.query.symbol).toUpperCase() : "";
   const [strategyKey, setStrategyKey] = useState("ma_cross");
   const [preset, setPreset] = useState("SPY_2023");
   const [params, setParams] = useState({});
@@ -64,6 +67,13 @@ export default function BacktestPage() {
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">{L.title}</h1>
           <p className="text-slate-500 mb-8">{L.subtitle}</p>
+          {symbolFromQuery && (
+            <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3 text-sm text-indigo-800">
+              {lang === "en" ? "Backtesting for " : "为 "}
+              <b>{symbolFromQuery}</b>
+              {lang === "en" ? " · demo data (from signal)" : " · 来自信号页的示例回测"}
+            </div>
+          )}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {/* 策略选择 */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 md:col-span-1">
