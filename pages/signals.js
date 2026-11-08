@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SignalCard from "../components/SignalCard";
+import { computeSignalScore } from "../lib/signals";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -11,13 +12,27 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-// 示例信号数据（实际接入行情 API 后替换；卡片渲染由 components/SignalCard 负责）
-const DEMO_SIGNALS = [
-  { ticker: "NVDA", name: "NVIDIA", score: 82, direction: "bullish", f: 91, t: 88, v: 65, ivRank: 78, reason: "AI 需求强劲，技术突破 $130 阻力", source: "Weacond Engine v0.1" },
-  { ticker: "AAPL", name: "Apple", score: 64, direction: "mild_bullish", f: 70, t: 62, v: 55, ivRank: 45, reason: "财报预期温和，支撑位 $195", source: "Weacond Engine v0.1" },
-  { ticker: "TSLA", name: "Tesla", score: 38, direction: "mild_bearish", f: 35, t: 30, v: 70, ivRank: 82, reason: "交付不及预期，IV 偏高适合卖 Put", source: "Weacond Engine v0.1" },
-  { ticker: "SPY", name: "S&P 500 ETF", score: 71, direction: "bullish", f: 75, t: 72, v: 50, ivRank: 40, reason: "宏观利好，趋势向上", source: "Weacond Engine v0.1" },
+// 标的池 + 各引擎输入（mock；接入行情后只替换这里即可实时化）
+const UNIVERSE = [
+  { ticker: "NVDA", name: "NVIDIA", fairValueScore: 0.82, technicalScore: 0.85, ivRank: 78, thetaScore: 0.7 },
+  { ticker: "MSFT", name: "Microsoft", fairValueScore: 0.78, technicalScore: 0.68, ivRank: 55, thetaScore: 0.65 },
+  { ticker: "SPY", name: "S&P 500 ETF", fairValueScore: 0.72, technicalScore: 0.7, ivRank: 40, thetaScore: 0.6 },
+  { ticker: "AAPL", name: "Apple", fairValueScore: 0.65, technicalScore: 0.6, ivRank: 45, thetaScore: 0.6 },
+  { ticker: "AMD", name: "AMD", fairValueScore: 0.55, technicalScore: 0.5, ivRank: 70, thetaScore: 0.75 },
+  { ticker: "TSLA", name: "Tesla", fairValueScore: 0.4, technicalScore: 0.35, ivRank: 82, thetaScore: 0.85 },
 ];
+
+// 用信号引擎计算（三引擎加权 → 综合分 + 方向 + 风险 + 可解释性），按 score 降序
+const SIGNALS = UNIVERSE.map((u) => ({
+  ticker: u.ticker,
+  name: u.name,
+  ivRank: u.ivRank,
+  source: "Weacond Engine v0.1",
+  ...computeSignalScore(
+    { fundamental: 0.35, technical: 0.3, volatility: 0.35 },
+    { fairValueScore: u.fairValueScore, technicalScore: u.technicalScore, ivRank: u.ivRank, thetaScore: u.thetaScore }
+  ),
+})).sort((a, b) => b.score - a.score);
 
 export default function SignalsPage() {
   const { lang } = useLanguage();
@@ -39,9 +54,9 @@ export default function SignalsPage() {
             </span>
           </div>
 
-          {/* 信号卡片列表（由可复用 SignalCard 渲染，串联回测 + AI） */}
+          {/* 信号卡片（引擎计算 → SignalCard 渲染 → 串联回测/AI） */}
           <div className="space-y-4">
-            {DEMO_SIGNALS.map((s) => (
+            {SIGNALS.map((s) => (
               <SignalCard key={s.ticker} signal={s} />
             ))}
           </div>
@@ -62,14 +77,14 @@ export default function SignalsPage() {
 
 const zh = {
   title: "今日信号",
-  subtitle: "三引擎合成评分 · 可解释 · 附数据来源",
+  subtitle: "三引擎合成评分 · 可解释 · 引擎计算（mock 输入）",
   demoLabel: "示例数据 · 非实时",
   upgradePrompt: "解锁每日 5-10 条卖 Put 筛选、IV Rank、Greeks 摘要与风控建议",
   upgradeCta: "查看 PutSeller 方案",
 };
 const en = {
   title: "Today's Signals",
-  subtitle: "3-Engine composite scoring · Explainable · With sources",
+  subtitle: "3-Engine composite scoring · Explainable · Engine-computed",
   demoLabel: "Demo Data · Not Live",
   upgradePrompt: "Unlock 5-10 put options daily, IV Rank, Greeks, and risk management",
   upgradeCta: "View PutSeller Plan",
