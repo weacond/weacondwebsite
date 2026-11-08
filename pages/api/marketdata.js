@@ -11,7 +11,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { symbol = "SPY", source = "alphaVantage", apiKey, includeFundamentals = "false" } = req.query;
+  const { symbol = "SPY", source = "alphaVantage", includeFundamentals = "false" } = req.query;
+  // 安全：优先用服务端 env 密钥；绝不信任 URL 里的 apiKey（会进日志 / Referer 造成泄漏）。
+  // 仅当未配置 env（本地开发调试）时才允许 query 透传。
+  const apiKey = process.env.ALPHA_VANTAGE_API_KEY || req.query.apiKey;
 
   try {
     const candles = await fetchRealCandles({ symbol, source, apiKey });
