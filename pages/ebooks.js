@@ -4,7 +4,6 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { fetchEbookIndex, normalizeBook } from "../lib/r2";
-import { buyBook } from "../lib/checkoutClient";
 
 export const metadata = {
   title: "投资书房 · 电子书 — Weacond",
@@ -116,9 +115,12 @@ export default function EbooksList({ books = [] }) {
                     ) : book.price > 0 ? (
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          // 延迟加载：仅点击"购买"时才拉取 checkoutClient(含 supabase-js) 分包，
+                          // 减小 /ebooks 首屏体积。buyBook 本就 fire-and-forget，行为不变。
+                          const { buyBook } = await import("../lib/checkoutClient.js");
                           buyBook(book.slug, {
                             titleCn: book.title_cn,
                             titleEn: book.title_en,

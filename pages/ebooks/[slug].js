@@ -6,7 +6,6 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useEffect, useState } from "react";
 import { fetchEbookIndex, normalizeBook, markdownToBlocks, resolvePath } from "../../lib/r2";
 import Watermark from "../../components/Watermark";
-import { buyBook } from "../../lib/checkoutClient";
 import { BOOK_CATALOG, BUNDLE } from "../../lib/stripe";
 
 // 全量静态预渲染：把 25 本 + 套装在构建时一次性生成 26 个页面。
@@ -194,7 +193,13 @@ export default function EbookPage({ meta = {}, previewBlocksZh = [], previewBloc
                   {meta.price > 0 && <span className="text-2xl font-bold text-indigo-600">${meta.price}</span>}
                   <button
                     type="button"
-                    onClick={() => buyBook(slug, { titleCn: meta.title_cn, titleEn: meta.title_en })}
+                    onClick={() =>
+                      // 延迟加载：仅点击"购买并解锁"时才拉取 checkoutClient(含 supabase-js) 分包，
+                      // 减小 /ebooks/[slug] 首屏体积。buyBook 本就 fire-and-forget，行为不变。
+                      import("../../lib/checkoutClient.js").then(({ buyBook }) =>
+                        buyBook(slug, { titleCn: meta.title_cn, titleEn: meta.title_en })
+                      )
+                    }
                     className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">
                     {lang === "zh" ? "购买并解锁" : "Buy & Unlock"}
                   </button>
