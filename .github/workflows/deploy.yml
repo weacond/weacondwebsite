@@ -11,8 +11,22 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
 
 jobs:
+  # Job 0: 单元测试门禁 — 先跑 lib 纯逻辑测试（回测/宏观/模拟盘），通过才允许部署
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - name: Run unit tests
+        run: npm test
+
   # Job 1: 构建 + 部署到 Cloudflare Workers
   deploy-worker:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

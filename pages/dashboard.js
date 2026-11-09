@@ -5,7 +5,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import { usePaper } from "../lib/paper";
+import { usePaper, markPositions } from "../lib/paper";
 
 export const metadata = {
   title: "仪表盘 — Weacond",
@@ -28,7 +28,8 @@ export default function Dashboard() {
   const [justBought, setJustBought] = useState(false);
   // 3 天任务进度：真实派生自本地 store（信号访问 / 教学 / 模拟交易），非硬编码
   const [taskState, setTaskState] = useState({ seenSignals: false, seenTutorial: false });
-  const { trades, realizedPnl, positions } = usePaper();
+  const [markLive, setMarkLive] = useState(null);
+  const { trades, realizedPnl, positions, totalPnl } = usePaper();
 
   useEffect(() => {
     setTaskState({
@@ -45,6 +46,45 @@ export default function Dashboard() {
       })
       .catch(() => {});
   }, [router.isReady, router.query.success]);
+
+  // 盯市：进入仪表盘即用 /api/marketdata 最新价更新持仓现价，浮动盈亏随之真实化（无 key 时演示价）
+  const refreshPrices = async () => {
+    const tickers = [...new Set(positions.map((p) => p.ticker))];
+    if (!tickers.length) return;
+    try {
+      const results = await Promise.all(
+        tickers.map(async (t) => {
+          try {
+            const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(t)}&interval=Daily&months=1`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            const c = data.candles || [];
+            const last = c[c.length - 1];
+            if (!last || !last.close) return null;
+            return { ticker: t, price: Number(last.close), live: !!data.live };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const map = {};
+      let anyLive = false;
+      results.filter(Boolean).forEach((r) => {
+        map[r.ticker] = r.price;
+        if (r.live) anyLive = true;
+      });
+      markPositions(map);
+      setMarkLive(anyLive);
+    } catch {
+      /* 静默：盯市失败不影响仪表盘其余内容 */
+    }
+  };
+
+  // 落地即盯市：进入仪表盘自动用最新价更新持仓（仅一次，避免循环）
+  useEffect(() => {
+    refreshPrices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Day0 看过信号 · Day1 看过教学 · Day2 完成模拟交易（全部真实派生）
   const completedTasks = {
@@ -140,10 +180,28 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {/* 模拟账户概览（真实来自 lib/paper.js store） */}
+          {/* 模拟账户概览（真实来自 lib/paper.js store，进入即盯市） */}
           <div className="mt-6">
-            <h2 className="font-bold mb-3">{L.paperSummary}</h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold">{L.paperSummary}</h2>
+              {markLive !== null && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    markLive ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {markLive
+                    ? lang === "en"
+                      ? "Live prices"
+                      : "实时价"
+                    : lang === "en"
+                    ? "Demo prices"
+                    : "演示价"}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
                 <div className="text-xs text-slate-400 mb-1">{L.openPos}</div>
                 <div className="text-2xl font-bold">{positions.length}</div>
@@ -155,11 +213,53 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                <div className="text-xs text-slate-400 mb-1">{L.floatPnlLabel}</div>
+                <div className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(0)}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
                 <div className="text-xs text-slate-400 mb-1">{L.closedTrades}</div>
                 <div className="text-2xl font-bold">{trades.length}</div>
               </div>
             </div>
-            <Link href="/paper" className="mt-3 inline-block text-sm text-indigo-600 hover:underline">{L.goToPaper} →</Link>
+
+            {/* 逐仓浮动盈亏 */}
+            {positions.length > 0 && (
+              <div className="mt-4 bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="grid grid-cols-5 gap-2 px-4 py-2 bg-slate-50 text-xs text-slate-500 font-medium">
+                  <span>{lang === "en" ? "Ticker" : "标的"}</span>
+                  <span className="text-right">{lang === "en" ? "Qty" : "数量"}</span>
+                  <span className="text-right">{lang === "en" ? "Entry" : "成本"}</span>
+                  <span className="text-right">{lang === "en" ? "Current" : "现价"}</span>
+                  <span className="text-right">{lang === "en" ? "Unrealized" : "浮动盈亏"}</span>
+                </div>
+                {positions.map((p) => {
+                  const upnl = (Number(p.current) - Number(p.entry)) * Number(p.qty);
+                  return (
+                    <div
+                      key={p.id}
+                      className="grid grid-cols-5 gap-2 px-4 py-2 text-sm border-t border-slate-50 items-center"
+                    >
+                      <span className="font-medium">{p.name || p.ticker}</span>
+                      <span className="text-right text-slate-500">{p.qty}</span>
+                      <span className="text-right text-slate-500">${Number(p.entry).toFixed(2)}</span>
+                      <span className="text-right text-slate-500">${Number(p.current).toFixed(2)}</span>
+                      <span className={`text-right font-medium ${upnl >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {upnl >= 0 ? "+" : ""}${upnl.toFixed(0)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-between">
+              <Link href="/paper" className="text-sm text-indigo-600 hover:underline">
+                {L.goToPaper} →
+              </Link>
+              {positions.length > 0 && <span className="text-xs text-slate-400">{L.riskHint}</span>}
+            </div>
           </div>
 
           {/* 我的电子书（服务端真实来源 /api/purchases） */}
@@ -201,11 +301,13 @@ const zh = {
   title:"我的仪表盘", freePlan:"Free 方案", taskTitle:"3天体验任务",
   goNow:"去完成", markDone:"标记已看",
   paperSummary:"模拟账户概览", openPos:"持仓数", realizedPnlLabel:"已实现盈亏",
-  closedTrades:"已平仓", goToPaper:"进入模拟盘",
+  floatPnlLabel:"浮动盈亏", closedTrades:"已平仓", goToPaper:"进入模拟盘",
+  riskHint:"浮动盈亏基于最新市价，实时盯市",
 };
 const en = {
   title:"My Dashboard", freePlan:"Free Plan", taskTitle:"3-Day Trial Tasks",
   goNow:"Go", markDone:"Mark watched",
   paperSummary:"Paper Account", openPos:"Open positions", realizedPnlLabel:"Realized P&L",
-  closedTrades:"Closed trades", goToPaper:"Open paper trading",
+  floatPnlLabel:"Floating P&L", closedTrades:"Closed trades", goToPaper:"Open paper trading",
+  riskHint:"Floating P&L marked to latest market price",
 };

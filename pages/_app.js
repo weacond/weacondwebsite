@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import { LanguageProvider } from "../contexts/LanguageContext";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import Head from "next/head";
@@ -27,7 +28,9 @@ export default function App({ Component, pageProps }) {
         <meta name="apple-mobile-web-app-title" content="Weacond" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </Head>
-      <Component {...pageProps} />
+      <ErrorBoundary>
+        <Component {...pageProps} />
+      </ErrorBoundary>
     </LanguageProvider>
   );
 }
