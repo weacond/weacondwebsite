@@ -42,6 +42,7 @@ export default function MacroPage() {
   const [dataSource, setDataSource] = useState("demo");
   const [loadingVix, setLoadingVix] = useState(false);
   const [vixNote, setVixNote] = useState("");
+  const [vixSeries, setVixSeries] = useState([]);
 
   // 用当前 VIX（演示或真实）重新评估宏观状态；其余指标暂用演示占位
   const MACRO = assessMacroState({ ...DEMO_INDICATORS, vix });
@@ -57,6 +58,7 @@ export default function MacroPage() {
       const candles = data.candles || [];
       const last = candles[candles.length - 1];
       if (!last || !last.close) throw new Error(lang === "en" ? "No VIX data returned" : "未获取到 VIX 数据");
+      setVixSeries(candles.map((c) => ({ date: c.date, close: Number(c.close) })));
       setVix(Number(last.close));
       setDataSource(data.live ? "live" : "demo");
       setVixNote(data.live
@@ -140,6 +142,23 @@ export default function MacroPage() {
             <p className={`text-xs mb-8 ${dataSource === "live" ? "text-green-600" : "text-amber-600"}`}>{vixNote}</p>
           )}
 
+          {/* VIX 走势迷你图 */}
+          {vixSeries.length > 1 && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">{L.vixTrend}</h3>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${dataSource === "live" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                  {dataSource === "live" ? (lang === "en" ? "Live" : "实时") : (lang === "en" ? "Demo" : "演示")}
+                </span>
+              </div>
+              <VixSparkline data={vixSeries} />
+              <div className="flex gap-4 mt-2 text-xs text-slate-400">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-amber-500" />{lang === "en" ? "VIX 20 (elevated)" : "VIX 20（偏高）"}</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-red-500" />{lang === "en" ? "VIX 30 (crisis)" : "VIX 30（危机）"}</span>
+              </div>
+            </div>
+          )}
+
           {/* 配置建议 */}
           <h2 className="text-lg font-bold mb-3">{L.allocation}</h2>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
@@ -171,6 +190,29 @@ export default function MacroPage() {
   );
 }
 
+// VIX 走势迷你图（含 20/30 阈值参考线）
+function VixSparkline({ data }) {
+  const W = 800;
+  const H = 120;
+  const pad = 6;
+  const closes = data.map((d) => d.close);
+  const min = Math.min(...closes, 15);
+  const max = Math.max(...closes, 30);
+  const range = max - min || 1;
+  const x = (i) => (i / (data.length - 1)) * W;
+  const y = (v) => H - pad - ((v - min) / range) * (H - pad * 2);
+  const points = data.map((d, i) => `${x(i).toFixed(1)},${y(d.close).toFixed(1)}`).join(" ");
+  const y20 = y(20);
+  const y30 = y(30);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }}>
+      {20 >= min && 20 <= max && <line x1="0" y1={y20} x2={W} y2={y20} stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" />}
+      {30 >= min && 30 <= max && <line x1="0" y1={y30} x2={W} y2={y30} stroke="#ef4444" strokeWidth="1" strokeDasharray="4 3" />}
+      <polyline points={points} fill="none" stroke="#6366f1" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 const zh = {
   title: "宏观情绪",
   subtitle: "市场状态识别 · 风险评分 · 资产配置建议（引擎评估）",
@@ -180,6 +222,7 @@ const zh = {
   riskNote: "综合 VIX、信用利差、通胀与利率；越高越需防御与现金。",
   summary: "状态决定配置基调：危机/滞胀偏防御，宽松/牛市偏进攻，中性均衡。",
   indicators: "宏观指标",
+  vixTrend: "VIX 走势",
   allocation: "资产配置建议",
   asset: "资产",
   reason: "理由",
@@ -194,6 +237,7 @@ const en = {
   riskNote: "Composite of VIX, credit spread, inflation & rates; higher = more defensive.",
   summary: "Regime sets the tone: crisis/stagflation lean defensive, boom/bull lean aggressive, neutral is balanced.",
   indicators: "Macro Indicators",
+  vixTrend: "VIX Trend",
   allocation: "Allocation Suggestions",
   asset: "Asset",
   reason: "Reason",
