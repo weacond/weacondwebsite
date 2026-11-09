@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useState } from "react";
 import { assessMacroState } from "../lib/macro";
 import Head from "next/head";
 
@@ -10,14 +11,14 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-// 用现有 lib/macro 引擎评估默认宏观指标（mock；接入真实数据后只改这里）
-const MACRO = assessMacroState({
+// 默认（演示）宏观指标：VIX 可被真实行情覆盖；其余（利率/通胀/就业/信用利差）为演示占位，需 FRED 数据源
+const DEMO_INDICATORS = {
   rates: 4.5,
   inflation: 3.2,
   employment: 100,
   vix: 14.2,
   credit_spread: 1.1,
-});
+};
 
 // 市场状态（regime）中英标签 + 完整徽章类（避免 Tailwind 动态类被 purge）
 const REGIME_LABELS = {
@@ -37,7 +38,36 @@ function riskColor(score) {
 export default function MacroPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
+  const [vix, setVix] = useState(DEMO_INDICATORS.vix);
+  const [dataSource, setDataSource] = useState("demo");
+  const [loadingVix, setLoadingVix] = useState(false);
+  const [vixNote, setVixNote] = useState("");
+
+  // 用当前 VIX（演示或真实）重新评估宏观状态；其余指标暂用演示占位
+  const MACRO = assessMacroState({ ...DEMO_INDICATORS, vix });
   const regime = REGIME_LABELS[MACRO.regime] || REGIME_LABELS.neutral;
+
+  // 拉取真实 VIX（Alpha Vantage）；无 key 时接口返回演示数据并标 live:false，此处诚实标注
+  const loadRealVix = async () => {
+    setLoadingVix(true); setVixNote("");
+    try {
+      const res = await fetch("/api/marketdata?symbol=VIX&interval=Daily&months=3");
+      if (!res.ok) throw new Error(`${lang === "en" ? "Market API returned" : "行情接口返回"} ${res.status}`);
+      const data = await res.json();
+      const candles = data.candles || [];
+      const last = candles[candles.length - 1];
+      if (!last || !last.close) throw new Error(lang === "en" ? "No VIX data returned" : "未获取到 VIX 数据");
+      setVix(Number(last.close));
+      setDataSource(data.live ? "live" : "demo");
+      setVixNote(data.live
+        ? (lang === "en" ? `VIX ${last.close} (live, ${last.date?.slice(0, 10)})` : `VIX ${last.close}（实时 · ${last.date?.slice(0, 10)}）`)
+        : (lang === "en" ? "No API key configured — showing demo VIX" : "未配置 API key — 显示演示 VIX"));
+    } catch (e) {
+      setVixNote(e.message || "Failed to load VIX");
+    } finally {
+      setLoadingVix(false);
+    }
+  };
 
   // 宏观指标（带单位 + 解读）
   const indicators = [
@@ -59,9 +89,15 @@ export default function MacroPage() {
               <h1 className="text-3xl font-bold">{L.title}</h1>
               <p className="text-slate-500 text-sm mt-1">{L.subtitle}</p>
             </div>
-            <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full">
-              {L.demoLabel}
-            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={loadRealVix} disabled={loadingVix}
+                className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                {loadingVix ? "…" : (lang === "en" ? "Load live VIX" : "加载实时 VIX")}
+              </button>
+              <span className={`text-xs px-3 py-1 rounded-full ${dataSource === "live" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                {dataSource === "live" ? (lang === "en" ? "Live VIX" : "实时 VIX") : L.demoLabel}
+              </span>
+            </div>
           </div>
 
           {/* 状态 + 风险分 */}
@@ -92,9 +128,17 @@ export default function MacroPage() {
               <div key={i.key} className="bg-white rounded-lg p-4 border border-slate-100 text-center">
                 <div className="text-xs text-slate-400 mb-1">{i.label}</div>
                 <div className="text-2xl font-bold">{i.value}{i.unit}</div>
+                {i.key === "vix" && (
+                  <div className={`text-xs mt-1 ${dataSource === "live" ? "text-green-600 font-medium" : "text-slate-400"}`}>
+                    {dataSource === "live" ? (lang === "en" ? "live" : "实时") : (lang === "en" ? "demo" : "演示")}
+                  </div>
+                )}
               </div>
             ))}
           </div>
+          {vixNote && (
+            <p className={`text-xs mb-8 ${dataSource === "live" ? "text-green-600" : "text-amber-600"}`}>{vixNote}</p>
+          )}
 
           {/* 配置建议 */}
           <h2 className="text-lg font-bold mb-3">{L.allocation}</h2>
@@ -139,7 +183,7 @@ const zh = {
   allocation: "资产配置建议",
   asset: "资产",
   reason: "理由",
-  disclaimer: "基于 lib/macro 引擎评估的示例数据；配置建议非投资建议。",
+  disclaimer: "基于 lib/macro 引擎评估；VIX 可加载实时行情，其余指标为演示占位。配置建议非投资建议。",
 };
 const en = {
   title: "Market Sentiment",
@@ -153,6 +197,6 @@ const en = {
   allocation: "Allocation Suggestions",
   asset: "Asset",
   reason: "Reason",
-  disclaimer: "Sample data evaluated by lib/macro; allocation suggestions are not investment advice.",
+  disclaimer: "Evaluated by lib/macro; VIX can load live data, other indicators are demo placeholders. Allocation suggestions are not investment advice.",
 };
 
