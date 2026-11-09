@@ -8,7 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { STRATEGY_REGISTRY } from "../lib/backtest";
+import { STRATEGY_REGISTRY, histogram } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget } from "../lib/risk.js";
 
@@ -303,21 +303,88 @@ export default function BacktestPage() {
             </div>
           )}
           {/* 蒙特卡洛 */}
-          {result?.monteCarlo && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
-              <h3 className="font-semibold mb-4">{L.monteCarlo}</h3>
-              <div className="grid grid-cols-5 gap-4">
-                {[[L.p5, result.monteCarlo.p5], [L.p1, result.monteCarlo.p1], [L.median, result.monteCarlo.median], [L.p95, result.monteCarlo.p95], [L.p99, result.monteCarlo.p99]].map(([label, value]) => (
-                  <div key={label} className="text-center">
-                    <div className="text-xs text-slate-400">{label}</div>
-                    <div className={`font-bold text-lg ${value > 0 ? "text-green-600" : "text-red-500"}`}>
-                      {value > 0 ? "+" : ""}{value}%
-                    </div>
+          {result?.monteCarlo &&
+            (() => {
+              const mc = result.monteCarlo;
+              const dist = Array.isArray(mc.distribution) ? mc.distribution : [];
+              const h = histogram(dist, 20);
+              const W = 600;
+              const H = 140;
+              const pad = 4;
+              const hasBars = h.bins.length > 0 && h.maxCount > 0;
+              const bw = hasBars ? W / h.bins.length : 0;
+              // 中位数在 x 轴上的位置（分布值小数 → 百分比，再映射到 [0,W]）
+              const medianPct = (mc.median || 0);
+              const rangeMin = h.min * 100;
+              const rangeMax = h.max * 100;
+              const medianX =
+                hasBars && rangeMax > rangeMin
+                  ? ((medianPct - rangeMin) / (rangeMax - rangeMin)) * W
+                  : W / 2;
+              return (
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+                  <h3 className="font-semibold mb-4">{L.monteCarlo}</h3>
+                  <div className="grid grid-cols-5 gap-4">
+                    {[[L.p5, mc.p5], [L.p1, mc.p1], [L.median, mc.median], [L.p95, mc.p95], [L.p99, mc.p99]].map(([label, value]) => (
+                      <div key={label} className="text-center">
+                        <div className="text-xs text-slate-400">{label}</div>
+                        <div className={`font-bold text-lg ${value > 0 ? "text-green-600" : "text-red-500"}`}>
+                          {value > 0 ? "+" : ""}{value}%
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  {hasBars ? (
+                    <>
+                      <div className="text-xs text-slate-400 mt-4 mb-1">{L.distTitle}</div>
+                      <svg
+                        viewBox={`0 0 ${W} ${H}`}
+                        className="w-full"
+                        preserveAspectRatio="none"
+                        role="img"
+                        aria-label="Monte Carlo distribution histogram"
+                        style={{ height: H }}
+                      >
+                        {h.bins.map((b, i) => {
+                          const bh = (b.count / h.maxCount) * (H - pad * 2);
+                          const x = i * bw;
+                          const y = H - pad - bh;
+                          const neg = b.lo < 0;
+                          return (
+                            <rect
+                              key={i}
+                              x={x + 0.5}
+                              y={y}
+                              width={Math.max(0.5, bw - 1)}
+                              height={bh}
+                              fill={neg ? "#ef4444" : "#10b981"}
+                              opacity={0.75}
+                            />
+                          );
+                        })}
+                        {/* 中位数标记线 */}
+                        <line
+                          x1={medianX}
+                          y1={pad}
+                          x2={medianX}
+                          y2={H - pad}
+                          stroke="#64748b"
+                          strokeWidth={1}
+                          strokeDasharray="4 3"
+                        />
+                      </svg>
+                      <div className="flex justify-between text-xs text-slate-400 mt-1">
+                        <span>{rangeMin.toFixed(1)}%</span>
+                        <span>
+                          {L.medianLine} {medianPct > 0 ? "+" : ""}{medianPct}%
+                        </span>
+                        <span>{rangeMax.toFixed(1)}%</span>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })()}
           {/* 风险剖面（VaR / CVaR / 最大回撤，由权益曲线日收益计算） */}
           {result?.equityCurve &&
             (() => {
@@ -521,6 +588,7 @@ const zh = {
   tradeLog: "交易记录", entryDate: "入场日", exitDate: "出场日", entryPrice: "入场价", exitPrice: "出场价",
   pnl: "盈亏", holdDays: "持仓天数", moreTrades: "更多交易未显示",
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
+  distTitle: "收益分布直方图", medianLine: "中位",
   riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", maxStreak: "最长连亏", obsPeriods: "观测期数",
   recoveryDays: "回撤恢复(期)", notRecovered: "未恢复", drawdownOverlay: "回撤(水下)",
   riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
@@ -541,6 +609,7 @@ const en = {
   tradeLog: "Trade Log", entryDate: "Entry", exitDate: "Exit", entryPrice: "Entry", exitPrice: "Exit",
   pnl: "P&L", holdDays: "Days", moreTrades: "more trades hidden",
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
+  distTitle: "Return Distribution", medianLine: "Median",
   riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", maxStreak: "Max Loss Streak", obsPeriods: "Obs.",
   recoveryDays: "DD Recovery", notRecovered: "not rec.", drawdownOverlay: "Drawdown",
   riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",

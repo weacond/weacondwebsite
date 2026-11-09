@@ -11,6 +11,7 @@ import {
   annualizedReturn,
   annualizedVolatility,
   monteCarlo,
+  histogram,
   STRATEGY_REGISTRY,
 } from "../lib/backtest.js";
 
@@ -130,4 +131,41 @@ test("monteCarlo: 空交易全 0；有交易返回分布且分位有序", () => 
   const out = monteCarlo(trades, 100);
   assert.equal(out.distribution.length, 100);
   assert.ok(out.p95 >= out.p5);
+});
+
+// ---------- histogram ----------
+
+test("histogram: 空样本 → 空结构", () => {
+  assert.deepEqual(histogram([]), { bins: [], min: 0, max: 0, total: 0, maxCount: 0 });
+  assert.deepEqual(histogram(null), { bins: [], min: 0, max: 0, total: 0, maxCount: 0 });
+});
+
+test("histogram: 计数总和=样本数，箱数正确，箱界连续", () => {
+  const vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; // 10 个值，10 箱
+  const h = histogram(vals, 10);
+  assert.equal(h.total, 10, "total=样本数");
+  assert.equal(h.bins.length, 10, "10 个箱");
+  assert.ok(h.bins.reduce((s, b) => s + b.count, 0) === 10, "计数总和=10");
+  // 箱界连续：每箱 lo = 上一箱 hi
+  for (let i = 1; i < h.bins.length; i++) {
+    assert.ok(Math.abs(h.bins[i].lo - h.bins[i - 1].hi) < 1e-9, "箱界连续");
+  }
+  assert.equal(h.min, 0);
+  assert.equal(h.max, 9);
+  assert.ok(h.maxCount >= 1, "maxCount≥1");
+});
+
+test("histogram: 全相同值 → 单箱归左，maxCount=total", () => {
+  const h = histogram([3, 3, 3, 3], 5);
+  assert.equal(h.bins[0].count, 4, "全归左箱");
+  assert.equal(h.maxCount, 4, "maxCount=total");
+  assert.equal(h.min, 3);
+  assert.equal(h.max, 3);
+});
+
+test("histogram: bins<1 归一为 1 箱；NaN 清洗", () => {
+  const h1 = histogram([1, 2, 3], 0);
+  assert.equal(h1.bins.length, 1, "bins=0 → 1 箱");
+  const h2 = histogram([1, NaN, 3, 4], 4);
+  assert.equal(h2.total, 3, "NaN 被清洗，total=3");
 });
