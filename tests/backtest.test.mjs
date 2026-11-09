@@ -88,10 +88,14 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
     "profitFactor", "numTrades", "exposure", "calmar", "volatility",
+    "var95", "cvar95",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
   }
   assert.equal(res.metrics.numTrades, res.trades.length);
+  // 风险度量：var95 为正损失，cvar95 ≥ var95（ES≥VaR）
+  assert.ok(typeof res.metrics.var95 === "number" && res.metrics.var95 > 0, "var95 应为正损失");
+  assert.ok(res.metrics.cvar95 >= res.metrics.var95 - 1e-6, "cvar95 ≥ var95");
 });
 
 test("runBacktest: 未知策略应抛错", () => {
