@@ -24,6 +24,9 @@ const CMP_METRICS = [
   { key: "winRate", label: "胜率", labelEn: "Win Rate", fmt: (v) => `${v.toFixed(0)}%`, higher: true },
   { key: "profitFactor", label: "盈亏比", labelEn: "Profit Factor", fmt: (v) => v.toFixed(2), higher: true },
   { key: "calmar", label: "卡玛", labelEn: "Calmar", fmt: (v) => v.toFixed(2), higher: true },
+  { key: "ulcerIndex", label: "溃疡指数", labelEn: "Ulcer", fmt: (v) => `${(v * 100).toFixed(1)}%`, higher: false },
+  { key: "maxLosingStreak", label: "最长连亏", labelEn: "Max Loss Streak", fmt: (v) => v.toString(), higher: false },
+  { key: "maxWinStreak", label: "最长连盈", labelEn: "Max Win Streak", fmt: (v) => v.toString(), higher: true },
   { key: "numTrades", label: "交易数", labelEn: "Trades", fmt: (v) => v.toString(), higher: false },
 ];
 
@@ -64,7 +67,7 @@ export default function ComparePage() {
     let best = null;
     let bestKey = null;
     for (const r of results) {
-      const v = r.result?.[metric.key];
+      const v = r.result?.metrics?.[metric.key];
       if (typeof v !== "number") continue;
       if (best === null || (metric.higher ? v > best : v < best)) {
         best = v;
@@ -129,7 +132,7 @@ export default function ComparePage() {
                       <tr key={m.key} className="border-b border-slate-50">
                         <td className="px-4 py-3 text-slate-500">{lang === "en" ? m.labelEn : m.label}</td>
                         {results.map((r) => {
-                          const v = r.result?.[m.key];
+                          const v = r.result?.metrics?.[m.key];
                           const isBest = bestKey === r.key && typeof v === "number";
                           const cell = r.result?.error ? "—" : typeof v === "number" ? m.fmt(v) : "—";
                           return (

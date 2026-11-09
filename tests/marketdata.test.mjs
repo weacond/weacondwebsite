@@ -74,3 +74,21 @@ test("runFullBacktest: 交易数不足 5 时蒙特卡洛为 null", () => {
   // monteCarlo 要么为 null（交易不足），要么为对象
   assert.ok(r.monteCarlo === null || typeof r.monteCarlo === "object");
 });
+
+// 回归：绩效指标嵌套在 r.metrics 下（/compare 表必须读 r.metrics[key]，
+// 顶层 r[key] 为 undefined——曾因此导致对比表全显示"—"）。
+test("runFullBacktest: 指标嵌套于 metrics（对比表数据契约）", () => {
+  const r = runFullBacktest({ strategy: "ma_cross", preset: "SPY_2023" });
+  assert.ok(r.metrics && typeof r.metrics === "object", "metrics 嵌套对象");
+  // 对比表依赖的键必须在 r.metrics 上
+  for (const k of [
+    "totalReturn", "cagr", "sharpe", "sortino", "maxDrawdown",
+    "winRate", "profitFactor", "calmar", "ulcerIndex",
+    "maxLosingStreak", "maxWinStreak", "numTrades",
+  ]) {
+    assert.ok(k in r.metrics, `metrics.${k} 存在`);
+    assert.equal(typeof r.metrics[k], "number", `metrics.${k} 为数字`);
+  }
+  // 顶层不含这些指标键（确保 /compare 走 r.metrics 而非 r[key]）
+  assert.equal(r.totalReturn, undefined, "顶层 totalReturn 应为 undefined");
+});
