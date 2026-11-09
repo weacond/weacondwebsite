@@ -18,6 +18,7 @@ import {
   maxWinStreak,
   ulcerIndex,
   excessKurtosis,
+  skewness,
   sharpeRatio,
   sortinoRatio,
 } from "../lib/risk.js";
@@ -143,6 +144,8 @@ test("riskProfileFromEquity: 同时支持 number[] 与 [{value}]，结果一致"
   assert.ok(a.cvar >= a.var - 1e-9, "CVaR ≥ VaR");
   assert.ok(Number.isFinite(a.kurtosis), "含峰度字段且为有限数");
   assert.equal(a.kurtosis, b.kurtosis, "两种输入峰度一致");
+  assert.ok(Number.isFinite(a.skewness), "含偏度字段且为有限数");
+  assert.equal(a.skewness, b.skewness, "两种输入偏度一致");
 });
 
 test("riskProfileFromEquity: mdd 与 maxDrawdown 同源一致", () => {
@@ -344,6 +347,30 @@ test("sharpeRatio ≥ 0 时 sortinoRatio ≥ sharpeRatio（下行 σ ≤ 总 σ�
   const s = sharpeRatio(r);
   const so = sortinoRatio(r);
   if (s > 0) assert.ok(so >= s - 1e-9, "下行波动 ≤ 总波动 → Sortino ≥ Sharpe");
+});
+
+// ---------- skewness ----------
+
+test("skewness: 对称分布 → 0；取反号相反", () => {
+  assert.ok(Math.abs(skewness([-1, 0, 1])) < 1e-12, "对称 → 0");
+  assert.ok(Math.abs(skewness([1, 2, 3, 4, 5])) < 1e-12, "均匀对称 → 0");
+  const pos = skewness([0, 0, 0, 0, 10]); // 右偏
+  const neg = skewness([0, 0, 0, 0, -10]); // 左偏
+  assert.ok(pos > 0, "右偏 > 0");
+  assert.ok(neg < 0, "左偏 < 0");
+  assert.ok(Math.abs(pos + neg) < 1e-12, "取反号相反");
+});
+
+test("skewness: <3 点或全相等 → 0；剔除非有限", () => {
+  assert.equal(skewness([1, 2]), 0, "不足 3 点 → 0");
+  assert.equal(skewness([5, 5, 5]), 0, "全相等(方差0) → 0");
+  assert.ok(Math.abs(skewness([1, 2, NaN, 3, 4, Infinity]) - skewness([1, 2, 3, 4])) < 1e-9, "剔除非有限");
+});
+
+test("skewness: 右偏序列 m3>0 → 正偏度", () => {
+  // 多数小正收益 + 一个巨大正收益 → 右偏
+  const r = [0.01, 0.01, 0.01, 0.01, 0.01, 0.5];
+  assert.ok(skewness(r) > 0, "右偏正尾 → 正偏度");
 });
 
 
