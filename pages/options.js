@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { computeOptionChain } from "../lib/options.js";
+import { analyzeStrategy, strategyTemplates } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
 
@@ -138,6 +139,9 @@ export default function OptionsPage() {
             <OptionTable side="call" rows={chain.calls} atmStrike={atmStrike} L={L} />
           </div>
 
+          {/* 策略组合实验区 */}
+          <StrategyLab spot={spot} iv={iv} r={r} t={t} L={L} />
+
           <div className="mt-6 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 leading-relaxed">
             <p className="font-medium text-slate-600 mb-1">{L.disclaimerTitle}</p>
             <p>{L.disclaimer}</p>
@@ -196,6 +200,132 @@ function OptionTable({ side, rows, atmStrike, L }) {
   );
 }
 
+// 策略组合实验区：选模板 + 调行权价 → 实时算净权利金/最大盈亏/盈亏平衡/盈亏曲线
+function StrategyLab({ spot, iv, r, t, L }) {
+  const [templateId, setTemplateId] = useState("bull_call_spread");
+  const [k1, setK1] = useState(Math.round(spot * 0.95) || 95);
+  const [k2, setK2] = useState(Math.round(spot * 1.05) || 105);
+
+  const templates = strategyTemplates(spot, k1, k2);
+  const tpl = templates.find((x) => x.id === templateId) || templates[0];
+
+  const analysis = useMemo(() => {
+    try {
+      return analyzeStrategy(tpl.legs, { spot, r, t, iv });
+    } catch (e) {
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId, k1, k2, spot, iv, r, t]);
+
+  const fmtMoney = (v) =>
+    v === null ? L.unbounded : (v > 0 ? "+" : "") + "$" + v.toFixed(2);
+  const isCredit = analysis && analysis.premium < 0;
+
+  return (
+    <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+      <h2 className="text-lg font-bold mb-1">{L.strategyTitle}</h2>
+      <p className="text-slate-500 text-sm mb-4">{L.strategySubtitle}</p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <label className="text-sm col-span-2">
+          <span className="block text-slate-500 mb-1">{L.template}</span>
+          <select value={templateId} onChange={(e) => setTemplateId(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            {templates.map((tp) => (
+              <option key={tp.id} value={tp.id}>{tp.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.k1}</span>
+          <input type="number" value={k1} onChange={(e) => setK1(Number(e.target.value))}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.k2}</span>
+          <input type="number" value={k2} onChange={(e) => setK2(Number(e.target.value))}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+      </div>
+
+      {analysis ? (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <Metric label={L.netPremium} value={(isCredit ? "−" : "+") + "$" + Math.abs(analysis.premium).toFixed(2)}
+              hint={isCredit ? L.credit : L.debit} tone={isCredit ? "green" : "rose"} />
+            <Metric label={L.maxProfit} value={fmtMoney(analysis.maxProfit)} tone="green" />
+            <Metric label={L.maxLoss} value={fmtMoney(analysis.maxLoss)} tone="rose" />
+            <Metric label={L.breakEven}
+              value={analysis.breakEvens.length ? analysis.breakEvens.map((b) => "$" + b).join(" / ") : "—"} />
+          </div>
+
+          <div className="mb-4">
+            <p className="text-xs text-slate-500 mb-1">{L.legs}</p>
+            <div className="flex flex-wrap gap-2">
+              {tpl.legs.map((leg, i) => (
+                <span key={i} className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">
+                  {leg.qty > 0 ? L.buy : L.sell} {leg.type === "share" ? L.share : (leg.type === "call" ? "Call" : "Put")}
+                  {leg.type !== "share" && ` @ $${leg.strike}`}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <PayoffCurve points={analysis.payoffCurve} breakEvens={analysis.breakEvens} L={L} />
+        </>
+      ) : (
+        <p className="text-sm text-rose-500">{L.strategyError}</p>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value, hint, tone }) {
+  const toneCls = tone === "green" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : "text-slate-800";
+  return (
+    <div className="bg-slate-50 rounded-lg p-3">
+      <div className="text-xs text-slate-500 mb-1">{label}</div>
+      <div className={`text-lg font-bold tabular-nums ${toneCls}`}>{value}</div>
+      {hint && <div className="text-[11px] text-slate-400 mt-0.5">{hint}</div>}
+    </div>
+  );
+}
+
+// 纯 SVG 盈亏曲线（无图表库依赖）
+function PayoffCurve({ points, breakEvens, L }) {
+  if (!points || points.length < 2) return null;
+  const W = 560, H = 180, pad = 28;
+  const xs = points.map((p) => p.price);
+  const ys = points.map((p) => p.profit);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys, 0), maxY = Math.max(...ys, 0);
+  const sx = (x) => pad + ((x - minX) / (maxX - minX || 1)) * (W - 2 * pad);
+  const sy = (y) => H - pad - ((y - minY) / (maxY - minY || 1)) * (H - 2 * pad);
+  const line = points.map((p) => `${sx(p.price).toFixed(1)},${sy(p.profit).toFixed(1)}`).join(" ");
+  const zeroY = sy(0);
+
+  return (
+    <div>
+      <p className="text-xs text-slate-500 mb-1">{L.payoffTitle}</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-44" role="img" aria-label={L.payoffTitle}>
+        <line x1={pad} y1={zeroY} x2={W - pad} y2={zeroY} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+        {breakEvens.map((b, i) =>
+          b >= minX && b <= maxX ? (
+            <line key={`be${i}`} x1={sx(b)} y1={pad} x2={sx(b)} y2={H - pad}
+              stroke="#f59e0b" strokeWidth="1" strokeDasharray="4 3" />
+          ) : null
+        )}
+        <polyline points={line} fill="none" stroke="#4f46e5" strokeWidth="2" />
+        <text x={pad} y={H - 6} fontSize="10" fill="#94a3b8">{minX.toFixed(0)}</text>
+        <text x={W - pad - 16} y={H - 6} fontSize="10" fill="#94a3b8">{maxX.toFixed(0)}</text>
+        <text x={pad} y={pad - 8} fontSize="10" fill="#16a34a">+{maxY.toFixed(0)}</text>
+        {minY < 0 && <text x={pad} y={H - pad + 12} fontSize="10" fill="#dc2626">{minY.toFixed(0)}</text>}
+      </svg>
+    </div>
+  );
+}
+
 const zh = {
   title: "期权链 · 波动面",
   subtitle: "Black-Scholes 模型估算 · 价格与希腊字母（Δ Γ Θ V）",
@@ -221,6 +351,25 @@ const zh = {
   disclaimerTitle: "⚠️ 数据与模型说明",
   disclaimer: "本表为 Black-Scholes-Merton 解析模型估算，非交易所实时期权报价。希腊字母用于教学与示意，实际交易需考虑 bid/ask 价差、跳空、流动性等。",
   disclaimer2: "现货价取最近收盘价（未配置行情密钥时回退为示例值，标注『示例』）。本页面不构成投资建议。",
+  // 策略组合实验区
+  strategyTitle: "🧮 策略组合实验区",
+  strategySubtitle: "选模板、调行权价，实时算净权利金 / 最大盈亏 / 盈亏平衡 / 盈亏曲线（同 Black-Scholes 模型）。",
+  template: "策略模板",
+  k1: "行权价 K1",
+  k2: "行权价 K2",
+  netPremium: "净权利金",
+  maxProfit: "最大盈利",
+  maxLoss: "最大亏损",
+  breakEven: "盈亏平衡",
+  legs: "组合构成",
+  buy: "买",
+  sell: "卖",
+  share: "正股",
+  payoffTitle: "到期盈亏曲线（橙色虚线=盈亏平衡点）",
+  unbounded: "∞ 无界",
+  credit: "净收入",
+  debit: "净支出",
+  strategyError: "参数无效，请检查行权价。",
 };
 const en = {
   title: "Options Chain · Volatility Surface",
@@ -247,6 +396,25 @@ const en = {
   disclaimerTitle: "⚠️ Data & Model Notice",
   disclaimer: "This table is a Black-Scholes-Merton analytical estimate, not a live exchange quote. Greeks are for teaching/illustration; real trading must account for bid/ask spread, gaps, liquidity, etc.",
   disclaimer2: "Spot uses the most recent close (falls back to a demo value when no market-data key is configured, marked 'Demo'). This page is not investment advice.",
+  // Strategy lab
+  strategyTitle: "🧮 Strategy Lab",
+  strategySubtitle: "Pick a template, tune strikes, and instantly see net premium / max profit / max loss / break-even / payoff (same Black-Scholes model).",
+  template: "Strategy template",
+  k1: "Strike K1",
+  k2: "Strike K2",
+  netPremium: "Net premium",
+  maxProfit: "Max profit",
+  maxLoss: "Max loss",
+  breakEven: "Break-even",
+  legs: "Position legs",
+  buy: "Buy",
+  sell: "Sell",
+  share: "Share",
+  payoffTitle: "Payoff at expiration (orange dashed = break-even)",
+  unbounded: "∞ unbounded",
+  credit: "Credit",
+  debit: "Debit",
+  strategyError: "Invalid parameters, check the strikes.",
 };
 
 

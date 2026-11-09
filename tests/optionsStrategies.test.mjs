@@ -1,0 +1,130 @@
+// 期权组合盈亏分析测试（lib/optionsStrategies.js）。
+// 用已知盈亏关系断言：净权利金、最大盈亏、盈亏平衡 = K + 净支出 等。
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  strategyPremium,
+  strategyPayoffAt,
+  analyzeStrategy,
+  strategyTemplates,
+} from "../lib/optionsStrategies.js";
+
+const OPTS = { spot: 100, r: 0.05, t: 1, iv: 0.2 };
+
+// ---------- strategyPremium ----------
+
+test("strategyPremium: 买 call 为净支出(debit > 0)", () => {
+  const net = strategyPremium([{ type: "call", strike: 100, qty: 1 }], 100, OPTS);
+  assert.ok(net > 0, "买 call 应为净支出");
+});
+
+test("strategyPremium: 卖 call 为净收入(credit < 0)", () => {
+  const net = strategyPremium([{ type: "call", strike: 100, qty: -1 }], 100, OPTS);
+  assert.ok(net < 0, "卖 call 应为净收入");
+});
+
+test("strategyPremium: 价差(买低卖高)净支出为正且小于单腿", () => {
+  const single = strategyPremium([{ type: "call", strike: 100, qty: 1 }], 100, OPTS);
+  const spread = strategyPremium([
+    { type: "call", strike: 100, qty: 1 },
+    { type: "call", strike: 110, qty: -1 },
+  ], 100, OPTS);
+  assert.ok(spread > 0 && spread < single, "价差净支出应介于 0 与单腿之间");
+});
+
+// ---------- strategyPayoffAt ----------
+
+test("strategyPayoffAt: 实值 call 盈亏 = 内在价值 − 净权利金", () => {
+  const legs = [{ type: "call", strike: 100, qty: 1 }];
+  const premium = strategyPremium(legs, 100, OPTS);
+  const pl = strategyPayoffAt(legs, 150, premium); // 内在价值 50
+  assert.ok(Math.abs(pl - (50 - premium)) < 0.01, `got ${pl}`);
+});
+
+test("strategyPayoffAt: 虚值 call 到期归零，盈亏 = −净权利金", () => {
+  const legs = [{ type: "call", strike: 110, qty: 1 }];
+  const premium = strategyPremium(legs, 100, OPTS);
+  const pl = strategyPayoffAt(legs, 105, premium); // S<K，内在价值 0
+  assert.ok(Math.abs(pl - (-premium)) < 0.01, `got ${pl}`);
+});
+
+// ---------- analyzeStrategy ----------
+
+test("analyzeStrategy: 空腿数组 → 抛错", () => {
+  assert.throws(() => analyzeStrategy([], OPTS), /至少需要一条腿/);
+});
+
+test("analyzeStrategy: 买 call → 上端无界、最大亏损=−净支出、盈亏平衡=K+净支出", () => {
+  const legs = [{ type: "call", strike: 100, qty: 1 }];
+  const res = analyzeStrategy(legs, OPTS);
+  assert.equal(res.unboundedProfit, true);
+  assert.equal(res.maxProfit, null); // 无界
+  assert.ok(Math.abs(res.maxLoss - (-res.premium)) < 0.02, `maxLoss=${res.maxLoss} vs -${res.premium}`);
+  assert.ok(res.breakEvens.length >= 1, "应有盈亏平衡点");
+  const be = 100 + res.premium;
+  assert.ok(Math.abs(res.breakEvens[0] - be) < 0.05, `盈亏平衡 ${res.breakEvens[0]} vs ${be.toFixed(2)}`);
+});
+
+test("analyzeStrategy: 牛市看涨价差 → 最大盈利=价差宽度−净支出（有界）", () => {
+  const legs = [
+    { type: "call", strike: 100, qty: 1 },
+    { type: "call", strike: 110, qty: -1 },
+  ];
+  const res = analyzeStrategy(legs, OPTS);
+  assert.equal(res.unboundedProfit, false);
+  assert.ok(res.maxProfit !== null, "价差最大盈利应有界");
+  // 最大盈利 = (K2−K1) − 净支出 = 10 − premium
+  assert.ok(Math.abs(res.maxProfit - (10 - res.premium)) < 0.03, `maxProfit=${res.maxProfit}`);
+  assert.ok(Math.abs(res.maxLoss - (-res.premium)) < 0.02, `maxLoss=${res.maxLoss}`);
+});
+
+test("analyzeStrategy: 买入跨式 → 两个盈亏平衡点(100±净支出)", () => {
+  const legs = [
+    { type: "call", strike: 100, qty: 1 },
+    { type: "put", strike: 100, qty: 1 },
+  ];
+  const res = analyzeStrategy(legs, OPTS);
+  assert.equal(res.breakEvens.length, 2, "跨式应恰好 2 个盈亏平衡点");
+  const lower = 100 - res.premium;
+  const higher = 100 + res.premium;
+  assert.ok(Math.abs(res.breakEvens[0] - lower) < 0.05, `下平衡 ${res.breakEvens[0]} vs ${lower.toFixed(2)}`);
+  assert.ok(Math.abs(res.breakEvens[1] - higher) < 0.05, `上平衡 ${res.breakEvens[1]} vs ${higher.toFixed(2)}`);
+});
+
+test("analyzeStrategy: 备兑看涨 → 上下端均有界(含 stock 腿)", () => {
+  const legs = [
+    { type: "share", qty: 1 },
+    { type: "call", strike: 110, qty: -1 },
+  ];
+  const res = analyzeStrategy(legs, OPTS);
+  assert.equal(res.unboundedProfit, false, "备兑最大盈利有界(被 call 行权价封顶)");
+  assert.equal(res.unboundedLoss, false, "备兑最大亏损有界");
+  assert.ok(res.maxProfit !== null && res.maxLoss !== null);
+});
+
+test("analyzeStrategy: payoffCurve 覆盖 0→上界且单调合理", () => {
+  const res = analyzeStrategy([{ type: "call", strike: 100, qty: 1 }], OPTS);
+  assert.ok(res.payoffCurve.length > 10);
+  assert.equal(res.payoffCurve[0].price, 0);
+  // 买 call 的 P/L 随标的上涨而单调不减
+  for (let i = 1; i < res.payoffCurve.length; i++) {
+    assert.ok(res.payoffCurve[i].profit >= res.payoffCurve[i - 1].profit - 1e-9, "P/L 应单调不减");
+  }
+});
+
+// ---------- strategyTemplates ----------
+
+test("strategyTemplates: 6 个常见策略，腿数与结构正确", () => {
+  const tpl = strategyTemplates(100, 100, 110);
+  assert.equal(tpl.length, 6);
+  const byId = Object.fromEntries(tpl.map((t) => [t.id, t]));
+  assert.equal(byId.long_call.legs.length, 1);
+  assert.equal(byId.bull_call_spread.legs.length, 2);
+  assert.equal(byId.long_straddle.legs.length, 2);
+  assert.ok(byId.covered_call.legs.some((l) => l.type === "share"), "备兑含股票腿");
+  // 每个模板都应能被分析而不抛错
+  for (const t of tpl) {
+    const res = analyzeStrategy(t.legs, OPTS);
+    assert.ok(res.premium !== undefined, `${t.id} 可分析`);
+  }
+});
