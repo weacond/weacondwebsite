@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import healthHandler from "../pages/api/health.js";
 import backtestHandler from "../pages/api/backtest.js";
 import aiHandler from "../pages/api/ai.js";
+import downloadHandler from "../pages/api/download.js";
 
 // 轻量 mock：模拟 Next 的 res（status/json/send/setHeader 链式）
 function makeRes() {
@@ -24,6 +25,11 @@ function makeRes() {
     },
     send(t) {
       res.body = t;
+      return res;
+    },
+    redirect(code, loc) {
+      res.statusCode = code;
+      res.redirectLocation = loc;
       return res;
     },
   };
@@ -115,5 +121,39 @@ test("ai: 有 prompt 无密钥 → 200 模拟降级（不打真实网络）", as
   } finally {
     if (prev === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = prev;
+  }
+});
+
+// ---------- /api/download（安全不变量） ----------
+test("download: 非 GET → 405", async () => {
+  const res = makeRes();
+  await downloadHandler({ method: "POST", query: {}, headers: {} }, res);
+  assert.equal(res.statusCode, 405);
+  assert.equal(res.body.error, "Method not allowed");
+});
+
+test("download: GET 缺 slug → 400", async () => {
+  const res = makeRes();
+  await downloadHandler({ method: "GET", query: {}, headers: {} }, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error, "Missing slug parameter");
+});
+
+// 关键安全不变量：生产环境（已配 SUPABASE_SERVICE_ROLE_KEY）绝不信任 URL 里的 ?email=，
+// 否则付费书可被 "?email=已付款邮箱" 白嫖。此测试模拟生产并验证白嫖被拒。
+test("download: 生产环境 ?email= 白嫖被拒 → 401（不信任 URL 邮箱，不触网）", async () => {
+  const prev = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "dummy-prod-key";
+  try {
+    const res = makeRes();
+    await downloadHandler(
+      { method: "GET", query: { slug: "some-book", email: "paid@evil.com" }, headers: {} },
+      res
+    );
+    assert.equal(res.statusCode, 401, "生产环境不应接受 URL 邮箱");
+    assert.equal(res.body.error, "Unauthorized");
+  } finally {
+    if (prev === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = prev;
   }
 });
