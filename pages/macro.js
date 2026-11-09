@@ -1,7 +1,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { assessMacroState } from "../lib/macro";
 import Head from "next/head";
 
@@ -43,6 +43,9 @@ export default function MacroPage() {
   const [loadingVix, setLoadingVix] = useState(false);
   const [vixNote, setVixNote] = useState("");
   const [vixSeries, setVixSeries] = useState([]);
+  const [fred, setFred] = useState(null);
+  const [fredLive, setFredLive] = useState(null);
+  const [fredNote, setFredNote] = useState("");
 
   // 用当前 VIX（演示或真实）重新评估宏观状态；其余指标暂用演示占位
   const MACRO = assessMacroState({ ...DEMO_INDICATORS, vix });
@@ -71,13 +74,55 @@ export default function MacroPage() {
     }
   };
 
-  // 宏观指标（带单位 + 解读）
+  // 拉取 FRED 宏观系列（利率/通胀/就业/信用利差）；无 key 时接口可能返回空，诚实标注
+  const loadFred = async () => {
+    try {
+      const res = await fetch("/api/marketdata?fred=DFF,CPIAUCSL,UNRATE,BAMLC0A0CM");
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      const series = data.series || {};
+      setFred(series);
+      setFredLive(!!data.live);
+      const got = Object.keys(series).length;
+      setFredNote(
+        got === 0
+          ? (lang === "en"
+              ? "FRED macro data unavailable (set FREDSERIESKEY / ALPHA_VANTAGE_API_KEY to enable)."
+              : "FRED 宏观数据暂不可用（配置 FREDSERIESKEY / ALPHA_VANTAGE_API_KEY 后可启用）。")
+          : (lang === "en"
+              ? `Live FRED macro data: ${got}/4 series.`
+              : `FRED 实时宏观数据：已获取 ${got}/4 系列。`)
+      );
+    } catch {
+      setFred(null);
+      setFredLive(null);
+      setFredNote("");
+    }
+  };
+
+  useEffect(() => { loadFred(); }, []);
+
+  // FRED 系列辅助：取最近值 + 近 3 月变化（趋势箭头）；数据不足返回 null → 演示兜底
+  const fredCard = (id, decimals = 2, suffix = "") => {
+    const s = fred && fred[id];
+    if (!s || s.length < 2) return null;
+    const last = s[s.length - 1].value;
+    const prev = s[Math.max(0, s.length - 4)].value;
+    const change = prev ? ((last - prev) / prev) * 100 : 0;
+    return { value: last.toFixed(decimals) + suffix, trend: change >= 0 ? "up" : "down", live: !!fredLive };
+  };
+  const fRates = fredCard("DFF", 2, "%");
+  const fInflation = fredCard("CPIAUCSL", 1, "");
+  const fCredit = fredCard("BAMLC0A0CM", 1, "%");
+  const fEmployment = fredCard("UNRATE", 1, "%");
+
+  // 宏观指标（带单位 + 解读）；rates/inflation/credit/employment 用 FRED 实时值，无 key 时演示兜底
   const indicators = [
-    { key: "rates", label: lang === "en" ? "Fed Funds Rate" : "联邦基金利率", value: MACRO.indicators.rates, unit: "%" },
-    { key: "inflation", label: lang === "en" ? "Inflation (CPI)" : "通胀 CPI", value: MACRO.indicators.inflation, unit: "%" },
-    { key: "vix", label: "VIX", value: MACRO.indicators.vix, unit: "" },
-    { key: "credit_spread", label: lang === "en" ? "Credit Spread" : "信用利差", value: MACRO.indicators.credit_spread, unit: "%" },
-    { key: "employment", label: lang === "en" ? "Employment Index" : "就业指数", value: MACRO.indicators.employment, unit: "" },
+    { key: "rates", label: lang === "en" ? "Fed Funds Rate" : "联邦基金利率", value: fRates ? fRates.value : MACRO.indicators.rates, unit: "", trend: fRates ? fRates.trend : null, live: fRates ? fRates.live : null },
+    { key: "inflation", label: lang === "en" ? "Inflation (CPI)" : "通胀 CPI", value: fInflation ? fInflation.value : MACRO.indicators.inflation, unit: "", trend: fInflation ? fInflation.trend : null, live: fInflation ? fInflation.live : null },
+    { key: "vix", label: "VIX", value: MACRO.indicators.vix, unit: "", trend: null, live: dataSource === "live" },
+    { key: "credit_spread", label: lang === "en" ? "Credit Spread" : "信用利差", value: fCredit ? fCredit.value : MACRO.indicators.credit_spread, unit: "", trend: fCredit ? fCredit.trend : null, live: fCredit ? fCredit.live : null },
+    { key: "employment", label: lang === "en" ? "Unemployment Rate" : "失业率", value: fEmployment ? fEmployment.value : MACRO.indicators.employment, unit: "", trend: fEmployment ? fEmployment.trend : null, live: fEmployment ? fEmployment.live : null },
   ];
 
   return (
@@ -129,10 +174,10 @@ export default function MacroPage() {
             {indicators.map((i) => (
               <div key={i.key} className="bg-white rounded-lg p-4 border border-slate-100 text-center">
                 <div className="text-xs text-slate-400 mb-1">{i.label}</div>
-                <div className="text-2xl font-bold">{i.value}{i.unit}</div>
-                {i.key === "vix" && (
-                  <div className={`text-xs mt-1 ${dataSource === "live" ? "text-green-600 font-medium" : "text-slate-400"}`}>
-                    {dataSource === "live" ? (lang === "en" ? "live" : "实时") : (lang === "en" ? "demo" : "演示")}
+                <div className="text-2xl font-bold">{i.value}{i.unit}{i.trend === "up" ? " ▲" : i.trend === "down" ? " ▼" : ""}</div>
+                {i.live !== null && (
+                  <div className={`text-xs mt-1 ${i.live ? "text-green-600 font-medium" : "text-slate-400"}`}>
+                    {i.live ? (lang === "en" ? "live FRED" : "实时 FRED") : (lang === "en" ? "demo" : "演示")}
                   </div>
                 )}
               </div>
@@ -140,6 +185,9 @@ export default function MacroPage() {
           </div>
           {vixNote && (
             <p className={`text-xs mb-8 ${dataSource === "live" ? "text-green-600" : "text-amber-600"}`}>{vixNote}</p>
+          )}
+          {fredNote && (
+            <p className={`text-xs mb-8 ${fredLive ? "text-green-600" : "text-amber-600"}`}>{fredNote}</p>
           )}
 
           {/* VIX 走势迷你图 */}
