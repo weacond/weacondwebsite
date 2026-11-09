@@ -3,7 +3,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
-import { computeOptionChain } from "../lib/options.js";
+import { computeOptionChain, impliedVol } from "../lib/options.js";
 import { analyzeStrategy, strategyTemplates } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
@@ -138,6 +138,9 @@ export default function OptionsPage() {
             <OptionTable side="put" rows={chain.puts} atmStrike={atmStrike} L={L} />
             <OptionTable side="call" rows={chain.calls} atmStrike={atmStrike} L={L} />
           </div>
+
+          {/* 反解隐含波动率 */}
+          <ReverseIV spot={spot} r={r} t={t} L={L} />
 
           {/* 策略组合实验区 */}
           <StrategyLab spot={spot} iv={iv} r={r} t={t} L={L} />
@@ -326,6 +329,72 @@ function PayoffCurve({ points, breakEvens, L }) {
   );
 }
 
+// 反解隐含波动率：输入市场价 → 输出使 B-S 价相等的 IV
+function ReverseIV({ spot, r, t, L }) {
+  const [type, setType] = useState("call");
+  const [strike, setStrike] = useState(Math.round(spot));
+  const [mktPrice, setMktPrice] = useState("");
+
+  const res = useMemo(() => {
+    const p = parseFloat(mktPrice);
+    if (!(p > 0) || !(strike > 0)) return null;
+    try {
+      return impliedVol(p, spot, strike, { type, r, t });
+    } catch (e) {
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mktPrice, type, strike, spot, r, t]);
+
+  return (
+    <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+      <h2 className="text-lg font-bold mb-1">{L.reverseTitle}</h2>
+      <p className="text-slate-500 text-sm mb-4">{L.reverseSubtitle}</p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.direction}</span>
+          <select value={type} onChange={(e) => setType(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="call">Call</option>
+            <option value="put">Put</option>
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.strikeInput}</span>
+          <input type="number" value={strike} onChange={(e) => setStrike(Number(e.target.value))}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.mktPrice}</span>
+          <input type="number" step="0.01" value={mktPrice} placeholder="e.g. 10.45"
+            onChange={(e) => setMktPrice(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <div className="text-sm flex items-end">
+          {res ? (
+            res.ok ? (
+              <div className="bg-emerald-50 rounded-lg px-3 py-2 w-full">
+                <div className="text-xs text-slate-500">{L.impliedIV}</div>
+                <div className="text-lg font-bold text-emerald-600 tabular-nums">
+                  {(res.iv * 100).toFixed(2)}%
+                </div>
+              </div>
+            ) : (
+              <div className="bg-rose-50 rounded-lg px-3 py-2 w-full">
+                <div className="text-xs text-slate-500">{L.cannotResolve}</div>
+                <div className="text-sm text-rose-600">{L.reasons[res.reason] || res.reason}</div>
+              </div>
+            )
+          ) : (
+            <div className="text-xs text-slate-400 pb-2">{L.reverseHint}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const zh = {
   title: "期权链 · 波动面",
   subtitle: "Black-Scholes 模型估算 · 价格与希腊字母（Δ Γ Θ V）",
@@ -370,6 +439,21 @@ const zh = {
   credit: "净收入",
   debit: "净支出",
   strategyError: "参数无效，请检查行权价。",
+  // 反解隐含波动率
+  reverseTitle: "🔎 反解隐含波动率 (IV)",
+  reverseSubtitle: "输入市场价，反解使 Black-Scholes 价相等的隐含波动率（前向 IV→价 的逆运算）。",
+  direction: "方向",
+  strikeInput: "行权价 K",
+  mktPrice: "市场价",
+  impliedIV: "隐含波动率",
+  cannotResolve: "无法反解",
+  reverseHint: "输入市场价以反解 IV…",
+  reasons: {
+    below_intrinsic: "市场价低于内在价值（非法报价）",
+    above_cap: "市场价过高，超出 500% IV 上限",
+    floor: "IV 已触底（≈0）",
+    degenerate: "参数无效（需 t>0、现价>0）",
+  },
 };
 const en = {
   title: "Options Chain · Volatility Surface",
@@ -415,6 +499,21 @@ const en = {
   credit: "Credit",
   debit: "Debit",
   strategyError: "Invalid parameters, check the strikes.",
+  // Reverse implied vol
+  reverseTitle: "🔎 Reverse Implied Vol (IV)",
+  reverseSubtitle: "Enter a market price to back out the IV that makes the Black-Scholes price match (inverse of IV→price).",
+  direction: "Direction",
+  strikeInput: "Strike K",
+  mktPrice: "Market price",
+  impliedIV: "Implied vol",
+  cannotResolve: "Cannot resolve",
+  reverseHint: "Enter a market price to back out IV…",
+  reasons: {
+    below_intrinsic: "Market price below intrinsic value (invalid quote)",
+    above_cap: "Price too high, exceeds 500% IV cap",
+    floor: "IV floored at ≈0",
+    degenerate: "Invalid parameters (need t>0, spot>0)",
+  },
 };
 
 

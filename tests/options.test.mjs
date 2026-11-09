@@ -3,7 +3,7 @@
 // normCdf 锚点、退化情形），避免把"背下来的数字"当 oracle。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normCdf, normPdf, priceOption, computeOptionChain } from "../lib/options.js";
+import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol } from "../lib/options.js";
 
 // ---------- normCdf / normPdf 锚点 ----------
 
@@ -122,3 +122,49 @@ test("computeOptionChain: 每个价位都满足 put-call parity", () => {
       `parity @K=${call.strike}`);
   }
 });
+
+// ---------- impliedVol（隐含波动率求解器） ----------
+
+test("impliedVol: 往返——先定价再反解，IV 还原到输入值(±0.01)", () => {
+  for (const iv of [0.1, 0.2, 0.3, 0.5]) {
+    const px = priceOption("call", 100, 100, { r: 0.05, t: 1, iv }).price;
+    const res = impliedVol(px, 100, 100, { type: "call", r: 0.05, t: 1 });
+    assert.equal(res.ok, true, `iv=${iv} 应成功`);
+    assert.ok(Math.abs(res.iv - iv) < 0.01, `反解 ${res.iv} vs ${iv}`);
+  }
+});
+
+test("impliedVol: put 也可反解（往返）", () => {
+  const px = priceOption("put", 100, 100, { r: 0.05, t: 1, iv: 0.25 }).price;
+  const res = impliedVol(px, 100, 100, { type: "put", r: 0.05, t: 1 });
+  assert.equal(res.ok, true);
+  assert.ok(Math.abs(res.iv - 0.25) < 0.01, `反解 ${res.iv} vs 0.25`);
+});
+
+test("impliedVol: 单调性——更高市场价 → 更高反解 IV", () => {
+  const p1 = priceOption("call", 100, 100, { r: 0.05, t: 1, iv: 0.2 }).price;
+  const p2 = priceOption("call", 100, 100, { r: 0.05, t: 1, iv: 0.4 }).price;
+  const iv1 = impliedVol(p1, 100, 100, { r: 0.05, t: 1 }).iv;
+  const iv2 = impliedVol(p2, 100, 100, { r: 0.05, t: 1 }).iv;
+  assert.ok(iv2 > iv1, `高价格应反解更高 IV (${iv1} < ${iv2})`);
+});
+
+test("impliedVol: 市场价折价于内在价值 → ok=false, reason=below_intrinsic", () => {
+  // 深度实值 call 内在价值 = S-K = 20；市场价 10 < 20 非法
+  const res = impliedVol(10, 120, 100, { type: "call", r: 0.05, t: 1 });
+  assert.equal(res.ok, false);
+  assert.equal(res.reason, "below_intrinsic");
+});
+
+test("impliedVol: 退化输入(t≤0/spot≤0/价≤0) → ok=false, reason=degenerate", () => {
+  assert.equal(impliedVol(5, 100, 100, { t: 0 }).reason, "degenerate");
+  assert.equal(impliedVol(5, 0, 100, { t: 1 }).reason, "degenerate");
+  assert.equal(impliedVol(0, 100, 100, { t: 1 }).reason, "degenerate");
+});
+
+test("impliedVol: 返回 iterations 且收敛于有限迭代", () => {
+  const px = priceOption("call", 100, 100, { r: 0.05, t: 1, iv: 0.3 }).price;
+  const res = impliedVol(px, 100, 100, { r: 0.05, t: 1 });
+  assert.ok(res.iterations > 0 && res.iterations <= 100, `iterations=${res.iterations}`);
+});
+
