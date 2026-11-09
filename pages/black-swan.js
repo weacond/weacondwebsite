@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
+import { valueAtRisk, expectedShortfall, maxDrawdown, detectTailEvents } from "../lib/risk.js";
 
 export const metadata = {
   title: "黑天鹅防御 — Weacond",
@@ -27,6 +28,16 @@ const HEDGE_SUGGESTIONS = [
   { risk: "期限利差倒挂", action: "减配周期股", cost: "减仓", desc: "衰退预警" },
   { risk: "融资余额 > $700B", action: "降低杠杆", cost: "风控", desc: "强制平仓风险" },
 ];
+
+// 尾部风险度量样本（确定性示意数据，非实时）
+const SAMPLE_EQUITY = [100, 102, 98, 105, 110, 95, 88, 92, 100, 108, 115, 100];
+const SAMPLE_RETURNS = [0.01, -0.02, 0.01, -0.03, 0.02, -0.05, 0.01, -0.02, 0.01, -0.1, 0.02, 0.01];
+const RISK_METRICS = {
+  var95: valueAtRisk(SAMPLE_RETURNS, 0.95),
+  cvar95: expectedShortfall(SAMPLE_RETURNS, 0.95),
+  mdd: maxDrawdown(SAMPLE_EQUITY),
+  tailCount: detectTailEvents(SAMPLE_RETURNS, 3).count,
+};
 
 export default function BlackSwanPage() {
   const { lang } = useLanguage();
@@ -68,6 +79,18 @@ export default function BlackSwanPage() {
             </div>
           </div>
 
+          {/* 尾部风险度量 */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+            <h3 className="font-semibold mb-1">{L.riskMetrics}</h3>
+            <p className="text-xs text-slate-400 mb-4">{L.riskMetricsHint}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <RiskStat label={L.varLabel} value={`−${(RISK_METRICS.var95 * 100).toFixed(2)}%`} />
+              <RiskStat label={L.cvarLabel} value={`−${(RISK_METRICS.cvar95 * 100).toFixed(2)}%`} />
+              <RiskStat label={L.mddLabel} value={`−${(RISK_METRICS.mdd * 100).toFixed(2)}%`} />
+              <RiskStat label={L.tailEvents} value={`${RISK_METRICS.tailCount}`} />
+            </div>
+          </div>
+
           {/* 历史案例 */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
             <h3 className="font-semibold mb-4">{L.history}</h3>
@@ -101,11 +124,27 @@ export default function BlackSwanPage() {
   );
 }
 
+// 风险度量小卡片
+function RiskStat({ label, value }) {
+  return (
+    <div className="bg-rose-50 rounded-lg p-4 text-center">
+      <div className="text-xs text-slate-500 mb-1">{label}</div>
+      <div className="text-2xl font-bold text-rose-600 tabular-nums">{value}</div>
+    </div>
+  );
+}
+
 const zh = {
   title: "黑天鹅防御",
   subtitle: "尾部风险识别与对冲，从2008到2020的历史复盘",
   riskFactors: "风险因子仪表盘",
   hedgeSuggestions: "对冲建议",
+  riskMetrics: "尾部风险度量",
+  riskMetricsHint: "基于样本序列的 VaR / CVaR / 最大回撤（示意数据，非实时）。CVaR 为超过 VaR 的尾部平均损失。",
+  varLabel: "95% VaR",
+  cvarLabel: "95% CVaR",
+  mddLabel: "最大回撤",
+  tailEvents: "3σ 尾部事件",
   history: "历史案例",
   disclaimer: "黑天鹅事件不可预测。历史数据仅供参考，不构成投资建议。",
 };
@@ -114,6 +153,12 @@ const en = {
   subtitle: "Tail risk identification and hedging. 2008-2020 case studies",
   riskFactors: "Risk Factor Dashboard",
   hedgeSuggestions: "Hedge Suggestions",
+  riskMetrics: "Tail Risk Metrics",
+  riskMetricsHint: "VaR / CVaR / Max Drawdown from a sample series (illustrative, not live). CVaR is the average loss beyond VaR.",
+  varLabel: "95% VaR",
+  cvarLabel: "95% CVaR",
+  mddLabel: "Max Drawdown",
+  tailEvents: "3σ Tail Events",
   history: "Historical Cases",
   disclaimer: "Black swan events are unpredictable. Historical data for reference only. Not investment advice.",
 };
