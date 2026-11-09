@@ -4,7 +4,7 @@ export const runtime = "edge";
 // Body: { strategy, params, config, preset }
 // 使用 lib/backtest.js + lib/marketdata.js 运行回测
 
-import { runFullBacktest } from "../../lib/marketdata";
+import { runFullBacktest } from "../../lib/marketdata.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
