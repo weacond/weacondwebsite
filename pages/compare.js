@@ -12,6 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
+import { portfolioSharpe } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -172,6 +173,8 @@ export default function ComparePage() {
                 };
                 const vols = returnsList.map((r) => std(r) * Math.sqrt(252));
                 const dr = diversificationRatio(M, vols);
+                // 等权组合夏普（复用同一 returnsList/vols/相关矩阵）
+                const portSharpe = portfolioSharpe(returnsList, vols, M);
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -185,6 +188,9 @@ export default function ComparePage() {
                       <div className="text-xs text-slate-500">
                         {L.drLabel} <span className="font-bold text-slate-800">{dr.toFixed(2)}×</span>
                         <span className="text-slate-400 ml-1">（{L.drHint}）</span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {L.portSharpeLabel} <span className="font-bold text-slate-800">{portSharpe.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -241,6 +247,7 @@ const zh = {
   corrNote: "各策略权益曲线日收益的两两相关系数（+1 完全正相关=分散差；−1 完全负相关=分散好；近 0=独立）。示例数据，非投资建议。",
   drLabel: "分散化比率",
   drHint: "=1 完全相关(无收益)，>1 越大越分散",
+  portSharpeLabel: "等权组合夏普",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -256,6 +263,7 @@ const en = {
   corrNote: "Pairwise correlation of strategies' daily returns (+1 fully correlated = poor diversification; −1 fully anti-correlated = good diversification; ~0 independent). Demo data, not investment advice.",
   drLabel: "Diversification Ratio",
   drHint: "=1 fully correlated (no benefit); higher = more diversified",
+  portSharpeLabel: "Equal-weight Sharpe",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 
