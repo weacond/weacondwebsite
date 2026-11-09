@@ -1,15 +1,17 @@
 # Weacond 上线清单（Deploy Checklist）
 
 > 目标：把本地已完成的平台（电子书 25 本 + 本地 AI + 信号/回测 + 合规）部署到 Cloudflare，
-> 并接通 Supabase / Stripe / R2 / Alpha Vantage。逐项打勾即可上线。
+> 并接通 Supabase / Stripe / R2 / Alpha Vantage / FRED。逐项打勾即可上线。
 
 ## 0. 本地已验证（无需你操作）
-- [x] `npm run build` 通过（43/43 页面，`/ebooks/[slug]` 生成 26 路径）
+- [x] `npm run build` 通过（13 页面，全部渲染 200）
 - [x] `scripts/checkLeak.mjs` 内容泄漏守卫通过（public/ 无全文/二进制）
 - [x] 无硬编码密钥；所有密钥走服务端 `process.env`
 - [x] Webhook 验签用 Web Crypto（Edge 兼容）
 - [x] 电子书目录已对齐 25 本双语（`index.json` = `BOOK_CATALOG`）
 - [x] 本地 AI（`@mlc-ai/web-llm`）已接入，无 WebGPU 自动降级
+- [x] 数据页接真实数据：`/signals` 信号 + `/backtest` 曲线 + `/macro` FRED 指标 + `/watchlist` 行情（无 key 优雅降级 + 诚实标注）
+- [x] 模拟盘 `/paper`：入场/出场、实时盯市、绩效分析（胜率/利润因子）+ 累计盈亏曲线
 
 ## 1. 在 GitHub 仓库 Settings → Secrets 设置以下变量
 | 变量 | 来源 | 说明 |
@@ -23,7 +25,8 @@
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase | 服务端 key（**仅服务端**，勿进前端） |
 | `STRIPE_SECRET_KEY` | Stripe | `sk_live_...`（生产用 live） |
 | `STRIPE_WEBHOOK_SECRET` | Stripe | `whsec_...` |
-| `ALPHA_VANTAGE_API_KEY` | Alpha Vantage | 免费 key（可选，不配降级 mock） |
+| `ALPHA_VANTAGE_API_KEY` | Alpha Vantage | 免费 key（`/signals` 信号、`/backtest` 曲线、`/watchlist` 行情、`/paper` 盯市；不配则降级演示数据） |
+| `FREDSERIESKEY` | FRED (St. Louis Fed) | 免费 key（`/macro` 宏观指标；不配则降级演示数据） |
 | `NEXT_PUBLIC_SITE_URL` | — | 例如 `https://weacond.com` |
 
 > 完整模板见 `.env.example`。生产密钥请勿提交到 git（`.gitignore` 已忽略 `.env.local`）。
@@ -57,7 +60,10 @@ git push origin main            # 触发 .github/workflows/deploy.yml
 - [ ] `/ai` 选模型 → WebGPU 本地推理（无 WebGPU 走云端降级）
 - [ ] `/signals` 卡片 → 回测 / AI 解读跳转
 - [ ] 支付：测试卡 4242 4242 4242 4242 走通 webhook → purchases 写入
-- [ ] `/api/marketdata?symbol=SPY` 返回真实或 mock 行情
+- [ ] `/api/marketdata?symbol=SPY` 返回真实行情（配 key）或演示数据（未配）
+- [ ] `/signals` 显示真实信号；`/backtest` 显示真实曲线
+- [ ] `/macro` 显示 FRED 真实指标（配 `FREDSERIESKEY`）或演示数据
+- [ ] `/paper` 自动盯市 + 绩效分析 + 累计盈亏曲线
 
 ## 7. 合规（生产前必做，非代码项）
 - [ ] 注册法律主体（SaaS + 数据 + 教育，"Route A"，不碰代客理财/代下单/托管）
