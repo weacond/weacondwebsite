@@ -86,8 +86,8 @@ export default function ComparePage() {
           {/* 控制条 */}
           <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 mb-6 flex flex-wrap items-end gap-4">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">{L.market}</label>
-              <select value={preset} onChange={(e) => setPreset(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+              <label htmlFor="compare-market" className="block text-xs text-slate-500 mb-1">{L.market}</label>
+              <select id="compare-market" value={preset} onChange={(e) => setPreset(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
                 {Object.entries(PRESET_MARKETS).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
                 ))}

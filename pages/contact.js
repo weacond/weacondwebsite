@@ -57,25 +57,25 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">{L.name}</label>
-                  <input required className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+                  <label htmlFor="contact-name" className="block text-sm font-medium mb-1">{L.name}</label>
+                  <input id="contact-name" required className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">{L.email}</label>
-                  <input type="email" required className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+                  <label htmlFor="contact-email" className="block text-sm font-medium mb-1">{L.email}</label>
+                  <input id="contact-email" type="email" required className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">{L.topic}</label>
-                <select className="w-full px-4 py-2.5 border rounded-lg text-sm">
+                <label htmlFor="contact-topic" className="block text-sm font-medium mb-1">{L.topic}</label>
+                <select id="contact-topic" className="w-full px-4 py-2.5 border rounded-lg text-sm">
                   {L.topics.map((t) => (
                     <option key={t}>{t}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">{L.message}</label>
-                <textarea required rows={4} className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm resize-none" />
+                <label htmlFor="contact-message" className="block text-sm font-medium mb-1">{L.message}</label>
+                <textarea id="contact-message" required rows={4} className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm resize-none" />
               </div>
               <button type="submit"
                 className="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-500 transition-colors">

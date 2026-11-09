@@ -176,8 +176,9 @@ export default function BacktestPage() {
               </select>
               {preset === "REAL" && (
                 <div className="mb-4">
-                  <label className="text-xs text-slate-500">{lang === "en" ? "Ticker" : "股票代码"}</label>
+                  <label htmlFor="bt-realticker" className="text-xs text-slate-500">{lang === "en" ? "Ticker" : "股票代码"}</label>
                   <input
+                    id="bt-realticker"
                     value={realSymbol}
                     onChange={(e) => setRealSymbol(e.target.value.toUpperCase())}
                     placeholder="SPY"
@@ -194,25 +195,25 @@ export default function BacktestPage() {
               <div className="space-y-3">
                 {STRATEGY_REGISTRY[strategyKey]?.params?.map((p) => (
                   <div key={p.key}>
-                    <label className="flex justify-between text-sm mb-1">
+                    <label htmlFor={`bt-param-${p.key}`} className="flex justify-between text-sm mb-1">
                       <span>{p.label}</span>
                       <span className="text-indigo-600 font-mono">{params[p.key] ?? p.default}</span>
                     </label>
-                    <input type="range" min={p.min} max={p.max} step={p.step || 1} value={params[p.key] ?? p.default}
+                    <input id={`bt-param-${p.key}`} type="range" min={p.min} max={p.max} step={p.step || 1} value={params[p.key] ?? p.default}
                       onChange={(e) => handleParamChange(p.key, e.target.value)} className="w-full accent-indigo-600" />
                   </div>
                 ))}
               </div>
               <h3 className="font-semibold mt-4 mb-3 text-sm uppercase tracking-wider text-slate-400">{L.riskParams}</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-slate-500">{L.capital}</label>
-                  <input type="number" value={config.initialCapital} onChange={(e) => setConfig((c) => ({ ...c, initialCapital: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
-                <div><label className="text-xs text-slate-500">{L.commission}</label>
-                  <input type="number" step="0.0001" value={config.commission} onChange={(e) => setConfig((c) => ({ ...c, commission: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
-                <div><label className="text-xs text-slate-500">{L.slippage}</label>
-                  <input type="number" step="0.0001" value={config.slippage} onChange={(e) => setConfig((c) => ({ ...c, slippage: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
-                <div><label className="text-xs text-slate-500">{L.positionPct}</label>
-                  <input type="number" step="0.05" value={config.maxPositionPct} onChange={(e) => setConfig((c) => ({ ...c, maxPositionPct: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
+                <div><label htmlFor="bt-capital" className="text-xs text-slate-500">{L.capital}</label>
+                  <input id="bt-capital" type="number" value={config.initialCapital} onChange={(e) => setConfig((c) => ({ ...c, initialCapital: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
+                <div><label htmlFor="bt-commission" className="text-xs text-slate-500">{L.commission}</label>
+                  <input id="bt-commission" type="number" step="0.0001" value={config.commission} onChange={(e) => setConfig((c) => ({ ...c, commission: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
+                <div><label htmlFor="bt-slippage" className="text-xs text-slate-500">{L.slippage}</label>
+                  <input id="bt-slippage" type="number" step="0.0001" value={config.slippage} onChange={(e) => setConfig((c) => ({ ...c, slippage: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
+                <div><label htmlFor="bt-positionpct" className="text-xs text-slate-500">{L.positionPct}</label>
+                  <input id="bt-positionpct" type="number" step="0.05" value={config.maxPositionPct} onChange={(e) => setConfig((c) => ({ ...c, maxPositionPct: Number(e.target.value) }))} className="w-full px-2 py-1.5 border rounded text-sm" /></div>
               </div>
               <button onClick={runTest} disabled={loading} className="mt-6 w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50">
                 {loading ? L.running : L.run}

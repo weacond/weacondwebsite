@@ -26,6 +26,8 @@ export default function SignalHistory({ history }) {
         {/* 按标的筛选 */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            type="button"
+            aria-pressed={filter === "ALL"}
             onClick={() => setFilter("ALL")}
             className={`text-xs px-2.5 py-1 rounded-full ${filter === "ALL" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}
           >
@@ -34,6 +36,8 @@ export default function SignalHistory({ history }) {
           {symbols.map((s) => (
             <button
               key={s}
+              type="button"
+              aria-pressed={filter === s}
               onClick={() => setFilter(s)}
               className={`text-xs px-2.5 py-1 rounded-full ${filter === s ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}
             >

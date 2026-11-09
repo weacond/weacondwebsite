@@ -233,7 +233,7 @@ export default function EbookPage({ meta = {}, previewBlocksZh = [], previewBloc
               © weacond · 仅供个人使用，禁止复制或传播
             </p>
           </article>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          <button type="button" aria-label={lang === "zh" ? "回到顶部" : "Back to top"} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="fixed bottom-6 right-6 z-[9998] w-11 h-11 rounded-full bg-indigo-600 text-white shadow-lg flex items-center justify-center">↑</button>
         </main>
       </div>

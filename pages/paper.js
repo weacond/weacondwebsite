@@ -190,20 +190,20 @@ export default function PaperPage() {
             <div className="space-y-6">
               <form onSubmit={submitOrder} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">{L.ticker}</label>
-                  <input value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })}
+                  <label htmlFor="paper-ticker" className="block text-xs text-slate-400 mb-1">{L.ticker}</label>
+                  <input id="paper-ticker" value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })}
                     placeholder="TSLA" required
                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">{L.qty}</label>
-                  <input value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })}
+                  <label htmlFor="paper-qty" className="block text-xs text-slate-400 mb-1">{L.qty}</label>
+                  <input id="paper-qty" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })}
                     type="number" min="1" required
                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">{L.entry}</label>
-                  <input value={form.entry} onChange={(e) => setForm({ ...form, entry: e.target.value })}
+                  <label htmlFor="paper-entry" className="block text-xs text-slate-400 mb-1">{L.entry}</label>
+                  <input id="paper-entry" value={form.entry} onChange={(e) => setForm({ ...form, entry: e.target.value })}
                     type="number" step="0.01" min="0.01" placeholder="0.00" required
                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
