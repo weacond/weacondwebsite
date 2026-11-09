@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe, portfolioVolatility } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility, inverseVolWeights } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -176,6 +176,9 @@ export default function ComparePage() {
                 // 等权组合夏普 / 组合年化波动（复用同一 returnsList/vols/相关矩阵）
                 const portSharpe = portfolioSharpe(returnsList, vols, M);
                 const portVol = portfolioVolatility(vols, M) * 100;
+                // 逆波动加权夏普（风险平价近似，常优于等权）
+                const ivWeights = inverseVolWeights(vols);
+                const ivSharpe = portfolioSharpe(returnsList, vols, M, ivWeights);
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -193,6 +196,9 @@ export default function ComparePage() {
                       <div className="text-xs text-slate-500">
                         {L.portSharpeLabel} <span className="font-bold text-slate-800">{portSharpe.toFixed(2)}</span>
                         <span className="text-slate-400 ml-1">· {L.portVolLabel} {portVol.toFixed(1)}%</span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {L.ivSharpeLabel} <span className="font-bold text-slate-800">{ivSharpe.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -251,6 +257,7 @@ const zh = {
   drHint: "=1 完全相关(无收益)，>1 越大越分散",
   portSharpeLabel: "等权组合夏普",
   portVolLabel: "波动",
+  ivSharpeLabel: "逆波动夏普",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -268,6 +275,7 @@ const en = {
   drHint: "=1 fully correlated (no benefit); higher = more diversified",
   portSharpeLabel: "Equal-weight Sharpe",
   portVolLabel: "Vol",
+  ivSharpeLabel: "Inv-Vol Sharpe",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 

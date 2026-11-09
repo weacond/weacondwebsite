@@ -5,6 +5,7 @@ import {
   portfolioVolatility,
   portfolioSharpe,
   volTargetScale,
+  inverseVolWeights,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -110,4 +111,25 @@ test("volTargetScale: 当前 σ_p=0 → 0（无法放大）", () => {
     [0, 1],
   ];
   assert.equal(volTargetScale([0, 0], M, undefined, 0.1), 0, "σ_p=0 → 0");
+});
+
+// ---------- inverseVolWeights ----------
+
+test("inverseVolWeights: 空 → []；等波动 → 等权", () => {
+  assert.deepEqual(inverseVolWeights([]), [], "空 → []");
+  assert.ok(Math.abs(inverseVolWeights([0.1, 0.1])[0] - 0.5) < 1e-12, "等波动 → 等权");
+});
+
+test("inverseVolWeights: 逆波动归一化，权重和=1", () => {
+  // vols [0.1, 0.2] → w ∝ [10, 5] → [2/3, 1/3]
+  const w = inverseVolWeights([0.1, 0.2]);
+  assert.ok(Math.abs(w[0] - 2 / 3) < 1e-12 && Math.abs(w[1] - 1 / 3) < 1e-12, "逆波动权重");
+  assert.ok(Math.abs(w[0] + w[1] - 1) < 1e-12, "权重和=1");
+});
+
+test("inverseVolWeights: 全 ≤0/非有限 → 退回等权；波动越高权重越低", () => {
+  assert.ok(Math.abs(inverseVolWeights([0, -1])[0] - 0.5) < 1e-12, "全非正 → 等权");
+  assert.ok(Math.abs(inverseVolWeights([NaN, Infinity])[0] - 0.5) < 1e-12, "非有限 → 等权");
+  const w = inverseVolWeights([0.01, 0.5]); // 低波动者权重更高
+  assert.ok(w[0] > w[1], "波动越低权重越高");
 });
