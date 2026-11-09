@@ -3,7 +3,7 @@ export const runtime = "edge";
 // Supabase Auth API — 用户注册/登录代理
 // 支持邮箱+密码、OAuth 占位
 
-import { getSupabaseClient } from "../../lib/supabase";
+import { getSupabaseClient } from "../../lib/supabase.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
