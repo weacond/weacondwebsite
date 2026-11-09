@@ -13,6 +13,7 @@ import {
   kellyFraction,
   fractionalKelly,
   probabilityOfRuin,
+  riskBudget,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -199,6 +200,25 @@ test("drawdownRecovery: 未恢复时 recovery=null、recovered=false", () => {
   const r = drawdownRecovery(curve);
   assert.equal(r.recovery, null, "未恢复 → null");
   assert.equal(r.recovered, false);
+});
+
+
+// ---------- riskBudget ----------
+
+test("riskBudget: 0.02 名义 VaR、1% 日亏上限 → 0.5 半仓", () => {
+  assert.ok(Math.abs(riskBudget(0.02, 0.01) - 0.5) < 1e-9, "应为 0.5");
+});
+
+test("riskBudget: varPerUnit≤0 或非法 → 0", () => {
+  assert.equal(riskBudget(0, 0.01), 0, "varPerUnit=0 → 0");
+  assert.equal(riskBudget(-0.01, 0.01), 0, "varPerUnit<0 → 0");
+  assert.equal(riskBudget(NaN, 0.01), 0, "NaN → 0");
+  assert.equal(riskBudget(0.02, NaN), 0, "maxLossFrac NaN → 0");
+});
+
+test("riskBudget: 非负且随 maxLossFrac 单调递增", () => {
+  assert.ok(riskBudget(0.02, 0.01) >= 0, "非负");
+  assert.ok(riskBudget(0.02, 0.03) > riskBudget(0.02, 0.01), "maxLossFrac↑ → 仓位↑");
 });
 
 
