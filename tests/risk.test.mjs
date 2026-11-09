@@ -14,6 +14,7 @@ import {
   fractionalKelly,
   probabilityOfRuin,
   riskBudget,
+  maxLosingStreak,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -220,5 +221,26 @@ test("riskBudget: 非负且随 maxLossFrac 单调递增", () => {
   assert.ok(riskBudget(0.02, 0.01) >= 0, "非负");
   assert.ok(riskBudget(0.02, 0.03) > riskBudget(0.02, 0.01), "maxLossFrac↑ → 仓位↑");
 });
+
+// ---------- maxLosingStreak ----------
+
+test("maxLosingStreak: 末尾三笔连亏 → 3", () => {
+  assert.equal(maxLosingStreak([2, -1, -1, 3, -1, -1, -1]), 3);
+});
+
+test("maxLosingStreak: 交易对象数组 [{pnl}] 口径一致", () => {
+  assert.equal(maxLosingStreak([{ pnl: 1 }, { pnl: -2 }, { pnl: -3 }, { pnl: 4 }]), 2);
+});
+
+test("maxLosingStreak: 全盈利 → 0；空/非法 → 0", () => {
+  assert.equal(maxLosingStreak([1, 2, 3]), 0, "全盈利 → 0");
+  assert.equal(maxLosingStreak([]), 0, "空数组 → 0");
+  assert.equal(maxLosingStreak(null), 0, "null → 0");
+});
+
+test("maxLosingStreak: scratch(pnl=0) 计入连亏（与 calcMetrics 亏损口径一致）", () => {
+  assert.equal(maxLosingStreak([1, -1, 0, -1]), 3, "0 不中断连亏");
+});
+
 
 
