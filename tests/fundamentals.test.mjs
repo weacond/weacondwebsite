@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fetchFundamentals, parseOverview } from "../lib/marketdata_real.js";
+import { summarizeFundamentals } from "../lib/fundamentals.js";
 
 // 一份贴近 Alpha Vantage OVERVIEW 的样例响应（含字符串数值 + "-" 空占位）
 const AV_SAMPLE = {
@@ -143,3 +144,52 @@ test("fetchFundamentals: 关键字段全空 → 降级到演示数据（避免�
     globalThis.fetch = orig;
   }
 });
+
+// ---------- summarizeFundamentals（展示格式化，纯函数） ----------
+
+test("summarizeFundamentals: 完整对象 → 5 项字段格式化，live/source 透传", () => {
+  const s = summarizeFundamentals({
+    symbol: "AAPL", name: "Apple Inc.", sector: "Technology",
+    peRatio: 30.5, pbRatio: 50.2, roe: 0.148, marketCap: 3500000000000,
+    dividendYield: 0.0065, beta: 1.28, live: true, source: "alphaVantage",
+  }, "zh");
+  assert.equal(s.symbol, "AAPL");
+  assert.equal(s.name, "Apple Inc.");
+  assert.equal(s.sector, "Technology");
+  assert.equal(s.live, true);
+  assert.equal(s.source, "alphaVantage");
+  assert.equal(s.items.length, 5);
+  const byLabel = Object.fromEntries(s.items.map((i) => [i.label, i.value]));
+  assert.equal(byLabel["市盈率"], "30.50");
+  assert.equal(byLabel["市净率"], "50.20");
+  assert.equal(byLabel["ROE"], "14.8%"); // 0.148 → 14.8%
+  assert.equal(byLabel["市值"], "$3.5T"); // 3.5e12 → 3.5T
+  assert.equal(byLabel["股息率"], "0.7%"); // 0.0065 → 0.7%
+});
+
+test("summarizeFundamentals: 非对象输入 → 返回 null（调用方据此隐藏）", () => {
+  assert.equal(summarizeFundamentals(null), null);
+  assert.equal(summarizeFundamentals(undefined), null);
+  assert.equal(summarizeFundamentals(42), null);
+  assert.equal(summarizeFundamentals("x"), null);
+});
+
+test("summarizeFundamentals: 字段全空 → 占位符 '—'，绝不捏造数值", () => {
+  const s = summarizeFundamentals({ symbol: "XYZ", peRatio: null, marketCap: null, roe: null });
+  assert.equal(s.items.every((i) => i.value === "—"), true);
+});
+
+test("summarizeFundamentals: 市值 B / M 档格式化", () => {
+  assert.equal(summarizeFundamentals({ marketCap: 123e9 }).items.find((i) => i.label === "市值").value, "$123.0B");
+  assert.equal(summarizeFundamentals({ marketCap: 456e6 }).items.find((i) => i.label === "市值").value, "$456.0M");
+  assert.equal(summarizeFundamentals({ marketCap: 9000 }).items.find((i) => i.label === "市值").value, "$9,000");
+});
+
+test("summarizeFundamentals: 英文标签", () => {
+  const s = summarizeFundamentals({ peRatio: 10, marketCap: 1e9 }, "en");
+  const labels = s.items.map((i) => i.label);
+  assert.ok(labels.includes("P/E"));
+  assert.ok(labels.includes("Mkt Cap"));
+  assert.equal(labels.includes("市盈率"), false);
+});
+

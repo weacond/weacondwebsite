@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import FundamentalsTag from "../components/FundamentalsTag";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -191,6 +192,7 @@ export default function BacktestPage() {
                   </p>
                 </div>
               )}
+              {preset === "REAL" && <FundamentalsTag symbol={realSymbol} />}
               <h3 className="font-semibold mb-3 text-sm uppercase tracking-wider text-slate-400">{L.params}</h3>
               <div className="space-y-3">
                 {STRATEGY_REGISTRY[strategyKey]?.params?.map((p) => (
