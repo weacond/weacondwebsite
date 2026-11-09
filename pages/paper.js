@@ -118,6 +118,33 @@ export default function PaperPage() {
     };
   }, [trades]);
 
+  // 累计已实现盈亏曲线（按平仓日排序）：用于绩效 tab 的 SVG 折线
+  const pnlCurve = useMemo(() => {
+    if (trades.length === 0) return [];
+    const sorted = [...trades].sort((a, b) => (a.closeDate < b.closeDate ? -1 : a.closeDate > b.closeDate ? 1 : 0));
+    let cum = 0;
+    const pts = [{ i: 0, cum: 0 }];
+    sorted.forEach((t, i) => { cum += t.pnl || 0; pts.push({ i: i + 1, cum }); });
+    return pts;
+  }, [trades]);
+
+  // 盈亏曲线 SVG 几何（基于 pnlCurve，含 0 基准线）
+  const curveGeom = (() => {
+    if (pnlCurve.length < 2) return null;
+    const cums = pnlCurve.map((p) => p.cum);
+    const minC = Math.min(0, ...cums);
+    const maxC = Math.max(0, ...cums);
+    const range = maxC - minC || 1;
+    const W = 600, H = 120, pad = 10;
+    const toXY = (p) => {
+      const x = (p.i / (pnlCurve.length - 1)) * W;
+      const y = pad + (H - 2 * pad) * (1 - (p.cum - minC) / range);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    };
+    const zeroY = pad + (H - 2 * pad) * (1 - (0 - minC) / range);
+    return { W, H, path: pnlCurve.map(toXY).join(" "), zeroY };
+  })();
+
   // 从信号/收藏页跳转：?symbol=NVDA 预填开仓表单的标的
   useEffect(() => {
     if (router.isReady && router.query.symbol) {
@@ -357,6 +384,19 @@ export default function PaperPage() {
                       <div className="text-xs text-slate-400">{analytics.worst.ticker}</div>
                     </div>
                   </div>
+                  {curveGeom && (
+                    <div className="mt-6">
+                      <div className="text-xs text-slate-400 mb-2">{L.pnlCurveTitle}</div>
+                      <svg viewBox={`0 0 ${curveGeom.W} ${curveGeom.H}`} className="w-full h-32" preserveAspectRatio="none">
+                        <line x1="0" y1={curveGeom.zeroY} x2={curveGeom.W} y2={curveGeom.zeroY} stroke="#e2e8f0" strokeDasharray="4 4" />
+                        <polyline points={curveGeom.path} fill="none" stroke={analytics.realized >= 0 ? "#16a34a" : "#dc2626"} strokeWidth="2" strokeLinejoin="round" />
+                      </svg>
+                      <div className="flex justify-between text-xs text-slate-400 mt-1">
+                        <span className={analytics.realized >= 0 ? "text-green-600" : "text-red-500"}>{analytics.realized >= 0 ? "+" : ""}${analytics.realized.toFixed(0)}</span>
+                        <span>{L.tradesCount}{analytics.n}</span>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-slate-400 mt-4">{L.tradesCount} {analytics.n}</p>
                 </>
               ) : (
@@ -382,7 +422,7 @@ const zh = {
   closedTrades: "已平仓交易", noHistory: "暂无历史记录", closeDate: "平仓日",
   performance: "绩效", winRate: "胜率", profitFactor: "利润因子", avgWin: "平均盈利", avgLoss: "平均亏损",
   expectancy: "期望值", realized: "已实现", bestTrade: "最佳交易", worstTrade: "最差交易",
-  tradesCount: "共 ", noPerformance: "暂无已平仓交易，平仓后此处显示绩效分析",
+  tradesCount: "共 ", noPerformance: "暂无已平仓交易，平仓后此处显示绩效分析", pnlCurveTitle: "累计已实现盈亏",
   simulated: "模拟价格",
   disclaimer: "模拟交易不构成投资建议。实际交易结果可能与模拟不同。",
 };
@@ -397,7 +437,7 @@ const en = {
   closedTrades: "Closed Trades", noHistory: "No history yet", closeDate: "Closed",
   performance: "Performance", winRate: "Win Rate", profitFactor: "Profit Factor", avgWin: "Avg Win", avgLoss: "Avg Loss",
   expectancy: "Expectancy", realized: "Realized", bestTrade: "Best Trade", worstTrade: "Worst Trade",
-  tradesCount: "Trades: ", noPerformance: "No closed trades yet — performance appears after you close a position",
+  tradesCount: "Trades: ", noPerformance: "No closed trades yet — performance appears after you close a position", pnlCurveTitle: "Cumulative Realized P&L",
   simulated: "Simulated",
   disclaimer: "Paper trading does not constitute investment advice. Actual results may differ.",
 };

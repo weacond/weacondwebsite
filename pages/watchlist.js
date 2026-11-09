@@ -20,11 +20,13 @@ export default function WatchlistPage() {
   const [prices, setPrices] = useState({});
   const [loadingPrices, setLoadingPrices] = useState(false);
   const [pricesLive, setPricesLive] = useState(null);
+  const [loadError, setLoadError] = useState(false);
 
   // 为每个收藏标的拉最新行情（/api/marketdata）；无 key 时接口返回演示数据并标 live:false
   const loadPrices = async () => {
     if (!sorted.length) return;
     setLoadingPrices(true);
+    setLoadError(false);
     try {
       const results = await Promise.all(sorted.map(async (sym) => {
         try {
@@ -47,6 +49,9 @@ export default function WatchlistPage() {
       results.filter(Boolean).forEach((r) => { map[r.symbol] = r; if (r.live) anyLive = true; });
       setPrices(map);
       setPricesLive(anyLive);
+      if (results.every((r) => r === null)) setLoadError(true); // 全部失败 → 触发重试提示
+    } catch {
+      setLoadError(true);
     } finally {
       setLoadingPrices(false);
     }
@@ -98,8 +103,32 @@ export default function WatchlistPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
-              {sorted.map((t) => (
+            <>
+              {loadError && (
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
+                  <span className="text-sm text-amber-700">{L.loadError}</span>
+                  <button type="button" onClick={loadPrices}
+                    className="text-xs bg-amber-600 text-white px-3 py-1 rounded-full hover:bg-amber-700 transition-colors">{L.retry}</button>
+                </div>
+              )}
+              {loadingPrices && Object.keys(prices).length === 0 ? (
+                <div className="space-y-3">
+                  {Array.from({ length: sorted.length }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-5 bg-slate-200 rounded animate-pulse" />
+                        <div className="w-20 h-4 bg-slate-100 rounded animate-pulse" />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="w-12 h-6 bg-slate-100 rounded animate-pulse" />
+                        <div className="w-12 h-6 bg-slate-100 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sorted.map((t) => (
                 <div
                   key={t}
                   className="flex items-center justify-between bg-white rounded-xl p-4 border border-slate-100 shadow-sm"
@@ -139,8 +168,10 @@ export default function WatchlistPage() {
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {count > 0 && pricesLive !== null && (
@@ -167,6 +198,8 @@ const zh = {
   refresh: "刷新行情",
   liveNote: "现价为实时行情（Alpha Vantage）",
   demoNote: "现价为演示数据（未配置 API key）",
+  loadError: "行情加载失败，请重试",
+  retry: "重试",
   note: "收藏保存在你的浏览器本地，不会上传服务器。",
 };
 const en = {
@@ -180,5 +213,7 @@ const en = {
   refresh: "Refresh",
   liveNote: "Prices are live (Alpha Vantage)",
   demoNote: "Prices are demo data (no API key configured)",
+  loadError: "Failed to load prices, please retry",
+  retry: "Retry",
   note: "Your watchlist is stored locally in your browser and never uploaded.",
 };
