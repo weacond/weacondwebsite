@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SignalCard from "../components/SignalCard";
 import { computeSignalScore } from "../lib/signals";
+import { buildSignalHistory, summarizeHistory } from "../lib/signalHistory";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -34,6 +35,10 @@ const SIGNALS = UNIVERSE.map((u) => ({
   ),
 })).sort((a, b) => b.score - a.score);
 
+// 信号历史（确定性 mock，最近 30 日）+ 命中统计
+const HISTORY = buildSignalHistory(30);
+const HISTORY_SUMMARY = summarizeHistory(HISTORY);
+
 export default function SignalsPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
@@ -61,6 +66,41 @@ export default function SignalsPage() {
             ))}
           </div>
 
+          {/* 信号历史（最近 30 日）：命中统计 + 时间线 */}
+          <div className="mt-8">
+            <h2 className="text-xl font-bold mb-4">{L.historyTitle}</h2>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                <div className="text-2xl font-bold">{HISTORY_SUMMARY.count}</div>
+                <div className="text-xs text-slate-400">{L.historySignals}</div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                <div className="text-2xl font-bold text-green-600">{Math.round(HISTORY_SUMMARY.hitRate * 100)}%</div>
+                <div className="text-xs text-slate-400">{L.historyHitRate}</div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                <div className="text-2xl font-bold">{HISTORY_SUMMARY.avgRet.toFixed(1)}%</div>
+                <div className="text-xs text-slate-400">{L.historyAvgRet}</div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {HISTORY.map((h) => (
+                <div key={h.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-100 text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-slate-400 text-xs w-14">{h.date.slice(5)}</span>
+                    <span className="font-semibold">{h.symbol}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">{h.type}</span>
+                    <span className="text-xs text-slate-400">{h.strength} 分</span>
+                  </div>
+                  <span className={"font-semibold " + (h.win ? "text-green-600" : "text-red-500")}>
+                    {h.win ? "+" : ""}{h.ret}%
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-3 text-center">{L.historyDisclaimer}</p>
+          </div>
+
           {/* 升级提示 */}
           <div className="mt-8 bg-indigo-50 rounded-xl p-6 text-center border border-indigo-100">
             <p className="text-indigo-800 font-medium mb-4">{L.upgradePrompt}</p>
@@ -81,6 +121,11 @@ const zh = {
   demoLabel: "示例数据 · 非实时",
   upgradePrompt: "解锁每日 5-10 条卖 Put 筛选、IV Rank、Greeks 摘要与风控建议",
   upgradeCta: "查看 PutSeller 方案",
+  historyTitle: "近 30 日信号历史",
+  historySignals: "信号数",
+  historyHitRate: "命中率",
+  historyAvgRet: "平均收益",
+  historyDisclaimer: "事后收益为回测近似；演示数据，非投资建议。",
 };
 const en = {
   title: "Today's Signals",
@@ -88,4 +133,9 @@ const en = {
   demoLabel: "Demo Data · Not Live",
   upgradePrompt: "Unlock 5-10 put options daily, IV Rank, Greeks, and risk management",
   upgradeCta: "View PutSeller Plan",
+  historyTitle: "Last 30 Days of Signals",
+  historySignals: "Signals",
+  historyHitRate: "Hit Rate",
+  historyAvgRet: "Avg Return",
+  historyDisclaimer: "Returns are backtest approximations; demo data, not investment advice.",
 };
