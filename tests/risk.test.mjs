@@ -7,6 +7,7 @@ import {
   valueAtRisk,
   expectedShortfall,
   maxDrawdown,
+  drawdownRecovery,
   detectTailEvents,
   riskProfileFromEquity,
   kellyFraction,
@@ -174,4 +175,30 @@ test("probabilityOfRuin: 无优势→0.5；正优势 <0.5 且随 N 递减；负�
   assert.ok(probabilityOfRuin(-0.01, 100) > 0.5, "负优势破产概率 >0.5");
   assert.equal(probabilityOfRuin(0.01, 0), 1, "N=0 → 1");
 });
+
+// ---------- drawdownRecovery ----------
+
+test("drawdownRecovery: mdd 与 maxDrawdown 同口径一致", () => {
+  const curve = [100, 110, 90, 80, 100, 120];
+  const r = drawdownRecovery(curve);
+  assert.ok(Math.abs(r.mdd - maxDrawdown(curve)) < 1e-12, "mdd 一致");
+  assert.equal(r.troughIdx, 3, "最深点在 index 3 (80)");
+  assert.equal(r.peakIdx, 1, "前峰在 index 1 (110)");
+});
+
+test("drawdownRecovery: 已恢复时 recovery 为回升期数", () => {
+  // 峰 100(0) → 谷 50(2) → 回到 100(4)：恢复 2 期
+  const curve = [100, 80, 50, 70, 100, 110];
+  const r = drawdownRecovery(curve);
+  assert.ok(r.recovered, "应已恢复");
+  assert.equal(r.recovery, 2, "从谷到回峰 2 期");
+});
+
+test("drawdownRecovery: 未恢复时 recovery=null、recovered=false", () => {
+  const curve = [100, 90, 80, 70]; // 持续下跌，未回到 100
+  const r = drawdownRecovery(curve);
+  assert.equal(r.recovery, null, "未恢复 → null");
+  assert.equal(r.recovered, false);
+});
+
 
