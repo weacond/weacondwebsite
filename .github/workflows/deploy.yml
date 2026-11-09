@@ -184,7 +184,7 @@ jobs:
           BASE="https://${URL}"
           echo "Smoke base: $BASE"
           ok=1
-          for path in "/" "/api/marketdata?symbol=SPY" "/api/marketdata?fred=DFF" "/macro" "/paper" "/signals" "/watchlist" "/backtest"; do
+          for path in "/api/health" "/" "/api/marketdata?symbol=SPY" "/api/marketdata?fred=DFF" "/macro" "/paper" "/signals" "/watchlist" "/backtest"; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BASE$path")
             echo "  $path -> $code"
             if [ "$code" != "200" ]; then ok=0; fi
