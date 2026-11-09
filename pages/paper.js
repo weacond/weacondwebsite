@@ -25,6 +25,7 @@ export default function PaperPage() {
   const [markLive, setMarkLive] = useState(null);
   const [wlPrices, setWlPrices] = useState({});
   const [wlLive, setWlLive] = useState(null);
+  const [lastMarked, setLastMarked] = useState(null);
 
   // 盯市：用 /api/marketdata 最新价更新各持仓现价，浮动盈亏随之真实化（无 key 时为演示价）
   const refreshPrices = async () => {
@@ -50,10 +51,14 @@ export default function PaperPage() {
       results.filter(Boolean).forEach((r) => { map[r.ticker] = r.price; if (r.live) anyLive = true; });
       markPositions(map);
       setMarkLive(anyLive);
+      if (Object.keys(map).length > 0) setLastMarked(new Date().toLocaleTimeString());
     } finally {
       setMarking(false);
     }
   };
+
+  // 落地即盯市：进入 /paper 自动用最新价更新持仓，浮动盈亏即时真实化
+  useEffect(() => { refreshPrices(); }, []);
 
   // 观察列表实时/演示价（无 key 时演示兜底）
   const WL = ["SPY", "QQQ", "AAPL", "NVDA", "TSLA", "MSFT"];
@@ -183,10 +188,13 @@ export default function PaperPage() {
               <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">{L.currentPositions}</h3>
-                  <button type="button" onClick={refreshPrices} disabled={marking}
-                    className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full hover:bg-slate-200 disabled:opacity-50 transition-colors">
-                    {marking ? L.marking : L.refreshPrice}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {lastMarked && <span className="text-xs text-slate-400">{L.lastUpdated} {lastMarked}</span>}
+                    <button type="button" onClick={refreshPrices} disabled={marking}
+                      className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full hover:bg-slate-200 disabled:opacity-50 transition-colors">
+                      {marking ? L.marking : L.refreshPrice}
+                    </button>
+                  </div>
                 </div>
                 {markLive !== null && positions.length > 0 && (
                   <p className={`text-xs mb-3 ${markLive ? "text-green-600" : "text-amber-600"}`}>
@@ -368,7 +376,7 @@ const zh = {
   balance: "账户余额", floatPnl: "浮动盈亏", realizedPnl: "已实现盈亏",
   positions: "持仓", history: "历史", watchlist: "观察列表",
   currentPositions: "当前持仓", ticker: "代码", name: "名称", qty: "数量",
-  refreshPrice: "刷新现价", marking: "盯市中...", markLiveNote: "现价已用实时行情（Alpha Vantage）更新", markDemoNote: "现价为演示数据（未配置 API key）",
+  refreshPrice: "刷新现价", marking: "盯市中...", markLiveNote: "现价已用实时行情（Alpha Vantage）更新", markDemoNote: "现价为演示数据（未配置 API key）", lastUpdated: "更新于 ",
   entry: "成本价", current: "现价", exit: "卖出价", pnl: "盈亏", action: "操作",
   openPosition: "开仓", sell: "平仓", noPositions: "暂无持仓，可在上方开仓",
   closedTrades: "已平仓交易", noHistory: "暂无历史记录", closeDate: "平仓日",
@@ -383,7 +391,7 @@ const en = {
   balance: "Account Balance", floatPnl: "Unrealized P&L", realizedPnl: "Realized P&L",
   positions: "Positions", history: "History", watchlist: "Watchlist",
   currentPositions: "Current Positions", ticker: "Ticker", name: "Name", qty: "Qty",
-  refreshPrice: "Refresh prices", marking: "Marking...", markLiveNote: "Prices updated from live data (Alpha Vantage)", markDemoNote: "Prices are demo data (no API key configured)",
+  refreshPrice: "Refresh prices", marking: "Marking...", markLiveNote: "Prices updated from live data (Alpha Vantage)", markDemoNote: "Prices are demo data (no API key configured)", lastUpdated: "Updated ",
   entry: "Entry", current: "Current", exit: "Exit", pnl: "P&L", action: "Action",
   openPosition: "Open", sell: "Close", noPositions: "No open positions — place an order above",
   closedTrades: "Closed Trades", noHistory: "No history yet", closeDate: "Closed",
