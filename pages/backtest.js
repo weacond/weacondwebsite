@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
-import { riskProfileFromEquity, kellyFraction, fractionalKelly, drawdownRecovery } from "../lib/risk.js";
+import { riskProfileFromEquity, kellyFraction, fractionalKelly } from "../lib/risk.js";
 
 export const metadata = {
   title: "策略回测 — Weacond",
@@ -319,7 +319,7 @@ export default function BacktestPage() {
             (() => {
               const rp = riskProfileFromEquity(result.equityCurve);
               if (!rp) return null;
-              const rec = drawdownRecovery(result.equityCurve);
+              const recovery = result.metrics?.recoveryPeriods;
               return (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
                   <h3 className="font-semibold mb-4">{L.riskProfile}</h3>
@@ -338,7 +338,7 @@ export default function BacktestPage() {
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-slate-400">{L.recoveryDays}</div>
-                      <div className="font-bold text-lg">{rec.recovered ? rec.recovery : L.notRecovered}</div>
+                      <div className="font-bold text-lg">{recovery != null ? recovery : L.notRecovered}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-slate-400">{L.obsPeriods}</div>

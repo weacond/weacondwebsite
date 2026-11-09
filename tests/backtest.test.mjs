@@ -88,7 +88,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
     "profitFactor", "numTrades", "exposure", "calmar", "volatility",
-    "var95", "cvar95",
+    "var95", "cvar95", "recoveryPeriods",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
   }
