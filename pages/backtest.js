@@ -30,6 +30,7 @@ const METRIC_KEYS = [
   { key: "exposure", label: "持仓暴露", labelEn: "Exposure", fmt: (v) => `${v.toFixed(0)}%`, good: () => true },
   { key: "calmar", label: "卡玛比率", labelEn: "Calmar", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "volatility", label: "年化波动", labelEn: "Volatility", fmt: (v) => `${v.toFixed(1)}%`, good: () => true },
+  { key: "ulcerIndex", label: "溃疡指数", labelEn: "Ulcer", fmt: (v) => `${(v * 100).toFixed(1)}%`, good: () => true },
 ];
 
 // 全策略对比的排序选项标签
