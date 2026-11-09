@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     const result = {
       symbol,
       source,
+      live: Boolean(process.env.ALPHA_VANTAGE_API_KEY),
       candles: candles.map((c) => ({
         date: c.date,
         open: c.open,

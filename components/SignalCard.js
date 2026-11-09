@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useLanguage } from "../contexts/LanguageContext";
 import WatchlistButton from "./WatchlistButton";
+import PriceTag from "./PriceTag";
 
 function EngineBar({ label, value }) {
   const color = value >= 70 ? "bg-green-500" : value >= 50 ? "bg-yellow-500" : "bg-orange-500";
@@ -68,6 +69,7 @@ export default function SignalCard({ signal }) {
           <span className="text-lg font-bold">{ticker}</span>
           <span className="text-slate-500 text-sm">{name}</span>
           <WatchlistButton ticker={ticker} compact />
+          <PriceTag symbol={ticker} />
         </div>
         <div className="text-right">
           <div className={`text-3xl font-bold ${scoreColor}`}>{score}</div>
