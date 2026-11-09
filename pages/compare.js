@@ -11,6 +11,7 @@ import Head from "next/head";
 import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
+import { correlationMatrix } from "../lib/correlation";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -109,6 +110,7 @@ export default function ComparePage() {
               {L.start}
             </div>
           ) : (
+            <>
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -143,6 +145,65 @@ export default function ComparePage() {
               </table>
               <p className="text-xs text-slate-400 px-4 py-3">{L.note}</p>
             </div>
+            {/* 相关性热力图（基于各策略权益曲线的日收益，衡量分散化） */}
+            {results.length > 1 &&
+              (() => {
+                const items = results
+                  .filter((r) => r.result?.equityCurve?.length > 1 && !r.result?.error)
+                  .map((r) => ({ name: r.name, equity: r.result.equityCurve }));
+                if (items.length < 2) return null;
+                const returnsList = items.map((it) => {
+                  const vals = it.equity.map((p) => p.value);
+                  const rets = [];
+                  for (let i = 1; i < vals.length; i++) {
+                    const prev = vals[i - 1];
+                    if (prev) rets.push((vals[i] - prev) / prev);
+                  }
+                  return rets;
+                });
+                const M = correlationMatrix(returnsList);
+                const corrBg = (c) => {
+                  if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
+                  if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
+                  if (c < 0) return `rgba(34,197,94,${(Math.abs(c) * 0.5).toFixed(2)})`; // 负相关 → 绿（分散好）
+                  return "rgba(148,163,184,0.15)"; // 近 0 → 灰
+                };
+                return (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 mt-6">
+                    <h3 className="font-semibold mb-3">{L.corrTitle}</h3>
+                    <div className="overflow-x-auto">
+                      <table className="text-xs border-collapse">
+                        <thead>
+                          <tr>
+                            <th className="px-2 py-1"></th>
+                            {items.map((it) => (
+                              <th key={it.name} className="px-2 py-1 text-slate-500 font-medium">{it.name}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {M.map((row, i) => (
+                            <tr key={items[i].name}>
+                              <td className="px-2 py-1 font-medium text-slate-600 whitespace-nowrap">{items[i].name}</td>
+                              {row.map((c, j) => (
+                                <td
+                                  key={j}
+                                  className="px-2 py-1 text-center font-mono"
+                                  style={{ backgroundColor: corrBg(c), color: Math.abs(c) > 0.6 ? "#fff" : "#334155" }}
+                                >
+                                  {c.toFixed(2)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2">{L.corrNote}</p>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
       </section>
@@ -160,6 +221,8 @@ const zh = {
   hint: "用默认参数，同一市场预设下比较",
   start: "点击“开始对比”查看各策略绩效对比",
   metric: "指标",
+  corrTitle: "相关性热力图",
+  corrNote: "各策略权益曲线日收益的两两相关系数（+1 完全正相关=分散差；−1 完全负相关=分散好；近 0=独立）。示例数据，非投资建议。",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -171,6 +234,8 @@ const en = {
   hint: "Default params, same market preset",
   start: "Click “Compare” to compare strategy performance",
   metric: "Metric",
+  corrTitle: "Correlation Heatmap",
+  corrNote: "Pairwise correlation of strategies' daily returns (+1 fully correlated = poor diversification; −1 fully anti-correlated = good diversification; ~0 independent). Demo data, not investment advice.",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 
