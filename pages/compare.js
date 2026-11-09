@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -186,6 +186,9 @@ export default function ComparePage() {
                 // 各资产风险贡献（逆波动加权下）：RC_i / ΣRC，和=100%
                 const rc = riskContribution(vols, M, ivWeights);
                 const rcTotal = rc.reduce((a, b) => a + b, 0);
+                // 风险平价权重（各资产风险贡献相等）及其组合夏普
+                const rpWeights = riskParityWeights(vols, M);
+                const rpSharpe = portfolioSharpe(returnsList, vols, M, rpWeights);
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -206,6 +209,9 @@ export default function ComparePage() {
                       </div>
                       <div className="text-xs text-slate-500">
                         {L.ivSharpeLabel} <span className="font-bold text-slate-800">{ivSharpe.toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {L.rpSharpeLabel} <span className="font-bold text-slate-800">{rpSharpe.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -252,6 +258,21 @@ export default function ComparePage() {
                       })}
                     </div>
                     <p className="text-xs text-slate-400 mt-2">{L.corrNote}</p>
+                    <div className="mt-3 space-y-1.5">
+                      <div className="text-xs font-medium text-slate-500">{L.rpTitle}</div>
+                      {items.map((it, i) => {
+                        const pct = rpWeights[i] != null && Number.isFinite(rpWeights[i]) ? rpWeights[i] * 100 : 0;
+                        return (
+                          <div key={it.name} className="flex items-center gap-2 text-xs">
+                            <span className="w-20 shrink-0 truncate text-slate-600">{it.name}</span>
+                            <div className="flex-1 h-3 bg-slate-100 rounded overflow-hidden">
+                              <div className="h-full bg-emerald-500" style={{ width: `${Math.max(0, Math.min(100, pct)).toFixed(1)}%` }} />
+                            </div>
+                            <span className="w-12 shrink-0 text-right font-mono text-slate-700">{pct.toFixed(1)}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
@@ -280,6 +301,8 @@ const zh = {
   portSharpeLabel: "等权组合夏普",
   portVolLabel: "波动",
   ivSharpeLabel: "逆波动夏普",
+  rpSharpeLabel: "风险平价夏普",
+  rpTitle: "风险平价权重",
   rcTitle: "各资产风险贡献（逆波动加权）",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
@@ -299,6 +322,8 @@ const en = {
   portSharpeLabel: "Equal-weight Sharpe",
   portVolLabel: "Vol",
   ivSharpeLabel: "Inv-Vol Sharpe",
+  rpSharpeLabel: "Risk-Parity Sharpe",
+  rpTitle: "Risk-Parity Weights",
   rcTitle: "Risk Contribution (inv-vol weighted)",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
