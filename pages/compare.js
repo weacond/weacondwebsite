@@ -23,6 +23,7 @@ const CMP_METRICS = [
   { key: "maxDrawdown", label: "最大回撤", labelEn: "Max DD", fmt: (v) => `-${v.toFixed(1)}%`, higher: false },
   { key: "winRate", label: "胜率", labelEn: "Win Rate", fmt: (v) => `${v.toFixed(0)}%`, higher: true },
   { key: "profitFactor", label: "盈亏比", labelEn: "Profit Factor", fmt: (v) => v.toFixed(2), higher: true },
+  { key: "payoffRatio", label: "Payoff", labelEn: "Payoff", fmt: (v) => v.toFixed(2), higher: true },
   { key: "calmar", label: "卡玛", labelEn: "Calmar", fmt: (v) => v.toFixed(2), higher: true },
   { key: "ulcerIndex", label: "溃疡指数", labelEn: "Ulcer", fmt: (v) => `${(v * 100).toFixed(1)}%`, higher: false },
   { key: "maxLosingStreak", label: "最长连亏", labelEn: "Max Loss Streak", fmt: (v) => v.toString(), higher: false },

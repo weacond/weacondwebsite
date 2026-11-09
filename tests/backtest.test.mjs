@@ -88,7 +88,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   assert.equal(res.equityCurve.length, candles.length);
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
-    "profitFactor", "numTrades", "exposure", "calmar", "volatility",
+    "profitFactor", "payoffRatio", "numTrades", "exposure", "calmar", "volatility",
     "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak", "ulcerIndex",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
@@ -101,6 +101,8 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   assert.ok(Number.isInteger(res.metrics.maxLosingStreak) && res.metrics.maxLosingStreak >= 0, "maxLosingStreak 非负整数");
   assert.ok(Number.isInteger(res.metrics.maxWinStreak) && res.metrics.maxWinStreak >= 0, "maxWinStreak 非负整数");
   assert.ok(Number.isFinite(res.metrics.ulcerIndex) && res.metrics.ulcerIndex >= 0, "ulcerIndex 非负有限");
+  // payoff 比非负（avgWin/|avgLoss|，无亏损封顶 999）
+  assert.ok(typeof res.metrics.payoffRatio === "number" && res.metrics.payoffRatio >= 0, "payoffRatio 非负");
 });
 
 test("runBacktest: 未知策略应抛错", () => {
@@ -108,11 +110,35 @@ test("runBacktest: 未知策略应抛错", () => {
   assert.throws(() => runBacktest(candles, "no_such_strategy", {}, {}), /Unknown strategy/);
 });
 
-test("calcMetrics: 空交易返回全 0", () => {
+test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同构）", () => {
   const m = calcMetrics([], 100000, [], []);
   assert.equal(m.numTrades, 0);
   assert.equal(m.sharpe, 0);
   assert.equal(m.maxDrawdown, 0);
+  assert.equal(m.payoffRatio, 0);
+  // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
+  for (const k of ["profitFactor", "payoffRatio", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+    assert.ok(k in m, `空交易仍应有 ${k}`);
+  }
+  assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
+});
+
+test("calcMetrics: payoffRatio = avgWin / |avgLoss|（精确值）", () => {
+  // 盈利 [10, 20] → avgWin=15；亏损 [-5, -15] → 平均幅度=10 → payoff=1.5
+  const trades = [
+    { pnl: 10 }, { pnl: 20 }, { pnl: -5 }, { pnl: -15 },
+  ];
+  const eq = [{ date: "2023-01-01", value: 100000 }, { date: "2023-12-31", value: 100000 }];
+  const m = calcMetrics(trades, 100000, [], eq);
+  assert.ok(Math.abs(m.payoffRatio - 1.5) < 1e-6, "payoff=1.5");
+});
+
+test("calcMetrics: 无亏损时 payoffRatio 封顶 999；全亏损为 0", () => {
+  const eq = [{ date: "2023-01-01", value: 100000 }, { date: "2023-12-31", value: 100000 }];
+  const onlyWins = calcMetrics([{ pnl: 5 }, { pnl: 3 }], 100000, [], eq);
+  assert.equal(onlyWins.payoffRatio, 999, "全盈利封顶 999");
+  const onlyLosses = calcMetrics([{ pnl: -5 }, { pnl: -3 }], 100000, [], eq);
+  assert.equal(onlyLosses.payoffRatio, 0, "全亏损=0");
 });
 
 // ---------- 年化 ----------

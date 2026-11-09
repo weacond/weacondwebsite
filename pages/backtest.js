@@ -26,6 +26,7 @@ const METRIC_KEYS = [
   { key: "maxDrawdown", label: "最大回撤", labelEn: "Max DD", fmt: (v) => `-${v.toFixed(1)}%`, good: (v) => v < 20 },
   { key: "winRate", label: "胜率", labelEn: "Win Rate", fmt: (v) => `${v.toFixed(1)}%`, good: (v) => v > 50 },
   { key: "profitFactor", label: "盈亏比", labelEn: "Profit Factor", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
+  { key: "payoffRatio", label: "盈亏Payoff", labelEn: "Payoff", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "numTrades", label: "交易次数", labelEn: "Trades", fmt: (v) => v.toString(), good: () => true },
   { key: "exposure", label: "持仓暴露", labelEn: "Exposure", fmt: (v) => `${v.toFixed(0)}%`, good: () => true },
   { key: "calmar", label: "卡玛比率", labelEn: "Calmar", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
