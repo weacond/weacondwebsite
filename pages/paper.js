@@ -23,6 +23,8 @@ export default function PaperPage() {
   const router = useRouter();
   const [marking, setMarking] = useState(false);
   const [markLive, setMarkLive] = useState(null);
+  const [wlPrices, setWlPrices] = useState({});
+  const [wlLive, setWlLive] = useState(null);
 
   // 盯市：用 /api/marketdata 最新价更新各持仓现价，浮动盈亏随之真实化（无 key 时为演示价）
   const refreshPrices = async () => {
@@ -52,6 +54,39 @@ export default function PaperPage() {
       setMarking(false);
     }
   };
+
+  // 观察列表实时/演示价（无 key 时演示兜底）
+  const WL = ["SPY", "QQQ", "AAPL", "NVDA", "TSLA", "MSFT"];
+  const loadWatchlist = async () => {
+    try {
+      const results = await Promise.all(WL.map(async (t) => {
+        try {
+          const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(t)}&interval=Daily&months=1`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          const c = data.candles || [];
+          const last = c[c.length - 1];
+          if (!last || !last.close) return null;
+          const first = c[0];
+          const change = first && first.close ? ((last.close - first.close) / first.close) * 100 : null;
+          return { ticker: t, price: Number(last.close), change, live: !!data.live };
+        } catch {
+          return null;
+        }
+      }));
+      const map = {};
+      let anyLive = false;
+      results.filter(Boolean).forEach((r) => { map[r.ticker] = r; if (r.live) anyLive = true; });
+      setWlPrices(map);
+      setWlLive(anyLive);
+    } catch {
+      /* 静默，网格保留占位 */
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "watchlist" && Object.keys(wlPrices).length === 0) loadWatchlist();
+  }, [tab]);
 
   // 从信号/收藏页跳转：?symbol=NVDA 预填开仓表单的标的
   useEffect(() => {
@@ -212,15 +247,36 @@ export default function PaperPage() {
           )}
           {tab === "watchlist" && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-              <h3 className="font-semibold mb-4">{L.watchlist}</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {["SPY", "QQQ", "AAPL", "NVDA", "TSLA", "MSFT"].map((t) => (
-                  <div key={t} className="p-3 bg-slate-50 rounded-lg text-center">
-                    <div className="font-bold">{t}</div>
-                    <div className="text-xs text-slate-400">{L.simulated}</div>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">{L.watchlist}</h3>
+                <button type="button" onClick={loadWatchlist}
+                  className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full hover:bg-slate-200 transition-colors">{L.refreshPrice}</button>
               </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {WL.map((t) => {
+                  const p = wlPrices[t];
+                  return (
+                    <div key={t} className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="font-bold">{t}</div>
+                      {p ? (
+                        <>
+                          <div className="font-mono text-sm my-1">${Number(p.price).toFixed(2)}</div>
+                          {p.change != null ? (
+                            <div className={`text-xs ${p.change >= 0 ? "text-green-600" : "text-red-500"}`}>{p.change >= 0 ? "+" : ""}{Number(p.change).toFixed(2)}%</div>
+                          ) : <div className="text-xs text-slate-400 mt-1">—</div>}
+                        </>
+                      ) : (
+                        <div className="text-xs text-slate-400 mt-1">{L.simulated}</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {wlLive !== null && (
+                <p className={`text-xs mt-3 ${wlLive ? "text-green-600" : "text-amber-600"}`}>
+                  {wlLive ? L.markLiveNote : L.markDemoNote}
+                </p>
+              )}
             </div>
           )}
           <p className="mt-6 text-center text-xs text-slate-400">{L.disclaimer}</p>
