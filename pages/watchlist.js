@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import WatchlistButton from "../components/WatchlistButton";
 import { useWatchlist } from "../lib/watchlist";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 
@@ -16,6 +17,45 @@ export default function WatchlistPage() {
   const L = lang === "en" ? en : zh;
   const { list, count, toggle } = useWatchlist();
   const sorted = [...list].sort();
+  const [prices, setPrices] = useState({});
+  const [loadingPrices, setLoadingPrices] = useState(false);
+  const [pricesLive, setPricesLive] = useState(null);
+
+  // 为每个收藏标的拉最新行情（/api/marketdata）；无 key 时接口返回演示数据并标 live:false
+  const loadPrices = async () => {
+    if (!sorted.length) return;
+    setLoadingPrices(true);
+    try {
+      const results = await Promise.all(sorted.map(async (sym) => {
+        try {
+          const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(sym)}&interval=Daily&months=1`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          const c = data.candles || [];
+          const last = c[c.length - 1];
+          const prev = c[c.length - 2];
+          if (!last || !last.close) return null;
+          const price = Number(last.close);
+          const change = prev ? ((price - Number(prev.close)) / Number(prev.close)) * 100 : 0;
+          return { symbol: sym, price, change, live: !!data.live };
+        } catch {
+          return null;
+        }
+      }));
+      const map = {};
+      let anyLive = false;
+      results.filter(Boolean).forEach((r) => { map[r.symbol] = r; if (r.live) anyLive = true; });
+      setPrices(map);
+      setPricesLive(anyLive);
+    } finally {
+      setLoadingPrices(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPrices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.join(",")]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -32,9 +72,19 @@ export default function WatchlistPage() {
               <h1 className="text-3xl font-bold">{L.title}</h1>
               <p className="text-slate-500 text-sm mt-1">{L.subtitle}</p>
             </div>
-            <span className="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full">
-              {count} {lang === "en" ? "watched" : "个标的"}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={loadPrices}
+                disabled={loadingPrices}
+                className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {loadingPrices ? "…" : L.refresh}
+              </button>
+              <span className="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full">
+                {count} {lang === "en" ? "watched" : "个标的"}
+              </span>
+            </div>
           </div>
 
           {count === 0 ? (
@@ -56,6 +106,14 @@ export default function WatchlistPage() {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-lg font-bold">{t}</span>
+                    {prices[t] && (
+                      <span className="text-sm font-mono text-slate-500">
+                        ${prices[t].price.toFixed(2)}
+                        <span className={`ml-1 ${prices[t].change >= 0 ? "text-green-600" : "text-red-500"}`}>
+                          {prices[t].change >= 0 ? "+" : ""}{prices[t].change.toFixed(2)}%
+                        </span>
+                      </span>
+                    )}
                     <WatchlistButton ticker={t} compact />
                   </div>
                   <div className="flex gap-2 text-xs">
@@ -85,6 +143,11 @@ export default function WatchlistPage() {
             </div>
           )}
 
+          {count > 0 && pricesLive !== null && (
+            <p className={`text-xs mt-4 text-center ${pricesLive ? "text-green-600" : "text-amber-600"}`}>
+              {pricesLive ? L.liveNote : L.demoNote}
+            </p>
+          )}
           <p className="text-xs text-slate-400 mt-6 text-center">{L.note}</p>
         </div>
       </section>
@@ -101,6 +164,9 @@ const zh = {
   backtest: "回测",
   ai: "AI 解读",
   remove: "移除",
+  refresh: "刷新行情",
+  liveNote: "现价为实时行情（Alpha Vantage）",
+  demoNote: "现价为演示数据（未配置 API key）",
   note: "收藏保存在你的浏览器本地，不会上传服务器。",
 };
 const en = {
@@ -111,5 +177,8 @@ const en = {
   backtest: "Backtest",
   ai: "AI",
   remove: "Remove",
+  refresh: "Refresh",
+  liveNote: "Prices are live (Alpha Vantage)",
+  demoNote: "Prices are demo data (no API key configured)",
   note: "Your watchlist is stored locally in your browser and never uploaded.",
 };
