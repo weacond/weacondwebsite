@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import healthHandler from "../pages/api/health.js";
 import backtestHandler from "../pages/api/backtest.js";
+import aiHandler from "../pages/api/ai.js";
 
 // 轻量 mock：模拟 Next 的 res（status/json/send/setHeader 链式）
 function makeRes() {
@@ -76,4 +77,43 @@ test("backtest: POST 未知策略 → 400（runFullBacktest 抛错被 catch 捕�
   );
   assert.equal(res.statusCode, 400);
   assert.ok(/Unknown strategy/.test(res.body.error), "错误信息应透传");
+});
+
+// ---------- /api/ai（优雅降级契约，不触网） ----------
+test("ai: 非 POST → 405", () => {
+  const res = makeRes();
+  aiHandler({ method: "GET" }, res);
+  assert.equal(res.statusCode, 405);
+});
+
+test("ai: 非法 JSON body → 400", async () => {
+  const res = makeRes();
+  await aiHandler(
+    { method: "POST", json: async () => { throw new Error("bad json"); } },
+    res
+  );
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error, "Invalid JSON body");
+});
+
+test("ai: 缺 prompt → 400", async () => {
+  const res = makeRes();
+  await aiHandler({ method: "POST", json: async () => ({}) }, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error, "prompt is required");
+});
+
+test("ai: 有 prompt 无密钥 → 200 模拟降级（不打真实网络）", async () => {
+  const prev = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  try {
+    const res = makeRes();
+    await aiHandler({ method: "POST", json: async () => ({ prompt: "explain IV" }) }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.model, "simulated", "无密钥应走模拟降级");
+    assert.ok(typeof res.body.response === "string");
+  } finally {
+    if (prev === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = prev;
+  }
 });
