@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
-import { usePaper } from "../lib/paper";
+import { usePaper, markPositions } from "../lib/paper";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -21,6 +21,37 @@ export default function PaperPage() {
   const { positions, trades, openPosition, closePosition, realizedPnl, totalPnl } = usePaper();
   const [form, setForm] = useState({ ticker: "", name: "", qty: "1", entry: "" });
   const router = useRouter();
+  const [marking, setMarking] = useState(false);
+  const [markLive, setMarkLive] = useState(null);
+
+  // 盯市：用 /api/marketdata 最新价更新各持仓现价，浮动盈亏随之真实化（无 key 时为演示价）
+  const refreshPrices = async () => {
+    const tickers = [...new Set(positions.map((p) => p.ticker))];
+    if (!tickers.length) return;
+    setMarking(true);
+    try {
+      const results = await Promise.all(tickers.map(async (t) => {
+        try {
+          const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(t)}&interval=Daily&months=1`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          const c = data.candles || [];
+          const last = c[c.length - 1];
+          if (!last || !last.close) return null;
+          return { ticker: t, price: Number(last.close), live: !!data.live };
+        } catch {
+          return null;
+        }
+      }));
+      const map = {};
+      let anyLive = false;
+      results.filter(Boolean).forEach((r) => { map[r.ticker] = r.price; if (r.live) anyLive = true; });
+      markPositions(map);
+      setMarkLive(anyLive);
+    } finally {
+      setMarking(false);
+    }
+  };
 
   // 从信号/收藏页跳转：?symbol=NVDA 预填开仓表单的标的
   useEffect(() => {
@@ -90,7 +121,18 @@ export default function PaperPage() {
                 </button>
               </form>
               <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-                <h3 className="font-semibold mb-4">{L.currentPositions}</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">{L.currentPositions}</h3>
+                  <button type="button" onClick={refreshPrices} disabled={marking}
+                    className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full hover:bg-slate-200 disabled:opacity-50 transition-colors">
+                    {marking ? L.marking : L.refreshPrice}
+                  </button>
+                </div>
+                {markLive !== null && positions.length > 0 && (
+                  <p className={`text-xs mb-3 ${markLive ? "text-green-600" : "text-amber-600"}`}>
+                    {markLive ? L.markLiveNote : L.markDemoNote}
+                  </p>
+                )}
                 {positions.length === 0 ? (
                   <div className="text-center text-slate-400 py-8">{L.noPositions}</div>
                 ) : (
@@ -193,6 +235,7 @@ const zh = {
   balance: "账户余额", floatPnl: "浮动盈亏", realizedPnl: "已实现盈亏",
   positions: "持仓", history: "历史", watchlist: "观察列表",
   currentPositions: "当前持仓", ticker: "代码", name: "名称", qty: "数量",
+  refreshPrice: "刷新现价", marking: "盯市中...", markLiveNote: "现价已用实时行情（Alpha Vantage）更新", markDemoNote: "现价为演示数据（未配置 API key）",
   entry: "成本价", current: "现价", exit: "卖出价", pnl: "盈亏", action: "操作",
   openPosition: "开仓", sell: "平仓", noPositions: "暂无持仓，可在上方开仓",
   closedTrades: "已平仓交易", noHistory: "暂无历史记录", closeDate: "平仓日",
@@ -204,6 +247,7 @@ const en = {
   balance: "Account Balance", floatPnl: "Unrealized P&L", realizedPnl: "Realized P&L",
   positions: "Positions", history: "History", watchlist: "Watchlist",
   currentPositions: "Current Positions", ticker: "Ticker", name: "Name", qty: "Qty",
+  refreshPrice: "Refresh prices", marking: "Marking...", markLiveNote: "Prices updated from live data (Alpha Vantage)", markDemoNote: "Prices are demo data (no API key configured)",
   entry: "Entry", current: "Current", exit: "Exit", pnl: "P&L", action: "Action",
   openPosition: "Open", sell: "Close", noPositions: "No open positions — place an order above",
   closedTrades: "Closed Trades", noHistory: "No history yet", closeDate: "Closed",
