@@ -4,6 +4,7 @@ import {
   portfolioReturn,
   portfolioVolatility,
   portfolioSharpe,
+  volTargetScale,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -78,4 +79,35 @@ test("portfolioSharpe: 波动为 0 → 0（不除零）", () => {
 
 test("portfolioSharpe: 空序列 → 0", () => {
   assert.equal(portfolioSharpe([], [], []), 0, "空 → 0");
+});
+
+// ---------- volTargetScale ----------
+
+test("volTargetScale: scale = targetVol / 当前 σ_p", () => {
+  // 不相关等波动 σ=0.1，等权 → σ_p=0.1/√2；target=0.05 → scale=0.05/(0.1/√2)=√2/2
+  const M = [
+    [1, 0],
+    [0, 1],
+  ];
+  const scale = volTargetScale([0.1, 0.1], M, undefined, 0.05);
+  const expected = 0.05 / (0.1 / Math.SQRT2);
+  assert.ok(Math.abs(scale - expected) < 1e-9, "scale=target/σ_p");
+});
+
+test("volTargetScale: 放大目标 > 当前 → scale>1；目标≤0 → 0", () => {
+  const M = [
+    [1, 0],
+    [0, 1],
+  ];
+  assert.ok(volTargetScale([0.1, 0.1], M, undefined, 0.2) > 1, "放大 → scale>1");
+  assert.equal(volTargetScale([0.1, 0.1], M, undefined, 0), 0, "目标=0 → 0");
+  assert.equal(volTargetScale([0.1, 0.1], M, undefined, -0.1), 0, "目标<0 → 0");
+});
+
+test("volTargetScale: 当前 σ_p=0 → 0（无法放大）", () => {
+  const M = [
+    [1, 0],
+    [0, 1],
+  ];
+  assert.equal(volTargetScale([0, 0], M, undefined, 0.1), 0, "σ_p=0 → 0");
 });

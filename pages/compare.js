@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -173,8 +173,9 @@ export default function ComparePage() {
                 };
                 const vols = returnsList.map((r) => std(r) * Math.sqrt(252));
                 const dr = diversificationRatio(M, vols);
-                // 等权组合夏普（复用同一 returnsList/vols/相关矩阵）
+                // 等权组合夏普 / 组合年化波动（复用同一 returnsList/vols/相关矩阵）
                 const portSharpe = portfolioSharpe(returnsList, vols, M);
+                const portVol = portfolioVolatility(vols, M) * 100;
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -191,6 +192,7 @@ export default function ComparePage() {
                       </div>
                       <div className="text-xs text-slate-500">
                         {L.portSharpeLabel} <span className="font-bold text-slate-800">{portSharpe.toFixed(2)}</span>
+                        <span className="text-slate-400 ml-1">· {L.portVolLabel} {portVol.toFixed(1)}%</span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -248,6 +250,7 @@ const zh = {
   drLabel: "分散化比率",
   drHint: "=1 完全相关(无收益)，>1 越大越分散",
   portSharpeLabel: "等权组合夏普",
+  portVolLabel: "波动",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -264,6 +267,7 @@ const en = {
   drLabel: "Diversification Ratio",
   drHint: "=1 fully correlated (no benefit); higher = more diversified",
   portSharpeLabel: "Equal-weight Sharpe",
+  portVolLabel: "Vol",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 
