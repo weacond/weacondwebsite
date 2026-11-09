@@ -92,3 +92,24 @@ test("detectBlackSwan: 单一触发（仅 VIX 分位）", () => {
   assert.equal(r.triggers.length, 1);
   assert.equal(r.recommendations.length, 4);
 });
+
+test("detectBlackSwan: returns 含 3σ+ 极值 → 触发尾部事件", () => {
+  const base = Array.from({ length: 50 }, (_, i) => 0.005 * (i % 2 === 0 ? 1 : -1));
+  base.push(-0.5); // 极端下跌，z >> 3
+  const r = detectBlackSwan({ vix: 15, vixPercentile: 50, marketDrop: 0, sectorCorrelation: 0.5, returns: base });
+  assert.ok(r.tailInfo, "tailInfo 应存在");
+  assert.ok(r.tailInfo.count >= 1, "应检出尾部事件");
+  assert.ok(r.triggers.some((t) => t.includes("尾部事件")), "应含尾部事件触发");
+  assert.equal(r.triggered, true);
+});
+
+test("detectBlackSwan: 无 returns 或无极值 → tailInfo 为 null/0，不增触发", () => {
+  const calm = detectBlackSwan({ vix: 15, vixPercentile: 50, marketDrop: 0, sectorCorrelation: 0.5 });
+  assert.equal(calm.tailInfo, null, "无 returns → tailInfo=null");
+  const noEvent = detectBlackSwan({
+    vix: 15, vixPercentile: 50, marketDrop: 0, sectorCorrelation: 0.5,
+    returns: Array.from({ length: 30 }, () => 0.001), // 全部相同 → 无离群
+  });
+  assert.equal(noEvent.tailInfo.count, 0, "无极值 → count=0");
+  assert.ok(!noEvent.triggers.some((t) => t.includes("尾部事件")), "不应加尾部触发");
+});
