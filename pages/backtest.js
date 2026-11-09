@@ -30,6 +30,12 @@ const METRIC_KEYS = [
   { key: "volatility", label: "年化波动", labelEn: "Volatility", fmt: (v) => `${v.toFixed(1)}%`, good: () => true },
 ];
 
+// 全策略对比的排序选项标签
+const SORT_LABELS = {
+  zh: { sharpe: "夏普比率", cagr: "年化收益", sortino: "索提诺", maxDrawdown: "最大回撤", winRate: "胜率", profitFactor: "盈亏比", calmar: "卡玛比率" },
+  en: { sharpe: "Sharpe", cagr: "CAGR", sortino: "Sortino", maxDrawdown: "Max DD", winRate: "Win Rate", profitFactor: "Profit Factor", calmar: "Calmar" },
+};
+
 export default function BacktestPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
@@ -44,6 +50,10 @@ export default function BacktestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTrades, setShowTrades] = useState(false);
+  const [comparison, setComparison] = useState(null);
+  const [compareSort, setCompareSort] = useState("sharpe");
+  const [loadingCompare, setLoadingCompare] = useState(false);
+  const [compareInfo, setCompareInfo] = useState(null);
   const chartRef = useRef(null);
   const strategies = useMemo(() => Object.entries(STRATEGY_REGISTRY), []);
 
@@ -70,6 +80,56 @@ export default function BacktestPage() {
       setLoading(false);
     }
   };
+
+  // 取行情：REAL 走 /api/marketdata，preset 生成模拟（只取一次，供对比复用）
+  const getMarketCandles = async () => {
+    if (preset === "REAL") {
+      const sym = (realSymbol || "SPY").toUpperCase().trim();
+      if (!sym) throw new Error(lang === "en" ? "Enter a ticker first" : "请先输入股票代码");
+      const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(sym)}`);
+      if (!res.ok) throw new Error(`${lang === "en" ? "Market API returned" : "行情接口返回"} ${res.status}`);
+      const data = await res.json();
+      const candles = data.candles || [];
+      if (!candles.length) throw new Error(lang === "en" ? "No K-line data returned" : "未获取到 K 线数据");
+      return { candles, dataSource: data.live ? "live" : "demo" };
+    }
+    const presetConfig = PRESET_MARKETS[preset]?.config || PRESET_MARKETS.SPY_2023.config;
+    return { candles: generateMockCandles(presetConfig), dataSource: "demo" };
+  };
+
+  // 同一市场跑全部策略，按所选指标排行
+  const runComparison = async () => {
+    setLoadingCompare(true); setComparison(null); setCompareInfo(null);
+    try {
+      const { candles, dataSource } = await getMarketCandles();
+      const rows = strategies.map(([key, def]) => {
+        const p = {};
+        def.params?.forEach((pp) => { p[pp.key] = pp.default; });
+        const r = runFullBacktest({ strategy: key, params: p, config, candles, dataSource });
+        return {
+          key,
+          name: lang === "en" ? def.nameEn : def.name,
+          totalReturn: r.totalReturn, cagr: r.cagr, sharpe: r.sharpe, sortino: r.sortino,
+          maxDrawdown: r.maxDrawdown, winRate: r.winRate, profitFactor: r.profitFactor,
+          numTrades: r.numTrades, calmar: r.calmar, volatility: r.volatility,
+        };
+      });
+      setComparison(rows);
+      setCompareInfo({ dataSource, count: candles.length, label: PRESET_MARKETS[preset]?.label || "Real data" });
+    } catch (e) {
+      setError(e.message || (lang === "en" ? "Comparison failed" : "对比失败"));
+    } finally {
+      setLoadingCompare(false);
+    }
+  };
+
+  // 排行：多数指标越高越好，回撤/波动越低越好
+  const sortedComparison = comparison
+    ? [...comparison].sort((a, b) => {
+        const higherBetter = { sharpe: 1, cagr: 1, sortino: 1, winRate: 1, profitFactor: 1, calmar: 1, totalReturn: 1 };
+        return higherBetter[compareSort] ? b[compareSort] - a[compareSort] : a[compareSort] - b[compareSort];
+      })
+    : null;
 
   useEffect(() => {
     if (!result?.equityCurve || !chartRef.current) return;
@@ -153,6 +213,9 @@ export default function BacktestPage() {
               </div>
               <button onClick={runTest} disabled={loading} className="mt-6 w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50">
                 {loading ? L.running : L.run}
+              </button>
+              <button onClick={runComparison} disabled={loadingCompare} className="mt-2 w-full bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50">
+                {loadingCompare ? L.comparing : L.compareAll}
               </button>
             </div>
             {/* 指标 */}
@@ -244,6 +307,54 @@ export default function BacktestPage() {
               </div>
             </div>
           )}
+          {/* 全策略对比 */}
+          {sortedComparison && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 className="font-semibold">{L.comparison}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">{L.sortBy}</span>
+                  <select value={compareSort} onChange={(e) => setCompareSort(e.target.value)} className="px-2 py-1 border rounded text-xs">
+                    {["sharpe", "cagr", "sortino", "maxDrawdown", "winRate", "profitFactor", "calmar"].map((k) => (
+                      <option key={k} value={k}>{SORT_LABELS[lang][k]}</option>
+                    ))}
+                  </select>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${compareInfo?.dataSource === "live" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                    {compareInfo?.dataSource === "live" ? (lang === "en" ? "Live" : "实时") : (lang === "en" ? "Demo" : "演示")} · {compareInfo?.count} {L.candles}
+                  </span>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b text-slate-400">
+                      <th className="pb-2 pr-3 font-medium">{lang === "en" ? "# / Strategy" : "# / 策略"}</th>
+                      <th className="pb-2 pr-3 font-medium">{SORT_LABELS[lang].cagr}</th>
+                      <th className="pb-2 pr-3 font-medium">{SORT_LABELS[lang].sharpe}</th>
+                      <th className="pb-2 pr-3 font-medium">{SORT_LABELS[lang].maxDrawdown}</th>
+                      <th className="pb-2 pr-3 font-medium">{SORT_LABELS[lang].winRate}</th>
+                      <th className="pb-2 pr-3 font-medium">{SORT_LABELS[lang].profitFactor}</th>
+                      <th className="pb-2 pr-3 font-medium">{lang === "en" ? "Trades" : "交易"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedComparison.map((row, i) => (
+                      <tr key={row.key} className={`border-b border-slate-50 ${i === 0 ? "bg-green-50 font-semibold" : "hover:bg-slate-50"}`}>
+                        <td className="py-2 pr-3">{i + 1}. {row.name}{i === 0 && " 🏆"}</td>
+                        <td className="py-2 pr-3 font-mono">{row.cagr > 0 ? "+" : ""}{row.cagr.toFixed(1)}%</td>
+                        <td className="py-2 pr-3 font-mono">{row.sharpe.toFixed(2)}</td>
+                        <td className="py-2 pr-3 font-mono text-red-500">-{row.maxDrawdown.toFixed(1)}%</td>
+                        <td className="py-2 pr-3 font-mono">{row.winRate.toFixed(0)}%</td>
+                        <td className="py-2 pr-3 font-mono">{row.profitFactor.toFixed(2)}</td>
+                        <td className="py-2 pr-3 font-mono text-slate-500">{row.numTrades}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-slate-400 mt-3">{L.comNote}</p>
+            </div>
+          )}
           {/* 假设披露（合规） */}
           {result && (
             <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 text-sm text-amber-800">
@@ -293,7 +404,9 @@ const zh = {
   title: "策略回测", subtitle: "选择策略、配置参数、运行回测、查看绩效指标与权益曲线",
   strategy: "选择策略", market: "市场数据", params: "策略参数", riskParams: "风控参数",
   capital: "初始资金", commission: "佣金率", slippage: "滑点率", positionPct: "最大仓位%",
-  run: "运行回测", running: "运行中...", metrics: "绩效指标", noResult: "选择策略并点击「运行回测」",
+  run: "运行回测", running: "运行中...", compareAll: "对比全部策略", comparing: "对比中...",
+  comparison: "全策略对比", sortBy: "排序", comNote: "按所选指标排行；🏆 为该项最优。模拟数据，仅供参考，不构成投资建议。",
+  metrics: "绩效指标", noResult: "选择策略并点击「运行回测」",
   equityCurve: "权益曲线", showTrades: "查看交易明细", hideTrades: "隐藏交易明细",
   tradeLog: "交易记录", entryDate: "入场日", exitDate: "出场日", entryPrice: "入场价", exitPrice: "出场价",
   pnl: "盈亏", holdDays: "持仓天数", moreTrades: "更多交易未显示",
@@ -305,7 +418,9 @@ const en = {
   title: "Strategy Backtest", subtitle: "Select strategy, configure parameters, run backtest, view metrics",
   strategy: "Strategy", market: "Market Data", params: "Parameters", riskParams: "Risk Parameters",
   capital: "Initial Capital", commission: "Commission", slippage: "Slippage", positionPct: "Max Position %",
-  run: "Run Backtest", running: "Running...", metrics: "Performance", noResult: "Select strategy and click Run",
+  run: "Run Backtest", running: "Running...", compareAll: "Compare all strategies", comparing: "Comparing...",
+  comparison: "Strategy Comparison", sortBy: "Sort by", comNote: "Ranked by selected metric; 🏆 is best on that metric. Simulated data, for reference only. Not investment advice.",
+  metrics: "Performance", noResult: "Select strategy and click Run",
   equityCurve: "Equity Curve", showTrades: "Show Trades", hideTrades: "Hide Trades",
   tradeLog: "Trade Log", entryDate: "Entry", exitDate: "Exit", entryPrice: "Entry", exitPrice: "Exit",
   pnl: "P&L", holdDays: "Days", moreTrades: "more trades hidden",
