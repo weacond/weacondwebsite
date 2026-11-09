@@ -6,8 +6,8 @@ export const runtime = "edge";
 // 购买记录写入 purchases 表（按 email 去重，唯一索引 email+book_slug）
 // 套装逻辑：is_bundle=true 时，写入 bundle-all + 全部 25 本书 slug
 
-import { BOOK_CATALOG } from "../../../lib/stripe";
-import { getSupabaseServiceClient } from "../../../lib/supabase";
+import { BOOK_CATALOG } from "../../../lib/stripe.js";
+import { getSupabaseServiceClient } from "../../../lib/supabase.js";
 
 const BUNDLE_SLUG = "bundle-all";
 
@@ -20,9 +20,15 @@ async function verifyStripeWebhook(rawBody, signatureHeader, secret) {
   if (!signatureHeader) throw new Error("Missing stripe-signature header");
 
   const parts = {};
-  for (const pair of signatureHeader.split(",")) {
-    const [k, v] = pair.split("=");
-    if (k) parts[k.trim()] = v.trim();
+  // Stripe 用 ";" 分隔字段（t=...;v1=...），必须按 ";" 拆分（原实现误用 "," 会把
+  // "t=123;v1=abcd" 解析成 k=t/v="123;v1"，丢弃 v1 哈希，导致所有合法 webhook 被拒、
+  // 用户付款后购买记录永不写入）。用 indexOf 只按第一个 "=" 拆分，稳健兼容值含 "="。
+  for (const pair of signatureHeader.split(";")) {
+    const idx = pair.indexOf("=");
+    if (idx === -1) continue;
+    const k = pair.slice(0, idx).trim();
+    const v = pair.slice(idx + 1).trim();
+    if (k) parts[k] = v;
   }
   const timestamp = parts["t"];
   const signatureHash = parts["v1"];
