@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SignalCard from "../components/SignalCard";
+import SignalHistory from "../components/SignalHistory";
 import { computeSignalScore } from "../lib/signals";
 import { buildSignalHistory, summarizeHistory } from "../lib/signalHistory";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -66,40 +67,8 @@ export default function SignalsPage() {
             ))}
           </div>
 
-          {/* 信号历史（最近 30 日）：命中统计 + 时间线 */}
-          <div className="mt-8">
-            <h2 className="text-xl font-bold mb-4">{L.historyTitle}</h2>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
-                <div className="text-2xl font-bold">{HISTORY_SUMMARY.count}</div>
-                <div className="text-xs text-slate-400">{L.historySignals}</div>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
-                <div className="text-2xl font-bold text-green-600">{Math.round(HISTORY_SUMMARY.hitRate * 100)}%</div>
-                <div className="text-xs text-slate-400">{L.historyHitRate}</div>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
-                <div className="text-2xl font-bold">{HISTORY_SUMMARY.avgRet.toFixed(1)}%</div>
-                <div className="text-xs text-slate-400">{L.historyAvgRet}</div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {HISTORY.map((h) => (
-                <div key={h.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-slate-100 text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="text-slate-400 text-xs w-14">{h.date.slice(5)}</span>
-                    <span className="font-semibold">{h.symbol}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">{h.type}</span>
-                    <span className="text-xs text-slate-400">{h.strength} 分</span>
-                  </div>
-                  <span className={"font-semibold " + (h.win ? "text-green-600" : "text-red-500")}>
-                    {h.win ? "+" : ""}{h.ret}%
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-slate-400 mt-3 text-center">{L.historyDisclaimer}</p>
-          </div>
+          {/* 信号历史（带标的筛选的 client 组件） */}
+          <SignalHistory history={HISTORY} />
 
           {/* 升级提示 */}
           <div className="mt-8 bg-indigo-50 rounded-xl p-6 text-center border border-indigo-100">
