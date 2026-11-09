@@ -4,6 +4,7 @@ import {
   getBook,
   hasAccess,
   getR2Key,
+  createCheckoutSession,
   BUNDLE,
   ALL_SLUGS,
 } from "../lib/stripe.js";
@@ -50,4 +51,12 @@ test("hasAccess: 持有套装 → 放行任意单本（关键不变量）", () =
 test("getR2Key: 中文 .cn.md / 英文 .md", () => {
   assert.equal(getR2Key("the-nature-of-money", "zh"), "content/the-nature-of-money.cn.md");
   assert.equal(getR2Key("the-nature-of-money", "en"), "content/the-nature-of-money.md");
+});
+
+// ---------- createCheckoutSession 入参守护（在 fetch 之前，network-free）----------
+test("createCheckoutSession: 未知 slug → 抛 Invalid book slug（不会发请求）", async () => {
+  await assert.rejects(
+    () => createCheckoutSession("nonexistent-slug", "a@b.com"),
+    /Invalid book slug/
+  );
 });

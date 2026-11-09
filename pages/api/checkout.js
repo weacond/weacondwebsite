@@ -7,7 +7,7 @@ export const runtime = "edge";
 // 动态定价：价格直接来自 lib/stripe.js 的 BOOK_CATALOG / BUNDLE，
 // 不需要在 Stripe 后台预先创建 22 个产品。
 
-import { createCheckoutSession } from "../../lib/stripe";
+import { createCheckoutSession } from "../../lib/stripe.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
