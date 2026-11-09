@@ -16,6 +16,7 @@ import {
   riskBudget,
   maxLosingStreak,
   maxWinStreak,
+  ulcerIndex,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -262,6 +263,30 @@ test("maxWinStreak: 全亏损 → 0；空/非法 → 0", () => {
 test("maxWinStreak: scratch(pnl=0) 中断连盈（仅 pnl>0 计为盈利）", () => {
   assert.equal(maxWinStreak([1, 2, 0, 3]), 2, "0 中断连盈");
 });
+
+// ---------- ulcerIndex ----------
+
+test("ulcerIndex: 空/单点 → 0", () => {
+  assert.equal(ulcerIndex([]), 0, "空 → 0");
+  assert.equal(ulcerIndex([100]), 0, "单点 → 0");
+});
+
+test("ulcerIndex: 全程上涨 → 0（回撤恒为 0）", () => {
+  assert.equal(ulcerIndex([1, 2, 3, 4, 5]), 0, "无回撤 → 0");
+});
+
+test("ulcerIndex: 恒定回撤段 = √(Σdd²/n)（首点回撤为 0）", () => {
+  // [100,50,50,50]：首点回撤 0，其后三点各 0.5 → √((0.25×3)/4)
+  const expected = Math.sqrt((0.25 * 3) / 4);
+  assert.ok(Math.abs(ulcerIndex([100, 50, 50, 50]) - expected) < 1e-12, "含首点 0 回撤");
+});
+
+test("ulcerIndex: 回撤越大/越久 → 溃疡指数更大", () => {
+  const mild = ulcerIndex([100, 90, 100, 95, 100]); // 浅而短
+  const severe = ulcerIndex([100, 50, 40, 60, 80, 100]); // 深而长
+  assert.ok(severe > mild, "深长回撤 → 更大");
+});
+
 
 
 
