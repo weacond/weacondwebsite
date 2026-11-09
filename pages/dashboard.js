@@ -5,6 +5,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
+import { usePaper } from "../lib/paper";
 
 export const metadata = {
   title: "仪表盘 — Weacond",
@@ -25,7 +26,15 @@ export default function Dashboard() {
 
   const [owned, setOwned] = useState([]);
   const [justBought, setJustBought] = useState(false);
+  // 3 天任务进度：真实派生自本地 store（信号访问 / 教学 / 模拟交易），非硬编码
+  const [taskState, setTaskState] = useState({ seenSignals: false, seenTutorial: false });
+  const { trades, realizedPnl, positions } = usePaper();
+
   useEffect(() => {
+    setTaskState({
+      seenSignals: localStorage.getItem("weacond_seen_signals") === "1",
+      seenTutorial: localStorage.getItem("weacond_seen_tutorial") === "1",
+    });
     if (router.isReady && router.query.success === "true") setJustBought(true);
     fetch("/api/purchases", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { slugs: [] }))
@@ -37,9 +46,18 @@ export default function Dashboard() {
       .catch(() => {});
   }, [router.isReady, router.query.success]);
 
-  // 模拟任务进度（实际接入 Supabase）
-  const completedTasks = { 0: true, 1: false, 2: false };
+  // Day0 看过信号 · Day1 看过教学 · Day2 完成模拟交易（全部真实派生）
+  const completedTasks = {
+    0: taskState.seenSignals,
+    1: taskState.seenTutorial,
+    2: trades.length > 0,
+  };
   const progress = Object.values(completedTasks).filter(Boolean).length / TASKS.length * 100;
+
+  const markTutorialDone = () => {
+    localStorage.setItem("weacond_seen_tutorial", "1");
+    setTaskState((s) => ({ ...s, seenTutorial: true }));
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("weacond_user");
@@ -88,11 +106,16 @@ export default function Dashboard() {
                       <div className="text-xs text-slate-400">{task.done_hint}</div>
                     </div>
                   </div>
-                  {!completedTasks[task.day] && (
-                    <Link href="/signals" className="text-xs text-indigo-600 hover:underline">
-                      {L.goNow}
-                    </Link>
-                  )}
+                  {!completedTasks[task.day] &&
+                    (task.day === 1 ? (
+                      <button onClick={markTutorialDone} className="text-xs text-indigo-600 hover:underline">
+                        {L.markDone}
+                      </button>
+                    ) : (
+                      <Link href={task.day === 0 ? "/signals" : "/paper"} className="text-xs text-indigo-600 hover:underline">
+                        {L.goNow}
+                      </Link>
+                    ))}
                 </div>
               ))}
             </div>
@@ -115,6 +138,28 @@ export default function Dashboard() {
               <h3 className="font-semibold mb-1">升级方案</h3>
               <p className="text-sm text-slate-500">解锁全部功能</p>
             </Link>
+          </div>
+
+          {/* 模拟账户概览（真实来自 lib/paper.js store） */}
+          <div className="mt-6">
+            <h2 className="font-bold mb-3">{L.paperSummary}</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                <div className="text-xs text-slate-400 mb-1">{L.openPos}</div>
+                <div className="text-2xl font-bold">{positions.length}</div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                <div className="text-xs text-slate-400 mb-1">{L.realizedPnlLabel}</div>
+                <div className={`text-2xl font-bold ${realizedPnl >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {realizedPnl >= 0 ? "+" : ""}${realizedPnl.toFixed(0)}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                <div className="text-xs text-slate-400 mb-1">{L.closedTrades}</div>
+                <div className="text-2xl font-bold">{trades.length}</div>
+              </div>
+            </div>
+            <Link href="/paper" className="mt-3 inline-block text-sm text-indigo-600 hover:underline">{L.goToPaper} →</Link>
           </div>
 
           {/* 我的电子书（服务端真实来源 /api/purchases） */}
@@ -154,9 +199,13 @@ export default function Dashboard() {
 
 const zh = {
   title:"我的仪表盘", freePlan:"Free 方案", taskTitle:"3天体验任务",
-  goNow:"去完成",
+  goNow:"去完成", markDone:"标记已看",
+  paperSummary:"模拟账户概览", openPos:"持仓数", realizedPnlLabel:"已实现盈亏",
+  closedTrades:"已平仓", goToPaper:"进入模拟盘",
 };
 const en = {
   title:"My Dashboard", freePlan:"Free Plan", taskTitle:"3-Day Trial Tasks",
-  goNow:"Go",
+  goNow:"Go", markDone:"Mark watched",
+  paperSummary:"Paper Account", openPos:"Open positions", realizedPnlLabel:"Realized P&L",
+  closedTrades:"Closed trades", goToPaper:"Open paper trading",
 };

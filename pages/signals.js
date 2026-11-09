@@ -7,6 +7,7 @@ import { buildSignalHistory, summarizeHistory } from "../lib/signalHistory";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export const metadata = {
   title: "今日信号 — Weacond",
@@ -43,6 +44,11 @@ const HISTORY_SUMMARY = summarizeHistory(HISTORY);
 export default function SignalsPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
+
+  // 记录"已查看信号"，供仪表盘 3 天任务 Day0 读取（localStorage 持久，跨页）
+  useEffect(() => {
+    localStorage.setItem("weacond_seen_signals", "1");
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
