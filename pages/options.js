@@ -3,7 +3,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
-import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank } from "../lib/options.js";
+import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
 import { analyzeStrategy, strategyTemplates, probOfProfit } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
@@ -141,6 +141,9 @@ export default function OptionsPage() {
 
           {/* 反解隐含波动率 */}
           <ReverseIV spot={spot} r={r} t={t} L={L} />
+
+          {/* 波动率微笑 */}
+          <VolSmile spot={spot} baseIV={iv} L={L} />
 
           {/* 策略组合实验区 */}
           <StrategyLab spot={spot} iv={iv} r={r} t={t} L={L} />
@@ -341,6 +344,32 @@ function PayoffCurve({ points, breakEvens, L }) {
   );
 }
 
+// 波动率微笑：沿 moneyness 的 IV 剖面（凸性 + 偏斜），手写 SVG。
+// 默认演示：凸性 0.15、负偏 -0.2（典型股指形态）。非投资建议。
+function VolSmile({ spot = 100, baseIV = 0.2, L }) {
+  const smile = useMemo(() => volSmile({ spot, baseIV, convexity: 0.15, skew: -0.2, moneynessFrom: 0.8, moneynessTo: 1.2, steps: 11 }), [spot, baseIV]);
+  const W = 360, H = 180, pad = 28;
+  if (!smile.length) return null;
+  const minX = smile[0].moneyness, maxX = smile[smile.length - 1].moneyness;
+  const ivs = smile.map((p) => p.iv);
+  const minY = Math.min(...ivs), maxY = Math.max(...ivs);
+  const sx = (m) => pad + ((m - minX) / (maxX - minX || 1)) * (W - 2 * pad);
+  const sy = (iv) => H - pad - ((iv - minY) / (maxY - minY || 1)) * (H - 2 * pad);
+  const line = smile.map((p) => `${sx(p.moneyness).toFixed(1)},${sy(p.iv).toFixed(1)}`).join(" ");
+  return (
+    <div>
+      <p className="text-xs text-slate-500 mb-1">{L.volSmileTitle}</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-44" role="img" aria-label={L.volSmileTitle}>
+        <polyline points={line} fill="none" stroke="#0ea5e9" strokeWidth="2" />
+        <text x={pad} y={H - 6} fontSize="10" fill="#94a3b8">m={minX.toFixed(1)}</text>
+        <text x={W / 2 - 8} y={H - 6} fontSize="10" fill="#94a3b8">ATM m=1</text>
+        <text x={W - pad - 16} y={H - 6} fontSize="10" fill="#94a3b8">m={maxX.toFixed(1)}</text>
+        <text x={pad} y={pad - 8} fontSize="10" fill="#0ea5e9">IV {(maxY * 100).toFixed(1)}%</text>
+      </svg>
+    </div>
+  );
+}
+
 // 反解隐含波动率：输入市场价 → 输出使 B-S 价相等的 IV
 function ReverseIV({ spot, r, t, L }) {
   const [type, setType] = useState("call");
@@ -471,6 +500,7 @@ const zh = {
   ivLabel: "隐含波动率 IV {v}%",
   rLabel: "无风险利率 {v}%",
   spot: "现货价",
+  volSmileTitle: "波动率微笑（演示：凸性 + 负偏）— 非投资建议",
   loading: "拉取中…",
   live: "实时",
   demo: "示例",
@@ -542,6 +572,7 @@ const en = {
   ivLabel: "Implied Vol IV {v}%",
   rLabel: "Risk-free rate {v}%",
   spot: "Spot",
+  volSmileTitle: "Volatility Smile (demo: convexity + negative skew) — not advice",
   loading: "loading…",
   live: "Live",
   demo: "Demo",
