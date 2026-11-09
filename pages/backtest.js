@@ -37,6 +37,7 @@ export default function BacktestPage() {
   const symbolFromQuery = router?.query?.symbol ? String(router.query.symbol).toUpperCase() : "";
   const [strategyKey, setStrategyKey] = useState("ma_cross");
   const [preset, setPreset] = useState("SPY_2023");
+  const [realSymbol, setRealSymbol] = useState(symbolFromQuery || "SPY");
   const [params, setParams] = useState({});
   const [config, setConfig] = useState({ initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 });
   const [result, setResult] = useState(null);
@@ -48,11 +49,26 @@ export default function BacktestPage() {
 
   const handleParamChange = (key, val) => setParams((p) => ({ ...p, [key]: Number(val) }));
 
-  const runTest = () => {
+  const runTest = async () => {
     setLoading(true); setError(""); setResult(null);
-    try { setResult(runFullBacktest({ strategy: strategyKey, params, config, preset })); }
-    catch (e) { setError(e.message || "Backtest failed"); }
-    setLoading(false);
+    try {
+      if (preset === "REAL") {
+        const sym = (realSymbol || "SPY").toUpperCase().trim();
+        if (!sym) throw new Error(lang === "en" ? "Enter a ticker first" : "请先输入股票代码");
+        const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(sym)}`);
+        if (!res.ok) throw new Error(`${lang === "en" ? "Market API returned" : "行情接口返回"} ${res.status}`);
+        const data = await res.json();
+        const candles = data.candles || [];
+        if (!candles.length) throw new Error(lang === "en" ? "No K-line data returned" : "未获取到 K 线数据");
+        setResult(runFullBacktest({ strategy: strategyKey, params, config, preset: "REAL", candles, dataSource: data.live ? "live" : "demo" }));
+        return;
+      }
+      setResult(runFullBacktest({ strategy: strategyKey, params, config, preset }));
+    } catch (e) {
+      setError(e.message || "Backtest failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -92,8 +108,25 @@ export default function BacktestPage() {
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 md:col-span-1">
               <h3 className="font-semibold mb-4 text-sm uppercase tracking-wider text-slate-400">{L.market}</h3>
               <select value={preset} onChange={(e) => setPreset(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm mb-4">
+                <option value="REAL">{lang === "en" ? "Real data (Alpha Vantage)" : "真实行情（Alpha Vantage）"}</option>
                 {Object.entries(PRESET_MARKETS).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
               </select>
+              {preset === "REAL" && (
+                <div className="mb-4">
+                  <label className="text-xs text-slate-500">{lang === "en" ? "Ticker" : "股票代码"}</label>
+                  <input
+                    value={realSymbol}
+                    onChange={(e) => setRealSymbol(e.target.value.toUpperCase())}
+                    placeholder="SPY"
+                    className="w-full px-3 py-2 border rounded-lg text-sm font-mono mt-1"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    {lang === "en"
+                      ? "Live when API key is configured, otherwise demo data. No key = illustrative prices."
+                      : "配置 API key 时为实时行情，否则为演示数据（无 key 即示意价格）。"}
+                  </p>
+                </div>
+              )}
               <h3 className="font-semibold mb-3 text-sm uppercase tracking-wider text-slate-400">{L.params}</h3>
               <div className="space-y-3">
                 {STRATEGY_REGISTRY[strategyKey]?.params?.map((p) => (
@@ -215,6 +248,12 @@ export default function BacktestPage() {
           {result && (
             <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 text-sm text-amber-800">
               <p className="font-semibold mb-1">{L.assumptions}</p>
+              <p className="mb-1">
+                <b>{result.dataSource === "live"
+                  ? (lang === "en" ? "Data source: LIVE (Alpha Vantage)" : "数据来源：实时行情（Alpha Vantage）")
+                  : (lang === "en" ? "Data source: DEMO / illustrative" : "数据来源：演示 / 示意数据")}</b>
+                · {result.marketLabel}
+              </p>
               <p>{L.commission}: {(config.commission * 100).toFixed(3)}% | {L.slippage}: {(config.slippage * 100).toFixed(3)}% | {L.capital}: ${config.initialCapital.toLocaleString()}</p>
               <p className="mt-2 text-xs text-amber-600 italic">{L.disclaimer}</p>
             </div>
