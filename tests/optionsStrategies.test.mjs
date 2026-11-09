@@ -115,14 +115,28 @@ test("analyzeStrategy: payoffCurve 覆盖 0→上界且单调合理", () => {
 
 // ---------- strategyTemplates ----------
 
-test("strategyTemplates: 6 个常见策略，腿数与结构正确", () => {
+test("strategyTemplates: 9 个常见策略，腿数与结构正确", () => {
   const tpl = strategyTemplates(100, 100, 110);
-  assert.equal(tpl.length, 6);
+  assert.equal(tpl.length, 9);
   const byId = Object.fromEntries(tpl.map((t) => [t.id, t]));
   assert.equal(byId.long_call.legs.length, 1);
   assert.equal(byId.bull_call_spread.legs.length, 2);
   assert.equal(byId.long_straddle.legs.length, 2);
   assert.ok(byId.covered_call.legs.some((l) => l.type === "share"), "备兑含股票腿");
+  // 新增：铁蝶 4 腿、风险定义(上下端均有界)、净收入(credit)
+  assert.equal(byId.iron_condor.legs.length, 4);
+  const ic = analyzeStrategy(byId.iron_condor.legs, OPTS);
+  assert.equal(ic.unboundedProfit, false, "铁蝶最大盈利有界");
+  assert.equal(ic.unboundedLoss, false, "铁蝶最大亏损有界");
+  assert.ok(ic.premium < 0, "铁蝶为净收入(credit)");
+  assert.ok(ic.maxProfit > 0, "铁蝶最大盈利=收入>0");
+  // 空跨式：净收入 + 两侧亏损无界
+  const ss = analyzeStrategy(byId.short_straddle.legs, OPTS);
+  assert.ok(ss.premium < 0, "空跨式为净收入");
+  assert.equal(ss.unboundedLoss, true, "空跨式亏损无界");
+  // 风险反转可分析
+  const rr = analyzeStrategy(byId.risk_reversal.legs, OPTS);
+  assert.ok(rr.premium !== undefined, "风险反转可分析");
   // 每个模板都应能被分析而不抛错
   for (const t of tpl) {
     const res = analyzeStrategy(t.legs, OPTS);
