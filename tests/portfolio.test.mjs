@@ -7,6 +7,7 @@ import {
   volTargetScale,
   inverseVolWeights,
   riskContribution,
+  riskParityWeights,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -169,4 +170,46 @@ test("riskContribution: 维度不匹配 → []；σ_p≤0 → 全 0", () => {
   assert.deepEqual(riskContribution([0.1, 0.1], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]), [], "维度不匹配 → []");
   const M = [[1, 0], [0, 1]];
   assert.deepEqual(riskContribution([0, 0], M), [0, 0], "全 0 波动 → 全 0 贡献");
+});
+
+// ---------- riskParityWeights ----------
+
+test("riskParityWeights: 不相关解析解 = 逆波动权重；权重和=1", () => {
+  const M = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const w = riskParityWeights([0.1, 0.2, 0.3], M);
+  const iv = inverseVolWeights([0.1, 0.2, 0.3]);
+  w.forEach((x, i) => assert.ok(Math.abs(x - iv[i]) < 1e-6, `资产${i} 等于逆波动权重`));
+  assert.ok(Math.abs(w.reduce((a, b) => a + b, 0) - 1) < 1e-9, "权重和=1");
+});
+
+test("riskParityWeights: N=2 相关资产 w_i ∝ σ_j（与 ρ 无关）", () => {
+  // 解析：w = [σ2, σ1]/(σ1+σ2) = [0.2,0.1]/0.3 = [2/3, 1/3]，交叉项与 ρ 相消
+  const M = [[1, 0.5], [0.5, 1]];
+  const w = riskParityWeights([0.1, 0.2], M);
+  assert.ok(Math.abs(w[0] - 2 / 3) < 1e-6, "w0 = σ2/(σ1+σ2)");
+  assert.ok(Math.abs(w[1] - 1 / 3) < 1e-6, "w1 = σ1/(σ1+σ2)");
+});
+
+test("riskParityWeights: 相关 3 资产收敛到各 RC 近似相等", () => {
+  const vols = [0.1, 0.2, 0.15];
+  const M = [
+    [1, 0.3, 0.1],
+    [0.3, 1, 0.5],
+    [0.1, 0.5, 1],
+  ];
+  const w = riskParityWeights(vols, M);
+  assert.ok(w.every((x) => x > 0 && Number.isFinite(x)), "全为正有限");
+  assert.ok(Math.abs(w.reduce((a, b) => a + b, 0) - 1) < 1e-9, "权重和=1");
+  // 收敛后各资产风险贡献 RC_i 相对离散 < 1e-6
+  const rc = riskContribution(vols, M, w);
+  const mean = rc.reduce((a, b) => a + b, 0) / rc.length;
+  const spread = Math.max(...rc.map((x) => Math.abs(x - mean))) / mean;
+  assert.ok(spread < 1e-6, `RC 相对离散 ${spread} < 1e-6`);
+});
+
+test("riskParityWeights: 边界——空→[]、单资产→[1]、全 0 波动→等权、维度不匹配→[]", () => {
+  assert.deepEqual(riskParityWeights([], [[1]]), [], "空 → []");
+  assert.deepEqual(riskParityWeights([0.1], [[1]]), [1], "单资产 → [1]");
+  assert.deepEqual(riskParityWeights([0, 0], [[1, 0], [0, 1]]), [0.5, 0.5], "全 0 波动 → 等权");
+  assert.deepEqual(riskParityWeights([0.1, 0.2], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]), [], "维度不匹配 → []");
 });
