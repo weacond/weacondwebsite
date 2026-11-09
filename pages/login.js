@@ -1,8 +1,10 @@
-import { getSupabaseClient } from "../lib/supabase";
-
 /**
  * 登录页面 — 使用 Supabase Auth
  * 邮箱 + 密码（简单模式），未来可加 OAuth
+ *
+ * 性能：getSupabaseClient 不再顶部静态导入（会经 lib/supabase.js 模块链急加载
+ * @supabase/supabase-js ~63kB 到首屏），改为在 handleLogin/handleSignup 提交时
+ * 动态 import("../lib/supabase.js")，使 supabase-js 分包仅在用户提交时才拉取。
  */
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -29,6 +31,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    // 延迟加载 supabase 客户端：仅在提交时拉取 supabase-js 分包，减小首屏体积。
+    const { getSupabaseClient } = await import("../lib/supabase.js");
     const client = getSupabaseClient();
     if (!client) {
       // Supabase 未配置时的降级：localStorage 模拟登录
@@ -60,6 +64,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    // 延迟加载 supabase 客户端：仅在提交时拉取 supabase-js 分包，减小首屏体积。
+    const { getSupabaseClient } = await import("../lib/supabase.js");
     const client = getSupabaseClient();
     if (!client) {
       localStorage.setItem("weacond_user", JSON.stringify({
