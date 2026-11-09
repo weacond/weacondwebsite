@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { computeOptionChain, impliedVol } from "../lib/options.js";
-import { analyzeStrategy, strategyTemplates } from "../lib/optionsStrategies.js";
+import { analyzeStrategy, strategyTemplates, probOfProfit } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
 
@@ -214,7 +214,9 @@ function StrategyLab({ spot, iv, r, t, L }) {
 
   const analysis = useMemo(() => {
     try {
-      return analyzeStrategy(tpl.legs, { spot, r, t, iv });
+      const a = analyzeStrategy(tpl.legs, { spot, r, t, iv });
+      a.pop = probOfProfit(tpl.legs, { spot, r, t, iv });
+      return a;
     } catch (e) {
       return null;
     }
@@ -254,13 +256,17 @@ function StrategyLab({ spot, iv, r, t, L }) {
 
       {analysis ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <Metric label={L.netPremium} value={(isCredit ? "−" : "+") + "$" + Math.abs(analysis.premium).toFixed(2)}
               hint={isCredit ? L.credit : L.debit} tone={isCredit ? "green" : "rose"} />
             <Metric label={L.maxProfit} value={fmtMoney(analysis.maxProfit)} tone="green" />
             <Metric label={L.maxLoss} value={fmtMoney(analysis.maxLoss)} tone="rose" />
             <Metric label={L.breakEven}
               value={analysis.breakEvens.length ? analysis.breakEvens.map((b) => "$" + b).join(" / ") : "—"} />
+            <Metric label={L.pop}
+              value={analysis.pop == null ? "—" : (analysis.pop * 100).toFixed(1) + "%"}
+              tone="indigo"
+              hint={L.popHint} />
           </div>
 
           <div className="mb-4">
@@ -285,7 +291,10 @@ function StrategyLab({ spot, iv, r, t, L }) {
 }
 
 function Metric({ label, value, hint, tone }) {
-  const toneCls = tone === "green" ? "text-emerald-600" : tone === "rose" ? "text-rose-600" : "text-slate-800";
+  const toneCls =
+    tone === "green" ? "text-emerald-600" :
+    tone === "rose" ? "text-rose-600" :
+    tone === "indigo" ? "text-indigo-600" : "text-slate-800";
   return (
     <div className="bg-slate-50 rounded-lg p-3">
       <div className="text-xs text-slate-500 mb-1">{label}</div>
@@ -439,6 +448,8 @@ const zh = {
   credit: "净收入",
   debit: "净支出",
   strategyError: "参数无效，请检查行权价。",
+  pop: "盈利概率 POP",
+  popHint: "风险中性测度下到期 P/L>0 的概率（lognormal 近似）",
   // 反解隐含波动率
   reverseTitle: "🔎 反解隐含波动率 (IV)",
   reverseSubtitle: "输入市场价，反解使 Black-Scholes 价相等的隐含波动率（前向 IV→价 的逆运算）。",
@@ -499,6 +510,8 @@ const en = {
   credit: "Credit",
   debit: "Debit",
   strategyError: "Invalid parameters, check the strikes.",
+  pop: "Prob. of profit (POP)",
+  popHint: "Risk-neutral prob that P/L>0 at expiry (lognormal approx.)",
   // Reverse implied vol
   reverseTitle: "🔎 Reverse Implied Vol (IV)",
   reverseSubtitle: "Enter a market price to back out the IV that makes the Black-Scholes price match (inverse of IV→price).",

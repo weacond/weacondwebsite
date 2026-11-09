@@ -7,6 +7,7 @@ import {
   strategyPayoffAt,
   analyzeStrategy,
   strategyTemplates,
+  probOfProfit,
 } from "../lib/optionsStrategies.js";
 
 const OPTS = { spot: 100, r: 0.05, t: 1, iv: 0.2 };
@@ -128,3 +129,29 @@ test("strategyTemplates: 6 个常见策略，腿数与结构正确", () => {
     assert.ok(res.premium !== undefined, `${t.id} 可分析`);
   }
 });
+
+// ---------- probOfProfit（到期盈利概率） ----------
+
+test("probOfProfit: 落在 [0,1]", () => {
+  const pop = probOfProfit([{ type: "call", strike: 100, qty: 1 }], OPTS);
+  assert.ok(pop >= 0 && pop <= 1, `POP=${pop}`);
+});
+
+test("probOfProfit: 实值 call 的 POP > 虚值 call 的 POP", () => {
+  const itM = probOfProfit([{ type: "call", strike: 90, qty: 1 }], OPTS); // 实值
+  const otM = probOfProfit([{ type: "call", strike: 110, qty: 1 }], OPTS); // 虚值
+  assert.ok(itM > otM, `ITM ${itM} 应 > OTM ${otM}`);
+});
+
+test("probOfProfit: 买入跨式 POP 介于 (0,1) 且 > 0.1", () => {
+  const pop = probOfProfit([
+    { type: "call", strike: 100, qty: 1 },
+    { type: "put", strike: 100, qty: 1 },
+  ], OPTS);
+  assert.ok(pop > 0.1 && pop < 1, `跨式 POP=${pop}`);
+});
+
+test("probOfProfit: 退化 t=0 → null（无分布）", () => {
+  assert.equal(probOfProfit([{ type: "call", strike: 100, qty: 1 }], { ...OPTS, t: 0 }), null);
+});
+

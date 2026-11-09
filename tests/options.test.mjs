@@ -3,7 +3,7 @@
 // normCdf 锚点、退化情形），避免把"背下来的数字"当 oracle。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol } from "../lib/options.js";
+import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol, probITM } from "../lib/options.js";
 
 // ---------- normCdf / normPdf 锚点 ----------
 
@@ -167,4 +167,32 @@ test("impliedVol: 返回 iterations 且收敛于有限迭代", () => {
   const res = impliedVol(px, 100, 100, { r: 0.05, t: 1 });
   assert.ok(res.iterations > 0 && res.iterations <= 100, `iterations=${res.iterations}`);
 });
+
+// ---------- probITM（风险中性到期实值概率） ----------
+
+test("probITM: call + put 同 strike = 1（N(d2)+N(−d2)=1 恒等式）", () => {
+  for (const [spot, strike, iv] of [[100, 100, 0.2], [110, 100, 0.3], [90, 100, 0.4]]) {
+    const c = probITM("call", spot, strike, { r: 0.05, t: 1, iv });
+    const p = probITM("put", spot, strike, { r: 0.05, t: 1, iv });
+    assert.ok(Math.abs(c + p - 1) < 1e-3, `S=${spot} K=${strike}: ${c}+${p}=${c + p}`);
+  }
+});
+
+test("probITM: 落在 [0,1]", () => {
+  for (const iv of [0.1, 0.3, 0.6]) {
+    const c = probITM("call", 100, 100, { r: 0.05, t: 1, iv });
+    assert.ok(c >= 0 && c <= 1, `call iv=${iv} → ${c}`);
+  }
+});
+
+test("probITM: 深度实值 call → ≈1；深度虚值 call → ≈0", () => {
+  assert.ok(probITM("call", 200, 100, { r: 0.05, t: 1, iv: 0.3 }) > 0.9, "深度实值应≈1");
+  assert.ok(probITM("call", 100, 200, { r: 0.05, t: 1, iv: 0.3 }) < 0.1, "深度虚值应≈0");
+});
+
+test("probITM: 退化 t=0 —— 实值→1，虚值→0", () => {
+  assert.equal(probITM("call", 120, 100, { t: 0, iv: 0.2 }), 1, "实值→1");
+  assert.equal(probITM("call", 80, 100, { t: 0, iv: 0.2 }), 0, "虚值→0");
+});
+
 
