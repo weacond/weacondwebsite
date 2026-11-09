@@ -21,6 +21,9 @@ import {
   skewness,
   sharpeRatio,
   sortinoRatio,
+  downsideDeviation,
+  omegaRatio,
+  tailRatio,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -371,6 +374,36 @@ test("skewness: 右偏序列 m3>0 → 正偏度", () => {
   // 多数小正收益 + 一个巨大正收益 → 右偏
   const r = [0.01, 0.01, 0.01, 0.01, 0.01, 0.5];
   assert.ok(skewness(r) > 0, "右偏正尾 → 正偏度");
+});
+
+// ---------- downsideDeviation / omegaRatio / tailRatio ----------
+
+test("downsideDeviation: 仅计下行，全样本 n 分母", () => {
+  // [0.1, -0.2, 0.3, -0.1]，threshold=0：仅 -0.2,-0.1 计，分母 n=4
+  const expect = Math.sqrt((0.04 + 0.01) / 4);
+  assert.ok(Math.abs(downsideDeviation([0.1, -0.2, 0.3, -0.1]) - expect) < 1e-12, "全样本分母");
+  assert.equal(downsideDeviation([]), 0, "空 → 0");
+  assert.equal(downsideDeviation([0.1, 0.2]), 0, "无下行 → 0");
+});
+
+test("omegaRatio: 上行总收益/下行总损失；无下行封顶 999；全无 → 0", () => {
+  // up = 0.2 + 0.3 = 0.5，down = 0.2 + 0.1 = 0.3 → 5/3
+  const expect = 0.5 / 0.3;
+  assert.ok(Math.abs(omegaRatio([0.2, -0.2, 0.3, -0.1]) - expect) < 1e-12, "Ω = up/down");
+  assert.equal(omegaRatio([0.1, 0.2, 0.3]), 999, "无上行外下行(仅上行) → 999");
+  assert.equal(omegaRatio([0.1, 0.1, 0.1]), 999, "全为正 → 999");
+  assert.equal(omegaRatio([]), 0, "空 → 0");
+  assert.equal(omegaRatio([0, 0, 0]), 0, "全为阈值 → 0");
+});
+
+test("tailRatio: 上尾分位/|下尾分位|；对称 → 1；下尾为 0 → 0", () => {
+  // 对称分布 [-1,0,1]：q95≈0.8, |q05|≈0.8 → 1
+  const r = [-1, 0, 1];
+  const tr = tailRatio(r, 0.05, 0.95);
+  assert.ok(Math.abs(tr - 1) < 1e-6, "对称 → 1");
+  assert.equal(tailRatio([]), 0, "空 → 0");
+  // 含 0 质量：下尾分位恰为 0 → 0
+  assert.equal(tailRatio([0, 0, 0, 0, 1, 2, 3], 0.05, 0.95), 0, "下尾分位 0 → 0");
 });
 
 
