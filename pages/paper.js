@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import { usePaper } from "../lib/paper";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 export const metadata = {
   title: "模拟交易 — Weacond",
@@ -19,6 +20,15 @@ export default function PaperPage() {
   const [tab, setTab] = useState("positions");
   const { positions, trades, openPosition, closePosition, realizedPnl, totalPnl } = usePaper();
   const [form, setForm] = useState({ ticker: "", name: "", qty: "1", entry: "" });
+  const router = useRouter();
+
+  // 从信号/收藏页跳转：?symbol=NVDA 预填开仓表单的标的
+  useEffect(() => {
+    if (router.isReady && router.query.symbol) {
+      setForm((f) => ({ ...f, ticker: String(router.query.symbol).toUpperCase() }));
+      setTab("positions");
+    }
+  }, [router.isReady, router.query.symbol]);
 
   const submitOrder = (e) => {
     e.preventDefault();

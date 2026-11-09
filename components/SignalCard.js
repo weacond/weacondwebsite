@@ -107,6 +107,12 @@ export default function SignalCard({ signal }) {
         >
           {L.aiExplain} →
         </Link>
+        <Link
+          href={`/paper?symbol=${encodeURIComponent(ticker)}`}
+          className="flex-1 text-center text-xs bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-500 transition-colors"
+        >
+          {L.paperTrade} →
+        </Link>
       </div>
     </div>
   );
@@ -118,6 +124,7 @@ const zh = {
   volatility: "⚡ 波动面",
   viewBacktest: "查看回测",
   aiExplain: "AI 解读",
+  paperTrade: "模拟交易",
   engine: "Weacond Engine v0.1",
   ivRank: "IV Rank",
   riskHigh: "高 IV",
@@ -130,6 +137,7 @@ const en = {
   volatility: "⚡ Volatility",
   viewBacktest: "Backtest",
   aiExplain: "AI Explain",
+  paperTrade: "Paper Trade",
   engine: "Weacond Engine v0.1",
   ivRank: "IV Rank",
   riskHigh: "High IV",
