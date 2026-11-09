@@ -8,6 +8,7 @@ import {
   expectedShortfall,
   maxDrawdown,
   detectTailEvents,
+  riskProfileFromEquity,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -112,3 +113,29 @@ test("detectTailEvents: 清洗 NaN/非数后仍能检测", () => {
   const res = detectTailEvents(base, 3);
   assert.ok(res.count >= 1, "清洗后 -0.5 仍触发");
 });
+
+// ---------- riskProfileFromEquity ----------
+
+test("riskProfileFromEquity: 点数<2 → null", () => {
+  assert.equal(riskProfileFromEquity([100]), null);
+  assert.equal(riskProfileFromEquity([]), null);
+});
+
+test("riskProfileFromEquity: 同时支持 number[] 与 [{value}]，结果一致", () => {
+  const nums = [100, 110, 90, 100, 120];
+  const objs = [100, 110, 90, 100, 120].map((v) => ({ value: v }));
+  const a = riskProfileFromEquity(nums);
+  const b = riskProfileFromEquity(objs);
+  assert.ok(a && b);
+  assert.equal(a.mdd, b.mdd, "两种输入 mdd 应一致");
+  assert.ok(a.var > 0, "VaR 应为正损失");
+  assert.ok(a.cvar >= a.var - 1e-9, "CVaR ≥ VaR");
+});
+
+test("riskProfileFromEquity: mdd 与 maxDrawdown 同源一致", () => {
+  const curve = [100, 102, 98, 105, 110, 95, 88, 100];
+  const prof = riskProfileFromEquity(curve);
+  assert.ok(Math.abs(prof.mdd - maxDrawdown(curve)) < 1e-12, "剖面 mdd 应等于 maxDrawdown");
+  assert.equal(prof.n, curve.length - 1, "收益点数 = 净值点数 − 1");
+});
+

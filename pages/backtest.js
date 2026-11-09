@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
+import { riskProfileFromEquity } from "../lib/risk.js";
 
 export const metadata = {
   title: "策略回测 — Weacond",
@@ -313,6 +314,37 @@ export default function BacktestPage() {
               </div>
             </div>
           )}
+          {/* 风险剖面（VaR / CVaR / 最大回撤，由权益曲线日收益计算） */}
+          {result?.equityCurve &&
+            (() => {
+              const rp = riskProfileFromEquity(result.equityCurve);
+              if (!rp) return null;
+              return (
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+                  <h3 className="font-semibold mb-4">{L.riskProfile}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.var95}</div>
+                      <div className="font-bold text-lg text-red-500">−{(rp.var * 100).toFixed(2)}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.cvar95}</div>
+                      <div className="font-bold text-lg text-red-500">−{(rp.cvar * 100).toFixed(2)}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.mdd}</div>
+                      <div className="font-bold text-lg text-red-500">−{(rp.mdd * 100).toFixed(2)}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.obsPeriods}</div>
+                      <div className="font-bold text-lg">{rp.n}</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3">{L.riskProfileHint}</p>
+                </div>
+              );
+            })()}
+
           {/* 全策略对比 */}
           {sortedComparison && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
@@ -429,6 +461,8 @@ const zh = {
   tradeLog: "交易记录", entryDate: "入场日", exitDate: "出场日", entryPrice: "入场价", exitPrice: "出场价",
   pnl: "盈亏", holdDays: "持仓天数", moreTrades: "更多交易未显示",
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
+  riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", obsPeriods: "观测期数",
+  riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
   assumptions: "回测假设", startDate: "起始", endDate: "结束", candles: "K线数",
   deployToPaper: "部署到模拟盘", deployNote: "用 0 风险先验证策略",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
@@ -444,6 +478,8 @@ const en = {
   tradeLog: "Trade Log", entryDate: "Entry", exitDate: "Exit", entryPrice: "Entry", exitPrice: "Exit",
   pnl: "P&L", holdDays: "Days", moreTrades: "more trades hidden",
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
+  riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", obsPeriods: "Obs.",
+  riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",
   assumptions: "Assumptions", startDate: "Start", endDate: "End", candles: "Candles",
   deployToPaper: "Deploy to Paper", deployNote: "validate the strategy risk-free",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
