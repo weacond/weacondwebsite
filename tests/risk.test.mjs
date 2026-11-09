@@ -18,6 +18,8 @@ import {
   maxWinStreak,
   ulcerIndex,
   excessKurtosis,
+  sharpeRatio,
+  sortinoRatio,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -310,6 +312,38 @@ test("excessKurtosis: <4 点或全相等 → 0；剔除非有限", () => {
   assert.equal(excessKurtosis([5, 5, 5, 5, 5]), 0, "全相等(方差0) → 0");
   // 非有限被剔除，等价于 [1,2,3,4]
   assert.ok(Math.abs(excessKurtosis([1, 2, NaN, 3, Infinity, 4]) - excessKurtosis([1, 2, 3, 4])) < 1e-9, "剔除非有限");
+});
+
+// ---------- sharpeRatio / sortinoRatio ----------
+
+test("sharpeRatio: 精确值与口径", () => {
+  // [0.01, 0.02, 0.03, 0.04]：μ=0.025，偏差 [−.015,−.005,.005,.015]，样本 σ
+  const r = [0.01, 0.02, 0.03, 0.04];
+  const mean = 0.025;
+  const std = Math.sqrt((0.015 ** 2 + 0.005 ** 2 + 0.005 ** 2 + 0.015 ** 2) / 3);
+  const expect = (mean / std) * Math.sqrt(252);
+  assert.ok(Math.abs(sharpeRatio(r) - expect) < 1e-9, "样本 σ 口径");
+  assert.equal(sharpeRatio([0.1]), 0, "<2 点 → 0");
+  assert.equal(sharpeRatio([0.1, 0.1]), 0, "σ=0 → 0");
+});
+
+test("sortinoRatio: 仅计下行，精确值与口径", () => {
+  const r = [0.1, -0.2, 0.3, -0.1]; // 下行样本 [-0.2, -0.1]
+  const mean = (0.1 - 0.2 + 0.3 - 0.1) / 4; // 0.025
+  const down = [-0.2, -0.1];
+  const dStd = Math.sqrt((0.04 + 0.01) / 2); // 总体分母
+  const expect = (mean / dStd) * Math.sqrt(252);
+  assert.ok(Math.abs(sortinoRatio(r) - expect) < 1e-9, "下行总体 σ 口径");
+  // 无/仅一个下行样本 → 0
+  assert.equal(sortinoRatio([0.1, 0.2, 0.3]), 0, "无下行 → 0");
+  assert.equal(sortinoRatio([-0.1, 0.2, 0.3]), 0, "仅一个下行 → 0");
+});
+
+test("sharpeRatio ≥ 0 时 sortinoRatio ≥ sharpeRatio（下行 σ ≤ 总 σ）", () => {
+  const r = [0.01, -0.03, 0.02, -0.02, 0.04, -0.01, 0.03, 0.02, -0.05, 0.06];
+  const s = sharpeRatio(r);
+  const so = sortinoRatio(r);
+  if (s > 0) assert.ok(so >= s - 1e-9, "下行波动 ≤ 总波动 → Sortino ≥ Sharpe");
 });
 
 
