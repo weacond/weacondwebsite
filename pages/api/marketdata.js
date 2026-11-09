@@ -7,6 +7,22 @@
 
 import { fetchRealCandles, fetchFundamentals, fetchFredSeries } from "../../lib/marketdata_real";
 
+// 简单内存缓存（TTL）：减少 Alpha Vantage / FRED 配额消耗。
+// Node runtime 下随进程存活；edge 下随 isolate 存活。日线数据 15 分钟足够，FRED 日频 1 小时足够。
+const cache = new Map();
+const CANDLE_TTL = 15 * 60 * 1000; // 15 分钟
+const FRED_TTL = 60 * 60 * 1000;   // 1 小时
+
+function cacheGet(key) {
+  const hit = cache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.t > hit.ttl) { cache.delete(key); return null; }
+  return hit.v;
+}
+function cacheSet(key, v, ttl) {
+  cache.set(key, { v, t: Date.now(), ttl });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -24,15 +40,20 @@ export default async function handler(req, res) {
   // FRED 宏观系列（利率/通胀/就业/信用利差）：?fred=DFF,UNRATE,CPIAUCSL,BAMLC0A0CM
   const fredParam = params.get("fred");
   if (fredParam) {
+    const ids = fredParam.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8);
+    const fredKey = `fred:${[...ids].sort().join(",")}`;
+    const cached = cacheGet(fredKey);
+    if (cached) return res.status(200).json(cached);
     try {
-      const ids = fredParam.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8);
-      const fredKey = process.env.FREDSERIESKEY || apiKey;
-      const series = await fetchFredSeries(ids, fredKey);
-      res.status(200).json({
+      const fredKey2 = process.env.FREDSERIESKEY || apiKey;
+      const series = await fetchFredSeries(ids, fredKey2);
+      const payload = {
         type: "fred",
         live: Boolean(process.env.FREDSERIESKEY || process.env.ALPHA_VANTAGE_API_KEY),
         series,
-      });
+      };
+      cacheSet(fredKey, payload, FRED_TTL);
+      res.status(200).json(payload);
     } catch (err) {
       console.error("FRED error:", err);
       res.status(500).json({ error: err.message || "FRED fetch failed" });
@@ -40,9 +61,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  try {
-    const candles = await fetchRealCandles({ symbol, source, apiKey });
+  // 日线缓存：同标的同周期 15 分钟内复用，避免重复打满 Alpha Vantage 配额
+  const candleKey = `candles:${symbol}:${source}`;
+  const candleCache = cacheGet(candleKey);
+  const candles = candleCache || await fetchRealCandles({ symbol, source, apiKey });
+  if (!candleCache) cacheSet(candleKey, candles, CANDLE_TTL);
 
+  try {
     const result = {
       symbol,
       source,

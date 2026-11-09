@@ -148,3 +148,38 @@ jobs:
         env:
           R2_API_TOKEN: ${{ secrets.R2_API_TOKEN }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+
+  # Job 4: 部署后冒烟测试 — 对线上站点关键路由做 200 检查（非阻断）
+  # 取最近一次部署的 URL，逐一 curl 首页 / API / 各数据页，确保不是白屏或 5xx。
+  smoke:
+    needs: deploy-worker
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    continue-on-error: true
+    steps:
+      - name: Resolve deployment URL & smoke-test key routes
+        run: |
+          # 取最近一次部署的 URL（Pages API 需 Pages:Read 权限；缺则跳过，不阻断）
+          URL=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/weacond/deployments" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            | grep -o '"url":"[^"]*"' | head -1 | sed 's/"url":"//;s/"//')
+          if [ -z "$URL" ]; then
+            echo "⚠️ 无法解析部署 URL（token 缺 Pages:Read 或部署未完成），跳过冒烟测试。"
+            exit 0
+          fi
+          BASE="https://${URL}"
+          echo "Smoke base: $BASE"
+          ok=1
+          for path in "/" "/api/marketdata?symbol=SPY" "/api/marketdata?fred=DFF" "/macro" "/paper" "/signals" "/watchlist" "/backtest"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$BASE$path")
+            echo "  $path -> $code"
+            if [ "$code" != "200" ]; then ok=0; fi
+          done
+          if [ "$ok" != "1" ]; then
+            echo "❌ 部分路由未返回 200"
+            exit 1
+          fi
+          echo "✓ 全部关键路由 200"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}

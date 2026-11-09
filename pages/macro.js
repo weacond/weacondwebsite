@@ -20,6 +20,16 @@ const DEMO_INDICATORS = {
   credit_spread: 1.1,
 };
 
+// 演示国债收益率曲线（FRED 未配置时的回退；期限 → 收益率 %）
+const DEMO_YIELD_CURVE = [
+  { term: "1M", yield: 5.3 },
+  { term: "3M", yield: 5.3 },
+  { term: "6M", yield: 5.2 },
+  { term: "2Y", yield: 4.4 },
+  { term: "5Y", yield: 4.2 },
+  { term: "10Y", yield: 4.3 },
+];
+
 // 市场状态（regime）中英标签 + 完整徽章类（避免 Tailwind 动态类被 purge）
 const REGIME_LABELS = {
   crisis: { zh: "危机", en: "Crisis", badge: "bg-red-100 text-red-700" },
@@ -46,6 +56,9 @@ export default function MacroPage() {
   const [fred, setFred] = useState(null);
   const [fredLive, setFredLive] = useState(null);
   const [fredNote, setFredNote] = useState("");
+  const [yieldCurve, setYieldCurve] = useState(DEMO_YIELD_CURVE);
+  const [yieldLive, setYieldLive] = useState(null);
+  const [yieldNote, setYieldNote] = useState("");
 
   // 用当前 VIX（演示或真实）重新评估宏观状态；其余指标暂用演示占位
   const MACRO = assessMacroState({ ...DEMO_INDICATORS, vix });
@@ -100,7 +113,47 @@ export default function MacroPage() {
     }
   };
 
-  useEffect(() => { loadFred(); }, []);
+  // 拉取 FRED 国债收益率曲线（DGS1MO/3MO/6MO/2/5/10）：期限 → 最新收益率；无 key 回退演示曲线
+  const loadYieldCurve = async () => {
+    try {
+      const res = await fetch("/api/marketdata?fred=DGS1MO,DGS3MO,DGS6MO,DGS2,DGS5,DGS10");
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      const series = data.series || {};
+      const terms = [
+        { id: "DGS1MO", label: "1M" },
+        { id: "DGS3MO", label: "3M" },
+        { id: "DGS6MO", label: "6M" },
+        { id: "DGS2", label: "2Y" },
+        { id: "DGS5", label: "5Y" },
+        { id: "DGS10", label: "10Y" },
+      ];
+      const curve = terms
+        .map((t) => {
+          const arr = series[t.id];
+          if (!arr || !arr.length) return null;
+          const last = arr[arr.length - 1];
+          return { term: t.label, yield: Number(last.value), date: last.date };
+        })
+        .filter(Boolean);
+      if (curve.length >= 2) {
+        setYieldCurve(curve);
+        setYieldLive(!!data.live);
+        setYieldNote(data.live
+          ? (lang === "en" ? `Live treasury yields · ${curve[curve.length - 1].date?.slice(0, 10) || ""}` : `实时国债收益率 · ${curve[curve.length - 1].date?.slice(0, 10) || ""}`)
+          : (lang === "en" ? "Demo yields — no FRED key configured" : "演示收益率 — 未配置 FRED key"));
+      } else {
+        setYieldLive(data.live ? false : null);
+        setYieldNote(data.live
+          ? (lang === "en" ? "No FRED treasury data returned" : "FRED 未返回国债数据")
+          : (lang === "en" ? "Demo yields — no FRED key configured" : "演示收益率 — 未配置 FRED key"));
+      }
+    } catch (e) {
+      setYieldNote(e.message || "Failed to load yield curve");
+    }
+  };
+
+  useEffect(() => { loadFred(); loadYieldCurve(); }, []);
 
   // FRED 系列辅助：取最近值 + 近 3 月变化（趋势箭头）；数据不足返回 null → 演示兜底
   const fredCard = (id, decimals = 2, suffix = "") => {
@@ -207,6 +260,20 @@ export default function MacroPage() {
             </div>
           )}
 
+          {/* 国债收益率曲线（FRED）：期限 → 收益率；倒挂 = 衰退信号 */}
+          {yieldCurve.length > 1 && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">{L.yieldCurve}</h3>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${yieldLive === true ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                  {yieldLive === true ? (lang === "en" ? "Live" : "实时") : (lang === "en" ? "Demo" : "演示")}
+                </span>
+              </div>
+              <YieldCurveSvg data={yieldCurve} />
+              {yieldNote && <p className="text-xs text-slate-400 mt-2">{yieldNote}</p>}
+            </div>
+          )}
+
           {/* 配置建议 */}
           <h2 className="text-lg font-bold mb-3">{L.allocation}</h2>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
@@ -261,6 +328,35 @@ function VixSparkline({ data }) {
   );
 }
 
+/** 国债收益率曲线：期限(1M…10Y) → 收益率；2Y>10Y 倒挂标红（衰退信号） */
+function YieldCurveSvg({ data }) {
+  const W = 800, H = 160, padX = 40, padY = 26;
+  const ys = data.map((d) => d.yield);
+  const min = Math.min(...ys, 0);
+  const max = Math.max(...ys, 6);
+  const range = max - min || 1;
+  const n = data.length;
+  const x = (i) => padX + (i / (n - 1)) * (W - 2 * padX);
+  const y = (v) => padY + ((max - v) / range) * (H - 2 * padY);
+  const points = data.map((d, i) => `${x(i).toFixed(1)},${y(d.yield).toFixed(1)}`).join(" ");
+  const twoY = data.find((d) => d.term === "2Y");
+  const tenY = data.find((d) => d.term === "10Y");
+  const inverted = twoY && tenY ? twoY.yield > tenY.yield : false;
+  const stroke = inverted ? "#ef4444" : "#6366f1";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 160 }}>
+      <polyline points={points} fill="none" stroke={stroke} strokeWidth="2" />
+      {data.map((d, i) => (
+        <g key={d.term}>
+          <circle cx={x(i)} cy={y(d.yield)} r="3.5" fill={stroke} />
+          <text x={x(i)} y={y(d.yield) - 9} textAnchor="middle" fontSize="11" fill="#334155">{d.yield.toFixed(2)}</text>
+          <text x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#94a3b8">{d.term}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 const zh = {
   title: "宏观情绪",
   subtitle: "市场状态识别 · 风险评分 · 资产配置建议（引擎评估）",
@@ -271,6 +367,7 @@ const zh = {
   summary: "状态决定配置基调：危机/滞胀偏防御，宽松/牛市偏进攻，中性均衡。",
   indicators: "宏观指标",
   vixTrend: "VIX 走势",
+  yieldCurve: "国债收益率曲线",
   allocation: "资产配置建议",
   asset: "资产",
   reason: "理由",
@@ -286,6 +383,7 @@ const en = {
   summary: "Regime sets the tone: crisis/stagflation lean defensive, boom/bull lean aggressive, neutral is balanced.",
   indicators: "Macro Indicators",
   vixTrend: "VIX Trend",
+  yieldCurve: "Yield Curve",
   allocation: "Allocation Suggestions",
   asset: "Asset",
   reason: "Reason",
