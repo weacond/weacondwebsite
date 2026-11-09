@@ -15,6 +15,7 @@ import {
   probabilityOfRuin,
   riskBudget,
   maxLosingStreak,
+  maxWinStreak,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -241,6 +242,27 @@ test("maxLosingStreak: 全盈利 → 0；空/非法 → 0", () => {
 test("maxLosingStreak: scratch(pnl=0) 计入连亏（与 calcMetrics 亏损口径一致）", () => {
   assert.equal(maxLosingStreak([1, -1, 0, -1]), 3, "0 不中断连亏");
 });
+
+// ---------- maxWinStreak ----------
+
+test("maxWinStreak: 末尾三笔连盈 → 3", () => {
+  assert.equal(maxWinStreak([1, 2, -1, 3, 4, 5]), 3);
+});
+
+test("maxWinStreak: 交易对象数组 [{pnl}] 口径一致", () => {
+  assert.equal(maxWinStreak([{ pnl: -1 }, { pnl: 2 }, { pnl: 3 }, { pnl: 4 }, { pnl: -5 }]), 3);
+});
+
+test("maxWinStreak: 全亏损 → 0；空/非法 → 0", () => {
+  assert.equal(maxWinStreak([-1, -2, -3]), 0, "全亏损 → 0");
+  assert.equal(maxWinStreak([]), 0, "空数组 → 0");
+  assert.equal(maxWinStreak(null), 0, "null → 0");
+});
+
+test("maxWinStreak: scratch(pnl=0) 中断连盈（仅 pnl>0 计为盈利）", () => {
+  assert.equal(maxWinStreak([1, 2, 0, 3]), 2, "0 中断连盈");
+});
+
 
 
 

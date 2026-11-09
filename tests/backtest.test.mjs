@@ -89,7 +89,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
     "profitFactor", "numTrades", "exposure", "calmar", "volatility",
-    "var95", "cvar95", "recoveryPeriods", "maxLosingStreak",
+    "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
   }
@@ -99,6 +99,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   assert.ok(res.metrics.cvar95 >= res.metrics.var95 - 1e-6, "cvar95 ≥ var95");
   // 最长连亏为非负整数
   assert.ok(Number.isInteger(res.metrics.maxLosingStreak) && res.metrics.maxLosingStreak >= 0, "maxLosingStreak 非负整数");
+  assert.ok(Number.isInteger(res.metrics.maxWinStreak) && res.metrics.maxWinStreak >= 0, "maxWinStreak 非负整数");
 });
 
 test("runBacktest: 未知策略应抛错", () => {

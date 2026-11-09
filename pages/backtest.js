@@ -392,6 +392,7 @@ export default function BacktestPage() {
               if (!rp) return null;
               const recovery = result.metrics?.recoveryPeriods;
               const maxStreak = result.metrics?.maxLosingStreak ?? 0;
+              const maxWin = result.metrics?.maxWinStreak ?? 0;
               return (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
                   <h3 className="font-semibold mb-4">{L.riskProfile}</h3>
@@ -413,8 +414,12 @@ export default function BacktestPage() {
                       <div className="font-bold text-lg">{recovery != null ? recovery : L.notRecovered}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs text-slate-400">{L.maxStreak}</div>
-                      <div className="font-bold text-lg">{maxStreak}</div>
+                      <div className="text-xs text-slate-400">{L.streaks}</div>
+                      <div className="font-bold text-lg">
+                        <span className="text-green-600">{maxWin}</span>
+                        <span className="text-slate-300"> / </span>
+                        <span className="text-red-500">{maxStreak}</span>
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-slate-400">{L.obsPeriods}</div>
@@ -589,7 +594,7 @@ const zh = {
   pnl: "盈亏", holdDays: "持仓天数", moreTrades: "更多交易未显示",
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
   distTitle: "收益分布直方图", medianLine: "中位",
-  riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", maxStreak: "最长连亏", obsPeriods: "观测期数",
+  riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", streaks: "连盈/连亏", maxStreak: "最长连亏", obsPeriods: "观测期数",
   recoveryDays: "回撤恢复(期)", notRecovered: "未恢复", drawdownOverlay: "回撤(水下)",
   riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
   kellyTitle: "仓位建议 (Kelly)", kellyFull: "凯利最优", kellyHalf: "半凯利", winLossRatio: "盈亏比", varBudget: "VaR 风险预算",
@@ -610,7 +615,7 @@ const en = {
   pnl: "P&L", holdDays: "Days", moreTrades: "more trades hidden",
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
   distTitle: "Return Distribution", medianLine: "Median",
-  riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", maxStreak: "Max Loss Streak", obsPeriods: "Obs.",
+  riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", streaks: "Win/Loss Streak", maxStreak: "Max Loss Streak", obsPeriods: "Obs.",
   recoveryDays: "DD Recovery", notRecovered: "not rec.", drawdownOverlay: "Drawdown",
   riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",
   kellyTitle: "Position Sizing (Kelly)", kellyFull: "Full Kelly", kellyHalf: "Half Kelly", winLossRatio: "Win/Loss", varBudget: "VaR Budget",
