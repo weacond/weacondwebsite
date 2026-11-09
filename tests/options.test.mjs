@@ -3,7 +3,7 @@
 // normCdf 锚点、退化情形），避免把"背下来的数字"当 oracle。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank } from "../lib/options.js";
+import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
 
 // ---------- normCdf / normPdf 锚点 ----------
 
@@ -247,6 +247,37 @@ test("classifyIVRank: <20 买方优势 / >80 卖方优势 / 其余中性", () =>
   assert.equal(classifyIVRank(20), "neutral"); // 边界含于中性
   assert.equal(classifyIVRank(80), "neutral");
 });
+
+// ---------- volSmile ----------
+
+test("volSmile: 凸性>0 形成 U 形（两翼 IV > 平值）", () => {
+  const smile = volSmile({ spot: 100, baseIV: 0.2, convexity: 0.5, skew: 0, steps: 11 });
+  assert.equal(smile.length, 11);
+  const atm = smile[(smile.length - 1) / 2]; // 中间点 moneyness≈1
+  const leftWing = smile[0]; // moneyness=0.8
+  const rightWing = smile[smile.length - 1]; // moneyness=1.2
+  assert.ok(leftWing.iv > atm.iv, "左翼 IV 高于平值");
+  assert.ok(rightWing.iv > atm.iv, "右翼 IV 高于平值");
+  assert.ok(leftWing.iv === rightWing.iv, "纯凸性对称时两翼相等");
+});
+
+test("volSmile: 负偏(skew<0) 抬升虚值看跌(m<1) 一侧（股指典型负偏）", () => {
+  const smile = volSmile({ spot: 100, baseIV: 0.2, convexity: 0, skew: -0.3, steps: 11 });
+  const atm = smile[(smile.length - 1) / 2];
+  const otc = smile[smile.length - 1]; // m=1.2 虚值看涨
+  const otp = smile[0]; // m=0.8 虚值看跌
+  assert.ok(otp.iv > atm.iv, "负偏：虚值看跌 IV 抬升");
+  assert.ok(otc.iv < atm.iv, "负偏：虚值看涨 IV 压低");
+});
+
+test("volSmile: iv 恒正；退化输入返回空", () => {
+  const smile = volSmile({ spot: 100, baseIV: 0.05, convexity: 5, skew: -3, steps: 21 });
+  assert.ok(smile.every((p) => p.iv > 0), "iv 被钳到 >0");
+  assert.equal(volSmile({ spot: 0, baseIV: 0.2 }).length, 0, "spot≤0 → []");
+  assert.equal(volSmile({ spot: 100, baseIV: 0 }).length, 0, "baseIV≤0 → []");
+  assert.equal(volSmile({ spot: 100, baseIV: 0.2, steps: 0 }).length, 0, "steps<1 → []");
+});
+
 
 
 
