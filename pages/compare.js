@@ -11,7 +11,7 @@ import Head from "next/head";
 import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
-import { correlationMatrix } from "../lib/correlation";
+import { correlationMatrix, diversificationRatio } from "../lib/correlation";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -162,6 +162,16 @@ export default function ComparePage() {
                   return rets;
                 });
                 const M = correlationMatrix(returnsList);
+                // 分散化比率 DR = Σwᵢσᵢ / σ_portfolio（等权）：=1 无分散化收益，>1 越大越分散
+                const std = (r) => {
+                  const n = r.length;
+                  if (n < 2) return 0;
+                  const m = r.reduce((a, b) => a + b, 0) / n;
+                  const varr = r.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1);
+                  return Math.sqrt(varr);
+                };
+                const vols = returnsList.map((r) => std(r) * Math.sqrt(252));
+                const dr = diversificationRatio(M, vols);
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -170,7 +180,13 @@ export default function ComparePage() {
                 };
                 return (
                   <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 mt-6">
-                    <h3 className="font-semibold mb-3">{L.corrTitle}</h3>
+                    <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+                      <h3 className="font-semibold">{L.corrTitle}</h3>
+                      <div className="text-xs text-slate-500">
+                        {L.drLabel} <span className="font-bold text-slate-800">{dr.toFixed(2)}×</span>
+                        <span className="text-slate-400 ml-1">（{L.drHint}）</span>
+                      </div>
+                    </div>
                     <div className="overflow-x-auto">
                       <table className="text-xs border-collapse">
                         <thead>
@@ -223,6 +239,8 @@ const zh = {
   metric: "指标",
   corrTitle: "相关性热力图",
   corrNote: "各策略权益曲线日收益的两两相关系数（+1 完全正相关=分散差；−1 完全负相关=分散好；近 0=独立）。示例数据，非投资建议。",
+  drLabel: "分散化比率",
+  drHint: "=1 完全相关(无收益)，>1 越大越分散",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -236,6 +254,8 @@ const en = {
   metric: "Metric",
   corrTitle: "Correlation Heatmap",
   corrNote: "Pairwise correlation of strategies' daily returns (+1 fully correlated = poor diversification; −1 fully anti-correlated = good diversification; ~0 independent). Demo data, not investment advice.",
+  drLabel: "Diversification Ratio",
+  drHint: "=1 fully correlated (no benefit); higher = more diversified",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 
