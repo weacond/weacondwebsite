@@ -10,6 +10,7 @@ const navItems = [
   { href: "/watchlist", key: "watchlist" },
   { href: "/ebooks", key: "ebooks" },
   { href: "/backtest", key: "backtest" },
+  { href: "/paper", key: "paper" },
   { href: "/compare", key: "compare" },
   { href: "/macro", key: "macro" },
   { href: "/ai", key: "ai" },
@@ -25,6 +26,7 @@ const labels = {
     watchlist: "收藏",
     ebooks: "书房",
     backtest: "回测",
+    paper: "模拟交易",
     compare: "对比",
     macro: "宏观",
     ai: "AI助手",
@@ -44,6 +46,7 @@ const labels = {
     watchlist: "Watchlist",
     ebooks: "Ebooks",
     backtest: "Backtest",
+    paper: "Paper",
     compare: "Compare",
     macro: "Macro",
     ai: "AI",
@@ -82,7 +85,7 @@ export default function Navbar() {
           className="text-2xl font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent hover:opacity-90 transition-opacity">
           Weacond
         </Link>
-        <nav aria-label="Primary" className="hidden md:flex items-center gap-6 text-sm">
+        <nav aria-label="Primary" className="hidden lg:flex items-center gap-3 text-sm">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href}
               className="hover:text-indigo-600 transition-colors font-medium text-slate-700">
@@ -92,7 +95,7 @@ export default function Navbar() {
         </nav>
         <div className="flex items-center gap-3">
           <Link href="/login"
-            className="hidden md:inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+            className="hidden lg:inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
             {t.login}
           </Link>
           <label className="sr-only" htmlFor="lang-select">{t.language}</label>
@@ -103,7 +106,7 @@ export default function Navbar() {
             <option value="en">English</option>
           </select>
           <button type="button"
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-slate-100"
+            className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-slate-100"
             aria-label={menuOpen ? t.closeMenu : t.openMenu}
             aria-expanded={menuOpen} aria-controls="mobile-menu"
             onClick={() => setMenuOpen((v) => !v)}>
@@ -119,7 +122,7 @@ export default function Navbar() {
       </div>
 
       {menuOpen && (
-        <nav id="mobile-menu" aria-label="Mobile" className="md:hidden border-t border-slate-100 bg-white">
+        <nav id="mobile-menu" aria-label="Mobile" className="lg:hidden border-t border-slate-100 bg-white">
           <div className="max-w-6xl mx-auto px-6 py-3 flex flex-col gap-2 text-sm">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}
