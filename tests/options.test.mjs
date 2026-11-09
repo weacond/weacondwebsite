@@ -3,7 +3,7 @@
 // normCdf 锚点、退化情形），避免把"背下来的数字"当 oracle。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol, probITM } from "../lib/options.js";
+import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank } from "../lib/options.js";
 
 // ---------- normCdf / normPdf 锚点 ----------
 
@@ -194,5 +194,59 @@ test("probITM: 退化 t=0 —— 实值→1，虚值→0", () => {
   assert.equal(probITM("call", 120, 100, { t: 0, iv: 0.2 }), 1, "实值→1");
   assert.equal(probITM("call", 80, 100, { t: 0, iv: 0.2 }), 0, "虚值→0");
 });
+
+// ---------- ivRank / ivPercentile（波动率定位） ----------
+
+test("ivRank: 当前值落在历史中位 → ≈50", () => {
+  const hist = [10, 15, 20, 25, 30];
+  assert.ok(Math.abs(ivRank(20, hist) - 50) < 0.5, `mid → ${ivRank(20, hist)}`);
+});
+
+test("ivRank: 等于 max → 100；等于 min → 0", () => {
+  const hist = [10, 20, 30, 40];
+  assert.equal(ivRank(40, hist), 100, "max→100");
+  assert.equal(ivRank(10, hist), 0, "min→0");
+});
+
+test("ivRank: current 越界钳制到 [0,100]", () => {
+  const hist = [10, 20, 30];
+  assert.equal(ivRank(100, hist), 100, "超上界钳制 100");
+  assert.equal(ivRank(-5, hist), 0, "低于下界钳制 0");
+});
+
+test("ivRank: 空历史 / 常量历史 / 非法 current → 中性 50", () => {
+  assert.equal(ivRank(20, []), 50, "空历史→50");
+  assert.equal(ivRank(20, [20, 20, 20]), 50, "无离散度→50");
+  assert.equal(ivRank(null, [10, 20, 30]), 50, "null current→50");
+  assert.equal(ivRank(NaN, [10, 20, 30]), 50, "NaN current→50");
+});
+
+test("ivRank: 清洗 NaN/非数值历史", () => {
+  const hist = [10, NaN, 20, "x", 30];
+  // 清洗后 [10,20,30]，current=20 → 50
+  assert.equal(ivRank(20, hist), 50);
+});
+
+test("ivPercentile: 高于全部历史 → 100；低于全部 → 0", () => {
+  const hist = [10, 20, 30, 40];
+  assert.equal(ivPercentile(50, hist), 100, "全在下方→100");
+  assert.equal(ivPercentile(5, hist), 0, "全在上方→0");
+});
+
+test("ivPercentile: 中位数附近 → ≈50", () => {
+  const hist = [10, 20, 30, 40];
+  // ≤30 的有 3/4 = 75
+  assert.equal(ivPercentile(30, hist), 75);
+  assert.equal(ivPercentile(20, hist), 50);
+});
+
+test("classifyIVRank: <20 买方优势 / >80 卖方优势 / 其余中性", () => {
+  assert.equal(classifyIVRank(10), "low");
+  assert.equal(classifyIVRank(90), "high");
+  assert.equal(classifyIVRank(50), "neutral");
+  assert.equal(classifyIVRank(20), "neutral"); // 边界含于中性
+  assert.equal(classifyIVRank(80), "neutral");
+});
+
 
 

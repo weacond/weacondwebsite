@@ -3,7 +3,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
-import { computeOptionChain, impliedVol } from "../lib/options.js";
+import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank } from "../lib/options.js";
 import { analyzeStrategy, strategyTemplates, probOfProfit } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
@@ -144,6 +144,9 @@ export default function OptionsPage() {
 
           {/* 策略组合实验区 */}
           <StrategyLab spot={spot} iv={iv} r={r} t={t} L={L} />
+
+          {/* 波动率定位（IV Rank） */}
+          <VolPositioning iv={iv} L={L} />
 
           <div className="mt-6 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 leading-relaxed">
             <p className="font-medium text-slate-600 mb-1">{L.disclaimerTitle}</p>
@@ -404,6 +407,60 @@ function ReverseIV({ spot, r, t, L }) {
   );
 }
 
+// 波动率定位：把当前 IV 放到历史区间 [min,max]，给出 IV Rank 与买方/卖方建议
+function VolPositioning({ iv, L }) {
+  const [minIv, setMinIv] = useState(10);
+  const [maxIv, setMaxIv] = useState(40);
+
+  const curPct = Math.round(iv * 100);
+  const rank = ivRank(curPct, [minIv, maxIv]);
+  const pct = ivPercentile(curPct, [minIv, maxIv]);
+  const cls = classifyIVRank(rank);
+  const verdict = cls === "low" ? L.volLow : cls === "high" ? L.volHigh : L.volNeutral;
+  const verdictTone = cls === "low" ? "green" : cls === "high" ? "rose" : "slate";
+
+  return (
+    <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+      <h2 className="text-lg font-bold mb-1">{L.volTitle}</h2>
+      <p className="text-slate-500 text-sm mb-4">{L.volSubtitle}</p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.histLow}</span>
+          <input type="number" value={minIv} onChange={(e) => setMinIv(Number(e.target.value))}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <label className="text-sm">
+          <span className="block text-slate-500 mb-1">{L.histHigh}</span>
+          <input type="number" value={maxIv} onChange={(e) => setMaxIv(Number(e.target.value))}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <Metric label="IV Rank" value={`${rank}%`} tone="indigo" />
+        <Metric label={L.ivPercentile} value={`${pct}%`} tone="indigo" />
+      </div>
+
+      <div className="mt-4">
+        {/* 进度条 */}
+        <div className="relative h-3 rounded-full bg-gradient-to-r from-emerald-300 via-amber-200 to-rose-300">
+          <div className="absolute -top-1 h-5 w-1 bg-slate-800 rounded"
+            style={{ left: `${Math.min(100, Math.max(0, rank))}%` }} />
+        </div>
+        <div className="flex justify-between text-[11px] text-slate-400 mt-1">
+          <span>{L.volLow}</span>
+          <span>{L.volHigh}</span>
+        </div>
+      </div>
+
+      <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${
+        verdictTone === "green" ? "bg-emerald-50 text-emerald-700"
+        : verdictTone === "rose" ? "bg-rose-50 text-rose-700"
+        : "bg-slate-100 text-slate-600"}`}>
+        {verdict}
+      </div>
+    </div>
+  );
+}
+
 const zh = {
   title: "期权链 · 波动面",
   subtitle: "Black-Scholes 模型估算 · 价格与希腊字母（Δ Γ Θ V）",
@@ -450,6 +507,15 @@ const zh = {
   strategyError: "参数无效，请检查行权价。",
   pop: "盈利概率 POP",
   popHint: "风险中性测度下到期 P/L>0 的概率（lognormal 近似）",
+  // 波动率定位
+  volTitle: "📈 波动率定位 · IV Rank",
+  volSubtitle: "把当前 IV 放到历史区间 [低,高]，定位其在历史中的位置（0-100），指导买/卖方策略。",
+  histLow: "历史 IV 低值(%)",
+  histHigh: "历史 IV 高值(%)",
+  ivPercentile: "IV 百分位",
+  volLow: "低 IV · 买方优势",
+  volHigh: "高 IV · 卖方优势",
+  volNeutral: "中性 · IV 适中",
   // 反解隐含波动率
   reverseTitle: "🔎 反解隐含波动率 (IV)",
   reverseSubtitle: "输入市场价，反解使 Black-Scholes 价相等的隐含波动率（前向 IV→价 的逆运算）。",
@@ -512,6 +578,15 @@ const en = {
   strategyError: "Invalid parameters, check the strikes.",
   pop: "Prob. of profit (POP)",
   popHint: "Risk-neutral prob that P/L>0 at expiry (lognormal approx.)",
+  // Volatility positioning
+  volTitle: "📈 Volatility Positioning · IV Rank",
+  volSubtitle: "Place the current IV in its historical range [low, high] to rank it (0-100) and guide buy/sell strategy.",
+  histLow: "Historical IV low (%)",
+  histHigh: "Historical IV high (%)",
+  ivPercentile: "IV Percentile",
+  volLow: "Low IV · buyer's edge",
+  volHigh: "High IV · seller's edge",
+  volNeutral: "Neutral · moderate IV",
   // Reverse implied vol
   reverseTitle: "🔎 Reverse Implied Vol (IV)",
   reverseSubtitle: "Enter a market price to back out the IV that makes the Black-Scholes price match (inverse of IV→price).",
