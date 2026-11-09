@@ -9,6 +9,9 @@ import {
   maxDrawdown,
   detectTailEvents,
   riskProfileFromEquity,
+  kellyFraction,
+  fractionalKelly,
+  probabilityOfRuin,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -137,5 +140,38 @@ test("riskProfileFromEquity: mdd 与 maxDrawdown 同源一致", () => {
   const prof = riskProfileFromEquity(curve);
   assert.ok(Math.abs(prof.mdd - maxDrawdown(curve)) < 1e-12, "剖面 mdd 应等于 maxDrawdown");
   assert.equal(prof.n, curve.length - 1, "收益点数 = 净值点数 − 1");
+});
+
+// ---------- Kelly / 破产概率 ----------
+
+test("kellyFraction: 无优势(50/50) → 0", () => {
+  assert.equal(kellyFraction(0.5, 1, 1), 0);
+});
+
+test("kellyFraction: p=0.6 对称 → 0.2；p=1 → 1；负优势 → 0", () => {
+  assert.ok(Math.abs(kellyFraction(0.6, 1, 1) - 0.2) < 1e-9, "2p−1 = 0.2");
+  assert.equal(kellyFraction(1, 1, 1), 1, "必胜 → 满仓");
+  assert.equal(kellyFraction(0.4, 1, 1), 0, "负优势被钳到 0");
+});
+
+test("kellyFraction: 盈亏比越高 f* 越大；退化输入 → 0", () => {
+  assert.ok(kellyFraction(0.6, 2, 1) > kellyFraction(0.6, 1, 1), "winMult 提升 f*");
+  assert.equal(kellyFraction(1.5, 1, 1), 0, "p>1 退化");
+  assert.equal(kellyFraction(-0.1, 1, 1), 0, "p<0 退化");
+  assert.equal(kellyFraction(0.6, 0, 1), 0, "winMult≤0 退化");
+});
+
+test("fractionalKelly: 半凯利 = f*×0.5", () => {
+  assert.ok(Math.abs(fractionalKelly(0.6, 0.5, 1, 1) - 0.1) < 1e-9, "0.2×0.5 = 0.1");
+});
+
+test("probabilityOfRuin: 无优势→0.5；正优势 <0.5 且随 N 递减；负优势 >0.5", () => {
+  assert.equal(probabilityOfRuin(0, 100), 0.5, "无优势基准 0.5");
+  const pr100 = probabilityOfRuin(0.01, 100);
+  const pr1 = probabilityOfRuin(0.01, 1);
+  assert.ok(pr100 < 0.5 && pr100 >= 0, "正优势破产概率 <0.5 且非负");
+  assert.ok(pr1 > pr100, "注数越多，正优势下破产概率越低");
+  assert.ok(probabilityOfRuin(-0.01, 100) > 0.5, "负优势破产概率 >0.5");
+  assert.equal(probabilityOfRuin(0.01, 0), 1, "N=0 → 1");
 });
 

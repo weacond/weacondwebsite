@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
-import { riskProfileFromEquity } from "../lib/risk.js";
+import { riskProfileFromEquity, kellyFraction, fractionalKelly } from "../lib/risk.js";
 
 export const metadata = {
   title: "策略回测 — Weacond",
@@ -345,6 +345,34 @@ export default function BacktestPage() {
               );
             })()}
 
+          {/* 仓位建议 (Kelly 最优 / 半凯利) */}
+          {result?.metrics && result.metrics.trades > 0 && result.metrics.avgWin > 0 && result.metrics.avgLoss > 0 &&
+            (() => {
+              const m = result.metrics;
+              const full = kellyFraction(m.winRate / 100, m.avgWin, m.avgLoss);
+              const half = fractionalKelly(m.winRate / 100, 0.5, m.avgWin, m.avgLoss);
+              return (
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+                  <h3 className="font-semibold mb-4">{L.kellyTitle}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.kellyFull}</div>
+                      <div className="font-bold text-lg text-indigo-600">{(full * 100).toFixed(1)}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.kellyHalf}</div>
+                      <div className="font-bold text-lg text-indigo-600">{(half * 100).toFixed(1)}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.winLossRatio}</div>
+                      <div className="font-bold text-lg">{(m.avgWin / m.avgLoss).toFixed(2)}</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3">{L.kellyHint}</p>
+                </div>
+              );
+            })()}
+
           {/* 全策略对比 */}
           {sortedComparison && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
@@ -463,6 +491,8 @@ const zh = {
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
   riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", obsPeriods: "观测期数",
   riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
+  kellyTitle: "仓位建议 (Kelly)", kellyFull: "凯利最优", kellyHalf: "半凯利", winLossRatio: "盈亏比",
+  kellyHint: "基于本策略回测的胜率与盈亏比：f* = 胜率 −(1−胜率)×(亏/盈)。满凯利风险大，半凯利更稳健。非投资建议。",
   assumptions: "回测假设", startDate: "起始", endDate: "结束", candles: "K线数",
   deployToPaper: "部署到模拟盘", deployNote: "用 0 风险先验证策略",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
@@ -480,6 +510,8 @@ const en = {
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
   riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", obsPeriods: "Obs.",
   riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",
+  kellyTitle: "Position Sizing (Kelly)", kellyFull: "Full Kelly", kellyHalf: "Half Kelly", winLossRatio: "Win/Loss",
+  kellyHint: "From backtest win rate & payoff ratio: f* = p − (1−p)×(loss/win). Full Kelly is aggressive; half Kelly is safer. Not advice.",
   assumptions: "Assumptions", startDate: "Start", endDate: "End", candles: "Candles",
   deployToPaper: "Deploy to Paper", deployNote: "validate the strategy risk-free",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
