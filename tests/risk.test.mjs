@@ -17,6 +17,7 @@ import {
   maxLosingStreak,
   maxWinStreak,
   ulcerIndex,
+  excessKurtosis,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -138,6 +139,8 @@ test("riskProfileFromEquity: 同时支持 number[] 与 [{value}]，结果一致"
   assert.equal(a.mdd, b.mdd, "两种输入 mdd 应一致");
   assert.ok(a.var > 0, "VaR 应为正损失");
   assert.ok(a.cvar >= a.var - 1e-9, "CVaR ≥ VaR");
+  assert.ok(Number.isFinite(a.kurtosis), "含峰度字段且为有限数");
+  assert.equal(a.kurtosis, b.kurtosis, "两种输入峰度一致");
 });
 
 test("riskProfileFromEquity: mdd 与 maxDrawdown 同源一致", () => {
@@ -285,6 +288,28 @@ test("ulcerIndex: 回撤越大/越久 → 溃疡指数更大", () => {
   const mild = ulcerIndex([100, 90, 100, 95, 100]); // 浅而短
   const severe = ulcerIndex([100, 50, 40, 60, 80, 100]); // 深而长
   assert.ok(severe > mild, "深长回撤 → 更大");
+});
+
+// ---------- excessKurtosis ----------
+
+test("excessKurtosis: 均匀序列 [1,2,3,4,5] 精确值 -1.3", () => {
+  // m2=10/5=2, m4=34/5=6.8 → 6.8/4 − 3 = −1.3
+  assert.ok(Math.abs(excessKurtosis([1, 2, 3, 4, 5]) - (-1.3)) < 1e-9, "均匀序列 −1.3");
+});
+
+test("excessKurtosis: 肥尾样本 > 0，薄尾 < 0", () => {
+  // 多数集中在 0、偶有极端值 → 厚尾
+  const fat = [0, 0, 0, 0, 0, 10, -10, 0, 0, 0];
+  assert.ok(excessKurtosis(fat) > 0, "肥尾 > 0");
+  // 均匀铺开 → 薄尾（负峰度）
+  assert.ok(excessKurtosis([1, 2, 3, 4, 5, 6]) < 0, "均匀 < 0");
+});
+
+test("excessKurtosis: <4 点或全相等 → 0；剔除非有限", () => {
+  assert.equal(excessKurtosis([1, 2, 3]), 0, "不足 4 点 → 0");
+  assert.equal(excessKurtosis([5, 5, 5, 5, 5]), 0, "全相等(方差0) → 0");
+  // 非有限被剔除，等价于 [1,2,3,4]
+  assert.ok(Math.abs(excessKurtosis([1, 2, NaN, 3, Infinity, 4]) - excessKurtosis([1, 2, 3, 4])) < 1e-9, "剔除非有限");
 });
 
 
