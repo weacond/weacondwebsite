@@ -131,6 +131,9 @@ export default function BacktestPage() {
       })
     : null;
 
+  // 部署到模拟盘的目标标的：REAL 用输入 ticker，preset 取前缀（SPY_2023 → SPY）
+  const deployTicker = preset === "REAL" ? (realSymbol || "SPY").toUpperCase() : (preset.split("_")[0] || "SPY");
+
   useEffect(() => {
     if (!result?.equityCurve || !chartRef.current) return;
     drawEquityCurve(result.equityCurve, chartRef.current, config.initialCapital);
@@ -355,6 +358,18 @@ export default function BacktestPage() {
               <p className="text-xs text-slate-400 mt-3">{L.comNote}</p>
             </div>
           )}
+          {/* 部署到模拟盘（回测→纸面闭环） */}
+          {result && (
+            <div className="flex items-center justify-between flex-wrap gap-3 bg-indigo-50 rounded-xl p-4 border border-indigo-100 mb-8">
+              <div className="text-sm text-indigo-800">
+                {lang === "en" ? "Validate on paper first:" : "先在模拟盘验证："} <b>{deployTicker}</b> · {L.deployNote}
+              </div>
+              <Link href={`/paper?symbol=${encodeURIComponent(deployTicker)}`}
+                className="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 whitespace-nowrap">
+                {L.deployToPaper} →
+              </Link>
+            </div>
+          )}
           {/* 假设披露（合规） */}
           {result && (
             <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 text-sm text-amber-800">
@@ -412,6 +427,7 @@ const zh = {
   pnl: "盈亏", holdDays: "持仓天数", moreTrades: "更多交易未显示",
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
   assumptions: "回测假设", startDate: "起始", endDate: "结束", candles: "K线数",
+  deployToPaper: "部署到模拟盘", deployNote: "用 0 风险先验证策略",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
 };
 const en = {
@@ -426,6 +442,7 @@ const en = {
   pnl: "P&L", holdDays: "Days", moreTrades: "more trades hidden",
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
   assumptions: "Assumptions", startDate: "Start", endDate: "End", candles: "Candles",
+  deployToPaper: "Deploy to Paper", deployNote: "validate the strategy risk-free",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
 };
 
