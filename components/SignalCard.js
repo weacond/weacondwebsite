@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { useLanguage } from "../contexts/LanguageContext";
+import WatchlistButton from "./WatchlistButton";
 
 function EngineBar({ label, value }) {
   const color = value >= 70 ? "bg-green-500" : value >= 50 ? "bg-yellow-500" : "bg-orange-500";
@@ -63,9 +64,10 @@ export default function SignalCard({ signal }) {
     <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
       {/* 头部：标的 + 综合评分 + 方向 */}
       <div className="flex items-center justify-between mb-4">
-        <div>
+        <div className="flex items-center gap-2">
           <span className="text-lg font-bold">{ticker}</span>
-          <span className="text-slate-500 text-sm ml-2">{name}</span>
+          <span className="text-slate-500 text-sm">{name}</span>
+          <WatchlistButton ticker={ticker} compact />
         </div>
         <div className="text-right">
           <div className={`text-3xl font-bold ${scoreColor}`}>{score}</div>

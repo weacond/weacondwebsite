@@ -7,6 +7,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 const navItems = [
   { href: "/", key: "home" },
   { href: "/signals", key: "signals" },
+  { href: "/watchlist", key: "watchlist" },
   { href: "/ebooks", key: "ebooks" },
   { href: "/backtest", key: "backtest" },
   { href: "/ai", key: "ai" },
@@ -19,6 +20,7 @@ const labels = {
   zh: {
     home: "主页",
     signals: "信号",
+    watchlist: "收藏",
     ebooks: "书房",
     backtest: "回测",
     ai: "AI助手",
@@ -35,6 +37,7 @@ const labels = {
   en: {
     home: "Home",
     signals: "Signals",
+    watchlist: "Watchlist",
     ebooks: "Ebooks",
     backtest: "Backtest",
     ai: "AI",
