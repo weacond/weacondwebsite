@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import { usePaper, markPositions } from "../lib/paper";
@@ -88,6 +88,31 @@ export default function PaperPage() {
     if (tab === "watchlist" && Object.keys(wlPrices).length === 0) loadWatchlist();
   }, [tab]);
 
+  // 交易绩效分析：从已平仓交易算胜率 / 利润因子 / 平均盈亏 / 期望值 / 最佳最差
+  const analytics = useMemo(() => {
+    const closed = trades;
+    const n = closed.length;
+    if (n === 0) return null;
+    const wins = closed.filter((t) => t.win);
+    const losses = closed.filter((t) => !t.win);
+    const grossProfit = wins.reduce((s, t) => s + t.pnl, 0);
+    const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? Infinity : 0);
+    const best = closed.reduce((m, t) => (t.pnl > m.pnl ? t : m), closed[0]);
+    const worst = closed.reduce((m, t) => (t.pnl < m.pnl ? t : m), closed[0]);
+    return {
+      n,
+      winRate: (wins.length / n) * 100,
+      profitFactor,
+      avgWin: wins.length ? grossProfit / wins.length : 0,
+      avgLoss: losses.length ? grossLoss / losses.length : 0,
+      expectancy: (grossProfit - grossLoss) / n,
+      best,
+      worst,
+      realized: grossProfit - grossLoss,
+    };
+  }, [trades]);
+
   // 从信号/收藏页跳转：?symbol=NVDA 预填开仓表单的标的
   useEffect(() => {
     if (router.isReady && router.query.symbol) {
@@ -122,7 +147,7 @@ export default function PaperPage() {
             </div>
           </div>
           <div className="flex gap-4 mb-6 border-b">
-            {[["positions", L.positions], ["history", L.history], ["watchlist", L.watchlist]].map(([key, label]) => (
+            {[["positions", L.positions], ["history", L.history], ["performance", L.performance], ["watchlist", L.watchlist]].map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)}
                 className={`pb-2 px-2 text-sm font-medium ${tab === key ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400 hover:text-slate-600"}`}>
                 {label}
@@ -279,6 +304,58 @@ export default function PaperPage() {
               )}
             </div>
           )}
+          {tab === "performance" && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+              <h3 className="font-semibold mb-4">{L.performance}</h3>
+              {analytics ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.winRate}</div>
+                      <div className="text-2xl font-bold">{analytics.winRate.toFixed(1)}%</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.profitFactor}</div>
+                      <div className="text-2xl font-bold">{analytics.profitFactor === Infinity ? "∞" : analytics.profitFactor.toFixed(2)}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.avgWin}</div>
+                      <div className="text-2xl font-bold text-green-600">+${analytics.avgWin.toFixed(0)}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.avgLoss}</div>
+                      <div className="text-2xl font-bold text-red-500">-${analytics.avgLoss.toFixed(0)}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.expectancy}</div>
+                      <div className={`text-2xl font-bold ${analytics.expectancy >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {analytics.expectancy >= 0 ? "+" : ""}${analytics.expectancy.toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.realized}</div>
+                      <div className={`text-2xl font-bold ${analytics.realized >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {analytics.realized >= 0 ? "+" : ""}${analytics.realized.toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.bestTrade}</div>
+                      <div className="text-lg font-bold text-green-600">+${analytics.best.pnl.toFixed(0)}</div>
+                      <div className="text-xs text-slate-400">{analytics.best.ticker}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg text-center">
+                      <div className="text-xs text-slate-400">{L.worstTrade}</div>
+                      <div className="text-lg font-bold text-red-500">${analytics.worst.pnl.toFixed(0)}</div>
+                      <div className="text-xs text-slate-400">{analytics.worst.ticker}</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-4">{L.tradesCount} {analytics.n}</p>
+                </>
+              ) : (
+                <div className="text-center text-slate-400 py-8">{L.noPerformance}</div>
+              )}
+            </div>
+          )}
           <p className="mt-6 text-center text-xs text-slate-400">{L.disclaimer}</p>
         </div>
       </section>
@@ -295,6 +372,9 @@ const zh = {
   entry: "成本价", current: "现价", exit: "卖出价", pnl: "盈亏", action: "操作",
   openPosition: "开仓", sell: "平仓", noPositions: "暂无持仓，可在上方开仓",
   closedTrades: "已平仓交易", noHistory: "暂无历史记录", closeDate: "平仓日",
+  performance: "绩效", winRate: "胜率", profitFactor: "利润因子", avgWin: "平均盈利", avgLoss: "平均亏损",
+  expectancy: "期望值", realized: "已实现", bestTrade: "最佳交易", worstTrade: "最差交易",
+  tradesCount: "共 ", noPerformance: "暂无已平仓交易，平仓后此处显示绩效分析",
   simulated: "模拟价格",
   disclaimer: "模拟交易不构成投资建议。实际交易结果可能与模拟不同。",
 };
@@ -307,6 +387,9 @@ const en = {
   entry: "Entry", current: "Current", exit: "Exit", pnl: "P&L", action: "Action",
   openPosition: "Open", sell: "Close", noPositions: "No open positions — place an order above",
   closedTrades: "Closed Trades", noHistory: "No history yet", closeDate: "Closed",
+  performance: "Performance", winRate: "Win Rate", profitFactor: "Profit Factor", avgWin: "Avg Win", avgLoss: "Avg Loss",
+  expectancy: "Expectancy", realized: "Realized", bestTrade: "Best Trade", worstTrade: "Worst Trade",
+  tradesCount: "Trades: ", noPerformance: "No closed trades yet — performance appears after you close a position",
   simulated: "Simulated",
   disclaimer: "Paper trading does not constitute investment advice. Actual results may differ.",
 };
