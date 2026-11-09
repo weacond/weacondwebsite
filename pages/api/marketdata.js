@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     };
 
     if (includeFundamentals === "true") {
-      result.fundamentals = await fetchFundamentals(symbol);
+      result.fundamentals = await fetchFundamentals(symbol, apiKey);
     }
 
     res.status(200).json(result);
