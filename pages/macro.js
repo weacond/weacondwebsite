@@ -2,7 +2,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState, useEffect } from "react";
-import { assessMacroState } from "../lib/macro";
+import { assessMacroState, correlationMatrix, classifyCorrelation, SAMPLE_MACRO_SERIES } from "../lib/macro";
 import Head from "next/head";
 
 export const metadata = {
@@ -45,6 +45,21 @@ function riskColor(score) {
   if (score >= 40) return "text-orange-500";
   return "text-green-600";
 }
+
+// 相关性矩阵（确定性演示序列；接入真实多指标后替换 SAMPLE_MACRO_SERIES 即可）
+const CORR = correlationMatrix(SAMPLE_MACRO_SERIES);
+const CORRELATION_LABELS = {
+  利率: { zh: "利率", en: "Rates" },
+  信用利差: { zh: "信用利差", en: "Credit Spread" },
+  VIX: { zh: "VIX", en: "VIX" },
+  股市: { zh: "股市", en: "Equity" },
+};
+const CORRELATION_STRENGTH = {
+  strong: { zh: "强", en: "Strong" },
+  moderate: { zh: "中", en: "Moderate" },
+  weak: { zh: "弱", en: "Weak" },
+  "n/a": { zh: "—", en: "—" },
+};
 export default function MacroPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
@@ -274,6 +289,22 @@ export default function MacroPage() {
             </div>
           )}
 
+          {/* 相关性矩阵 */}
+          <h2 className="text-lg font-bold mt-8 mb-3">{L.correlationTitle}</h2>
+          <p className="text-xs text-slate-400 mb-3">{L.correlationHint}</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+            <CorrelationMatrix names={CORR.names} matrix={CORR.matrix} lang={lang} />
+            <p className="mt-3 text-xs text-slate-500">
+              {L.strongestPair}{" "}
+              <b>
+                {CORRELATION_LABELS[CORR.strongest.a]?.[lang] || CORR.strongest.a} ↔{" "}
+                {CORRELATION_LABELS[CORR.strongest.b]?.[lang] || CORR.strongest.b}
+              </b>{" "}
+              r={CORR.strongest.r?.toFixed?.(2)}
+              （{CORRELATION_STRENGTH[classifyCorrelation(CORR.strongest.r).magnitude]?.[lang]}）
+            </p>
+          </div>
+
           {/* 配置建议 */}
           <h2 className="text-lg font-bold mb-3">{L.allocation}</h2>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
@@ -357,6 +388,59 @@ function YieldCurveSvg({ data }) {
   );
 }
 
+/** 相关性矩阵热力图：对角线灰；正相关绿、负相关红，色深 ∝ |r|。|r|≥0.4 字用白色。 */
+function CorrelationMatrix({ names, matrix, lang }) {
+  const cellStyle = (r, i, j) => {
+    if (i === j) return { background: "rgb(226,232,240)" };
+    if (Number.isNaN(r)) return { background: "rgb(248,250,252)" };
+    const a = Math.abs(r);
+    const strength = a >= 0.7 ? 0.9 : a >= 0.4 ? 0.55 : 0.25;
+    return { background: r > 0 ? `rgba(16,185,129,${strength})` : `rgba(239,68,68,${strength})` };
+  };
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr>
+            <th className="p-2 text-left text-slate-400 font-normal"></th>
+            {names.map((n) => (
+              <th key={n} className="p-2 text-slate-600 font-medium">
+                {CORRELATION_LABELS[n]?.[lang] || n}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.map((row, i) => (
+            <tr key={names[i]}>
+              <td className="p-2 text-slate-600 font-medium">{CORRELATION_LABELS[names[i]]?.[lang] || names[i]}</td>
+              {row.map((r, j) => (
+                <td
+                  key={j}
+                  className="p-2 text-center tabular-nums"
+                  style={cellStyle(r, i, j)}
+                >
+                  <span
+                    className={
+                      i === j
+                        ? "text-slate-400"
+                        : Math.abs(r) >= 0.4
+                        ? "text-white"
+                        : "text-slate-700"
+                    }
+                  >
+                    {Number.isNaN(r) ? "—" : r.toFixed(2)}
+                  </span>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const zh = {
   title: "宏观情绪",
   subtitle: "市场状态识别 · 风险评分 · 资产配置建议（引擎评估）",
@@ -369,6 +453,9 @@ const zh = {
   vixTrend: "VIX 走势",
   yieldCurve: "国债收益率曲线",
   allocation: "资产配置建议",
+  correlationTitle: "宏观指标相关性矩阵",
+  correlationHint: "Pearson 相关系数 r∈[-1,1]。正相关=同向（绿），负相关=反向（红），色深 ∝ |r|。演示序列，接入真实多指标后替换。",
+  strongestPair: "最强相关：",
   asset: "资产",
   reason: "理由",
   disclaimer: "基于 lib/macro 引擎评估；VIX 可加载实时行情，其余指标为演示占位。配置建议非投资建议。",
@@ -385,6 +472,9 @@ const en = {
   vixTrend: "VIX Trend",
   yieldCurve: "Yield Curve",
   allocation: "Allocation Suggestions",
+  correlationTitle: "Macro Indicator Correlation Matrix",
+  correlationHint: "Pearson correlation r∈[-1,1]. Positive=co-movement (green), negative=inverse (red), shade ∝ |r|. Demo series; swap in live multi-indicator data.",
+  strongestPair: "Strongest pair:",
   asset: "Asset",
   reason: "Reason",
   disclaimer: "Evaluated by lib/macro; VIX can load live data, other indicators are demo placeholders. Allocation suggestions are not investment advice.",
