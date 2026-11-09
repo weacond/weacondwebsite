@@ -258,6 +258,10 @@ export default function BacktestPage() {
                 <span>{L.endDate}: {result.candles.endDate}</span>
                 <span>{L.candles}: {result.candles.count}</span>
                 <span>{L.strategy}: {result.strategyName}</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-3 h-0.5 bg-red-400"></span>
+                  {L.drawdownOverlay}
+                </span>
               </div>
             </div>
           )}
@@ -476,10 +480,22 @@ function drawEquityCurve(curve, svgEl, initialCapital) {
   const baseY = h - pad - ((initialCapital - min) / range) * (h - 2 * pad);
   const linePath = points.join(" ");
   const areaPath = `${pad},${h - pad} ${linePath} ${w - pad},${h - pad}`;
+  // 回撤叠加：运行峰值线 + 曲线与峰值之间的"水下"红色填充
+  let peak = -Infinity;
+  const peakPoints = curve.map((c, i) => {
+    if (c.value > peak) peak = c.value;
+    const x = pad + (i / (curve.length - 1)) * (w - 2 * pad);
+    const y = h - pad - ((peak - min) / range) * (h - 2 * pad);
+    return `${x},${y}`;
+  });
+  const underwater = `${peakPoints.join(" ")} ${[...points].reverse().join(" ")}`;
+  const peakLine = peakPoints.join(" ");
   svgEl.innerHTML = `<defs><linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgb(99,102,241)" stop-opacity="0.3"/><stop offset="100%" stop-color="rgb(99,102,241)" stop-opacity="0.02"/></linearGradient></defs>
     <line x1="${pad}" y1="${baseY}" x2="${w - pad}" y2="${baseY}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,4"/>
     <text x="${pad + 4}" y="${baseY - 6}" fill="#94a3b8" font-size="10">${initialCapital.toLocaleString()}</text>
     <polygon points="${areaPath}" fill="url(#eqGrad)"/>
+    <polygon points="${underwater}" fill="rgb(239,68,68)" fill-opacity="0.12"/>
+    <polyline points="${peakLine}" fill="none" stroke="rgb(239,68,68)" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.5"/>
     <polyline points="${linePath}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round"/>`;
 }
 
@@ -495,7 +511,7 @@ const zh = {
   pnl: "盈亏", holdDays: "持仓天数", moreTrades: "更多交易未显示",
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
   riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", obsPeriods: "观测期数",
-  recoveryDays: "回撤恢复(期)", notRecovered: "未恢复",
+  recoveryDays: "回撤恢复(期)", notRecovered: "未恢复", drawdownOverlay: "回撤(水下)",
   riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
   kellyTitle: "仓位建议 (Kelly)", kellyFull: "凯利最优", kellyHalf: "半凯利", winLossRatio: "盈亏比",
   kellyHint: "基于本策略回测的胜率与盈亏比：f* = 胜率 −(1−胜率)×(亏/盈)。满凯利风险大，半凯利更稳健。非投资建议。",
@@ -515,7 +531,7 @@ const en = {
   pnl: "P&L", holdDays: "Days", moreTrades: "more trades hidden",
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
   riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", obsPeriods: "Obs.",
-  recoveryDays: "DD Recovery", notRecovered: "not rec.",
+  recoveryDays: "DD Recovery", notRecovered: "not rec.", drawdownOverlay: "Drawdown",
   riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",
   kellyTitle: "Position Sizing (Kelly)", kellyFull: "Full Kelly", kellyHalf: "Half Kelly", winLossRatio: "Win/Loss",
   kellyHint: "From backtest win rate & payoff ratio: f* = p − (1−p)×(loss/win). Full Kelly is aggressive; half Kelly is safer. Not advice.",
