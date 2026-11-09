@@ -6,6 +6,7 @@ import {
   portfolioSharpe,
   volTargetScale,
   inverseVolWeights,
+  riskContribution,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -132,4 +133,40 @@ test("inverseVolWeights: 全 ≤0/非有限 → 退回等权；波动越高权�
   assert.ok(Math.abs(inverseVolWeights([NaN, Infinity])[0] - 0.5) < 1e-12, "非有限 → 等权");
   const w = inverseVolWeights([0.01, 0.5]); // 低波动者权重更高
   assert.ok(w[0] > w[1], "波动越低权重越高");
+});
+
+// ---------- riskContribution ----------
+
+test("riskContribution: 2 不相关等波动等权 → 各占 σ_p/2，和=σ_p", () => {
+  const vols = [0.1, 0.1];
+  const M = [[1, 0], [0, 1]];
+  const rc = riskContribution(vols, M); // 等权
+  const pv = portfolioVolatility(vols, M); // √0.005
+  assert.ok(rc.length === 2, "长度 2");
+  assert.ok(Math.abs(rc[0] - rc[1]) < 1e-12, "对称 → 相等");
+  assert.ok(Math.abs(rc[0] - pv / 2) < 1e-12, "各占 σ_p/2");
+  const sum = rc[0] + rc[1];
+  assert.ok(Math.abs(sum - pv) < 1e-12, "Σ RC_i = σ_p");
+});
+
+test("riskContribution: 相关资产下不变式 Σ RC_i = σ_p 仍成立", () => {
+  const vols = [0.1, 0.15, 0.2];
+  const M = [
+    [1, 0.3, 0.1],
+    [0.3, 1, -0.2],
+    [0.1, -0.2, 1],
+  ];
+  const rc = riskContribution(vols, M, [1, 1, 1]);
+  const pv = portfolioVolatility(vols, M, [1, 1, 1]);
+  const sum = rc.reduce((a, b) => a + b, 0);
+  assert.ok(rc.length === 3, "长度 3");
+  assert.ok(Math.abs(sum - pv) < 1e-9, "Σ RC_i = σ_p");
+  // 高波动资产风险贡献更大（正相关下 RC 非负）
+  for (const x of rc) assert.ok(x >= -1e-12, "RC ≥ 0");
+});
+
+test("riskContribution: 维度不匹配 → []；σ_p≤0 → 全 0", () => {
+  assert.deepEqual(riskContribution([0.1, 0.1], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]), [], "维度不匹配 → []");
+  const M = [[1, 0], [0, 1]];
+  assert.deepEqual(riskContribution([0, 0], M), [0, 0], "全 0 波动 → 全 0 贡献");
 });
