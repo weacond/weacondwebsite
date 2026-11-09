@@ -19,7 +19,11 @@ export default function WatchlistPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <Head><title>{L.title}</title></Head>
+      <Head>
+        <title>{L.title}</title>
+        {/* 个人化收藏页（localStorage），不应被搜索引擎收录 */}
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-4xl mx-auto">
