@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
+import { STRATEGY_REGISTRY } from "../lib/backtest";
 
 export const metadata = {
   title: "策略市场 — Weacond",
@@ -56,6 +57,27 @@ export default function StrategiesPage() {
             ))}
           </div>
 
+          {/* 平台内置策略（引擎 registry，单一数据源） */}
+          <div className="mt-10">
+            <h2 className="text-xl font-bold mb-1">{L.builtInTitle}</h2>
+            <p className="text-sm text-slate-500 mb-6">{L.builtInDesc}</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.values(STRATEGY_REGISTRY).map((s) => (
+                <div key={s.name} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-lg">{lang === "en" ? s.nameEn : s.name}</h3>
+                    <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{(L.cats && L.cats[s.category]) || s.category}</span>
+                  </div>
+                  <p className="text-sm text-slate-500 mb-3">{lang === "en" ? s.descriptionEn : s.description}</p>
+                  <div className="text-xs text-slate-400 mb-4">
+                    {L.params}: {s.params.map((p) => `${lang === "en" ? p.key : p.label} ${p.default}`).join(" / ")}
+                  </div>
+                  <Link href="/backtest" className="text-sm text-indigo-600 hover:underline">{L.backtest} →</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* 创作者入口 */}
           <div className="mt-10 bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
             <h3 className="font-semibold text-lg mb-2">{L.creatorTitle}</h3>
@@ -78,6 +100,10 @@ const zh = {
   verified: "已验证",
   sharpe: "夏普", maxDD: "回撤", winRate: "胜率", trades: "交易",
   backtest: "回测",
+  builtInTitle: "平台内置策略",
+  builtInDesc: "引擎内置、经回测验证的策略，零代码即可在 /backtest 试用。",
+  params: "默认参数",
+  cats: { trend: "趋势", mean_reversion: "均值回归", breakout: "突破" },
   creatorTitle: "成为策略创作者",
   creatorDesc: "上传你的策略代码，通过订阅分润赚取收入。平台审核 + 回测验证 + 风险披露。",
   becomeCreator: "开始创建",
@@ -89,6 +115,10 @@ const en = {
   verified: "Verified",
   sharpe: "Sharpe", maxDD: "Max DD", winRate: "Win", trades: "Trades",
   backtest: "Backtest",
+  builtInTitle: "Built-in Strategies",
+  builtInDesc: "Engine-provided, backtested strategies. Try any in /backtest with zero code.",
+  params: "Default params",
+  cats: { trend: "Trend", mean_reversion: "Mean Reversion", breakout: "Breakout" },
   creatorTitle: "Become a Strategy Creator",
   creatorDesc: "Upload your strategy code and earn revenue through subscription sharing. Platform review + backtest verification + risk disclosure.",
   becomeCreator: "Start Creating",
