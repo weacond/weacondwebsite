@@ -10,6 +10,9 @@ import {
   localInferenceStream,
   cloudFallback,
   checkWebGPUSupport,
+  getAvailableModels,
+  MODEL_METADATA,
+  DEFAULT_MODEL,
 } from "../lib/ai";
 
 export const metadata = {
@@ -18,13 +21,15 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-// UI 模型简写（经 lib/ai.js MODEL_MAP 解析为 web-llm 真实模型 ID）
-const MODELS = [
-  { id: "qwen-1.8b", name: "Qwen 1.8B", size: "≈1GB", quality: "快速", ctx: "4K", best: "简单问答" },
-  { id: "qwen-4b", name: "Qwen 4B", size: "≈2GB", quality: "均衡", ctx: "4K", best: "一般任务" },
-  { id: "llama-3-8b", name: "Llama 3 8B", size: "≈5GB", quality: "高质量", ctx: "8K", best: "复杂推理" },
-  { id: "phi-3-4b", name: "Phi-3 4B", size: "≈2GB", quality: "均衡", ctx: "4K", best: "代码生成" },
-];
+// 模型元数据：单一数据源 lib/ai.js MODEL_METADATA（UI 简写 id 经 MODEL_MAP 解析为 web-llm 真实 id）
+const MODELS = Object.entries(MODEL_METADATA).map(([id, m]) => ({
+  id,
+  name: m.name,
+  size: m.size,
+  ctx: m.context,
+  best: m.best,
+  license: m.license,
+}));
 
 const SUGGESTIONS = [
   { zh: "分析 NVDA 的卖Put策略是否合适", en: "Analyze if selling puts on NVDA is suitable" },
@@ -45,10 +50,32 @@ export default function AIPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [webgpuSupported, setWebgpuSupported] = useState(null);
+  // 更多模型：拉取 web-llm 真实模型目录（高级用户自选）
+  const [extraModels, setExtraModels] = useState([]);
+  const [showExtra, setShowExtra] = useState(false);
+  const [loadingExtra, setLoadingExtra] = useState(false);
 
   useEffect(() => {
     setWebgpuSupported(checkWebGPUSupport());
   }, []);
+
+  // 首次展开：拉取 web-llm 真实可用模型列表（getAvailableModels，失败回退 MODEL_MAP）
+  const loadMoreModels = async () => {
+    if (extraModels.length) {
+      setShowExtra((v) => !v);
+      return;
+    }
+    setLoadingExtra(true);
+    try {
+      const list = await getAvailableModels();
+      setExtraModels(
+        list.filter((m) => !MODELS.some((x) => x.id === m.id || x.name === m.name)),
+      );
+      setShowExtra(true);
+    } finally {
+      setLoadingExtra(false);
+    }
+  };
 
   // 加载本地模型到 WebGPU（带进度；失败回退并提示用云端）
   const loadModel = async (uiId) => {
@@ -132,7 +159,7 @@ export default function AIPage() {
                   <button key={m.id} onClick={() => loadModel(m.id)} disabled={loading}
                     className={`text-left p-4 rounded-lg border transition-all ${selectedModel === m.id ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:border-indigo-200"}`}>
                     <div className="font-semibold">{m.name}</div>
-                    <div className="text-xs text-slate-400 mt-1">{m.size} | {m.ctx} ctx | {m.best}</div>
+                    <div className="text-xs text-slate-400 mt-1">{m.size} | {m.ctx} ctx | {m.best} | {m.license}</div>
                     {loading && selectedModel === m.id && (
                       <div className="mt-2">
                         <div className="text-xs text-indigo-600">{L.loadingModel} {progress}%</div>
@@ -144,6 +171,25 @@ export default function AIPage() {
                   </button>
                 ))}
               </div>
+              {/* 更多模型：高级用户拉取 web-llm 真实目录（getAvailableModels，失败回退） */}
+              <button onClick={loadMoreModels} disabled={loadingExtra}
+                className="mt-3 text-sm text-indigo-600 hover:text-indigo-500 disabled:opacity-50">
+                {loadingExtra ? "…" : showExtra ? "− " + L.hideExtra : "+ " + L.moreModels}
+              </button>
+              {showExtra && extraModels.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs text-slate-400 mb-2">{L.moreModelsHint}</div>
+                  <div className="grid md:grid-cols-2 gap-2">
+                    {extraModels.slice(0, 12).map((m) => (
+                      <button key={m.id} onClick={() => loadModel(m.id)} disabled={loading}
+                        className="text-left p-3 rounded-lg border border-slate-200 hover:border-indigo-200 text-xs">
+                        <div className="font-medium truncate">{m.name}</div>
+                        <div className="text-slate-400 mt-0.5">{m.sizeMb ? "≈" + Math.round(m.sizeMb / 1024) + "GB · " : ""}{m.context ? m.context + " ctx" : "—"}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {errorMsg && (
                 <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                   ⚠️ {errorMsg}
@@ -223,6 +269,9 @@ const zh = {
   cloudModeHint: "无 WebGPU：发送消息时将自动走云端 /api/ai（数据会上行服务端）。",
   localInference: "本地运行",
   switchModel: "切换模型",
+  moreModels: "更多模型（来自 web-llm 目录）",
+  moreModelsHint: "以下为 web-llm 实时可用模型（按显存/上下文；体积较大者需更强 GPU）",
+  hideExtra: "收起更多模型",
   startConversation: "开始对话，或选择以下建议：",
   inputPlaceholder: "输入你的问题...",
   send: "发送",
@@ -244,6 +293,9 @@ const en = {
   cloudModeHint: "No WebGPU: messages will automatically use the cloud /api/ai (data is sent to the server).",
   localInference: "Local",
   switchModel: "Switch model",
+  moreModels: "More models (from web-llm catalog)",
+  moreModelsHint: "Live web-llm models (by VRAM/context; larger ones need a stronger GPU)",
+  hideExtra: "Hide extra models",
   startConversation: "Start a conversation, or pick a suggestion:",
   inputPlaceholder: "Type your question...",
   send: "Send",
