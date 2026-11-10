@@ -233,6 +233,18 @@ test("supertrend 策略: 先跌后涨产生翻多买入信号", () => {
   assert.ok(signals.some((s) => s.action === "buy"), "V 形底部应有翻多买入信号");
 });
 
+test("chandelier 策略: 注册且 run 为函数、先跌后涨产生翻多买入", () => {
+  assert.ok(STRATEGY_REGISTRY.chandelier, "缺少 chandelier 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.chandelier.run, "function");
+  assert.equal(STRATEGY_REGISTRY.chandelier.category, "trend");
+  const candles = [
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 60 + i, low: 59 + i, close: 59.5 + i, open: 60 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.chandelier.run(candles, { period: 22, mult: 3 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形反转应有翻多买入信号");
+});
+
 test("macd_cross 策略: 先跌后涨产生金叉买入、随后死叉卖出", () => {
   const candles = [
     ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
