@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
-import { valueAtRisk, expectedShortfall, maxDrawdown, detectTailEvents, excessKurtosis, skewness, ulcerIndex } from "../lib/risk.js";
+import { valueAtRisk, expectedShortfall, maxDrawdown, detectTailEvents, excessKurtosis, skewness, ulcerIndex, monteCarloDrawdown } from "../lib/risk.js";
 
 export const metadata = {
   title: "黑天鹅防御 — Weacond",
@@ -41,6 +41,14 @@ const RISK_METRICS = {
   skew: skewness(SAMPLE_RETURNS),
   ulcer: ulcerIndex(SAMPLE_EQUITY),
 };
+
+// 蒙特卡洛压力测试（确定性：seed 固定，结果可复现）：模拟 60 期最大回撤分布
+const MC_STRESS = monteCarloDrawdown(SAMPLE_RETURNS, {
+  nPaths: 2000,
+  horizon: 60,
+  seed: 1,
+  percentiles: [0.05, 0.5, 0.95],
+});
 
 export default function BlackSwanPage() {
   const { lang } = useLanguage();
@@ -94,6 +102,17 @@ export default function BlackSwanPage() {
               <RiskStat label={L.kurtosisLabel} value={RISK_METRICS.kurtosis.toFixed(2)} />
               <RiskStat label={L.skewLabel} value={RISK_METRICS.skew.toFixed(2)} />
               <RiskStat label={L.ulcerLabel} value={`${(RISK_METRICS.ulcer * 100).toFixed(2)}%`} />
+            </div>
+          </div>
+
+          {/* 蒙特卡洛压力测试：模拟最大回撤分位（确定性 seed，可复现） */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+            <h3 className="font-semibold mb-1">{L.monteCarlo}</h3>
+            <p className="text-xs text-slate-400 mb-4">{L.monteCarloHint}</p>
+            <div className="grid grid-cols-3 gap-4">
+              {MC_STRESS.maxDrawdown.map((d) => (
+                <RiskStat key={d.label} label={d.label} value={`−${(d.value * 100).toFixed(2)}%`} />
+              ))}
             </div>
           </div>
 
@@ -154,6 +173,8 @@ const zh = {
   kurtosisLabel: "超额峰度",
   skewLabel: "偏度",
   ulcerLabel: "溃疡指数",
+  monteCarlo: "蒙特卡洛压力测试（最大回撤分位）",
+  monteCarloHint: "用样本收益的 μ/σ 模拟 2000 条 60 期路径，取最大回撤的 5% / 50% / 95% 分位（确定性 seed，非实时）。",
   history: "历史案例",
   disclaimer: "黑天鹅事件不可预测。历史数据仅供参考，不构成投资建议。",
 };
@@ -171,6 +192,8 @@ const en = {
   kurtosisLabel: "Excess Kurtosis",
   skewLabel: "Skewness",
   ulcerLabel: "Ulcer Index",
+  monteCarlo: "Monte Carlo Stress (Max DD percentiles)",
+  monteCarloHint: "Simulates 2000 paths over 60 periods using the sample μ/σ; shows the 5% / 50% / 95% percentile of max drawdown (deterministic seed, not live).",
   history: "Historical Cases",
   disclaimer: "Black swan events are unpredictable. Historical data for reference only. Not investment advice.",
 };

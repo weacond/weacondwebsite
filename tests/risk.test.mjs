@@ -37,6 +37,9 @@ import {
   calmarRatio,
   payoffRatio,
   expectancyPerTrade,
+  mulberry32,
+  normalRandom,
+  monteCarloDrawdown,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -646,6 +649,79 @@ test("martinRatio: 超额/下行标准差×√P；无下行(全非负)→ 0；�
   // threshold 提高 → 更多样本计入下行 → dd 增大 → martin 下降
   const mHigh = martinRatio(x, 252, 0, 0.005);
   assert.ok(mHigh < 0.625 * Math.sqrt(252), "threshold=0.005 → 下行更大 → martin 更小");
+});
+
+// ---------- mulberry32 / normalRandom / monteCarloDrawdown（确定性蒙特卡洛）----------
+
+test("mulberry32: 输出∈[0,1)；同 seed 同序列；不同 seed 不同", () => {
+  const rng = mulberry32(123);
+  for (let i = 0; i < 100; i++) {
+    const v = rng();
+    assert.ok(v >= 0 && v < 1, "∈[0,1)");
+  }
+  const a = mulberry32(7);
+  const b = mulberry32(7);
+  const seqA = Array.from({ length: 5 }, () => a());
+  const seqB = Array.from({ length: 5 }, () => b());
+  assert.deepEqual(seqA, seqB, "同 seed 同序列");
+  const c = mulberry32(8);
+  const seqC = Array.from({ length: 5 }, () => c());
+  assert.notDeepEqual(seqA, seqC, "不同 seed 不同序列");
+});
+
+test("normalRandom: 有限值；大量样本均值≈0、方差≈1", () => {
+  const rng = mulberry32(42);
+  const N = 20000;
+  let sum = 0, sumSq = 0;
+  for (let i = 0; i < N; i++) {
+    const z = normalRandom(rng);
+    assert.ok(Number.isFinite(z), "有限");
+    sum += z;
+    sumSq += z * z;
+  }
+  const mean = sum / N;
+  const variance = sumSq / N - mean * mean;
+  assert.ok(Math.abs(mean) < 0.03, `均值≈0, got ${mean}`);
+  assert.ok(Math.abs(variance - 1) < 0.05, `方差≈1, got ${variance}`);
+});
+
+test("monteCarloDrawdown: 样本<2 → 空结构；horizon 缺省=样本长度", () => {
+  const r1 = monteCarloDrawdown([0.01], { nPaths: 100 });
+  assert.equal(r1.nPaths, 0);
+  assert.deepEqual(r1.maxDrawdown, []);
+  assert.deepEqual(r1.terminalWealth, []);
+  // horizon 缺省/非正 → 回退到样本长度
+  const r2 = monteCarloDrawdown([0.01, 0.02, 0.03], { nPaths: 50, horizon: 0 });
+  assert.equal(r2.horizon, 3, "horizon 非正 → 回退样本长度");
+  assert.equal(r2.nPaths, 50, "nPaths 透传");
+});
+
+test("monteCarloDrawdown: 同 seed 可复现；不同 seed 结果不同", () => {
+  const rets = [0.01, -0.02, 0.015, -0.03, 0.02, 0.005, -0.01];
+  const a = monteCarloDrawdown(rets, { nPaths: 300, horizon: 20, seed: 11 });
+  const b = monteCarloDrawdown(rets, { nPaths: 300, horizon: 20, seed: 11 });
+  const c = monteCarloDrawdown(rets, { nPaths: 300, horizon: 20, seed: 22 });
+  assert.deepEqual(a.maxDrawdown, b.maxDrawdown, "同 seed 回撤分位一致");
+  assert.deepEqual(a.terminalWealth, b.terminalWealth, "同 seed 财富分位一致");
+  assert.notDeepEqual(a.maxDrawdown, c.maxDrawdown, "不同 seed 不同");
+});
+
+test("monteCarloDrawdown: 回撤分位单调递增且≥0；财富分位单调递增；sigma=样本标准差", () => {
+  const rets = [0.01, -0.02, 0.015, -0.03, 0.02, 0.005, -0.01, 0.04, -0.01, 0.012];
+  const r = monteCarloDrawdown(rets, { nPaths: 500, horizon: 30, seed: 3, percentiles: [0.05, 0.5, 0.95] });
+  assert.equal(r.maxDrawdown.length, 3);
+  assert.equal(r.terminalWealth.length, 3);
+  for (const { value } of r.maxDrawdown) assert.ok(value >= 0, "回撤≥0");
+  assert.ok(r.maxDrawdown[0].value <= r.maxDrawdown[1].value && r.maxDrawdown[1].value <= r.maxDrawdown[2].value, "回撤分位单调");
+  assert.ok(r.terminalWealth[0].value <= r.terminalWealth[1].value && r.terminalWealth[1].value <= r.terminalWealth[2].value, "财富分位单调");
+  assert.ok(r.maxDrawdown[0].label === "5%" && r.maxDrawdown[2].label === "95%");
+  // sigma = 样本标准差（n-1 分母）
+  const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+  const varr = rets.reduce((a, b) => a + (b - mean) * (b - mean), 0) / (rets.length - 1);
+  assert.ok(Math.abs(r.sigma - Math.sqrt(varr)) < 1e-12, "sigma=样本标准差");
+  assert.ok(Math.abs(r.mu - mean) < 1e-12, "mu=样本均值");
+  assert.equal(r.nPaths, 500);
+  assert.equal(r.horizon, 30);
 });
 
 
