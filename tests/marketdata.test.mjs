@@ -92,3 +92,28 @@ test("runFullBacktest: 指标嵌套于 metrics（对比表数据契约）", () =
   // 顶层不含这些指标键（确保 /compare 走 r.metrics 而非 r[key]）
   assert.equal(r.totalReturn, undefined, "顶层 totalReturn 应为 undefined");
 });
+
+// 回归：runFullBacktest 现返回市场买入持有权益曲线 marketEquity，
+// 且 metrics 含基准相对指标（信息比率 / 捕获率 / 跟踪误差）。
+test("runFullBacktest: 返回 marketEquity（与 K 线同长）+ 基准相对指标", () => {
+  const r = runFullBacktest({ strategy: "ma_cross", preset: "SPY_2023" });
+  // marketEquity 与 K 线同长、首值为初始资金
+  assert.ok(Array.isArray(r.marketEquity), "marketEquity 为数组");
+  assert.equal(r.marketEquity.length, r.candles.count, "与 K 线同长");
+  assert.equal(r.marketEquity[0].value, 100000, "基期 = 初始资金");
+  // 末值反映市场收盘价相对基期归一
+  const last = r.marketEquity[r.marketEquity.length - 1];
+  assert.ok(last.value > 0, "末值为正");
+  // 基准相对指标必须存在于 metrics（/backtest 对基准卡片依赖）
+  for (const k of ["informationRatio", "upCapture", "downCapture", "trackingError"]) {
+    assert.ok(k in r.metrics, `metrics.${k} 存在`);
+    assert.equal(typeof r.metrics[k], "number", `metrics.${k} 为数字`);
+  }
+});
+
+// 边界：单根 K 线 → marketEquity 仅 1 个点（基期）
+test("runFullBacktest: 单根 K 线 → marketEquity 长度为 1", () => {
+  const ext = [{ date: "2023-01-01", open: 100, high: 101, low: 99, close: 100, volume: 1 }];
+  const r = runFullBacktest({ strategy: "ma_cross", candles: ext });
+  assert.equal(r.marketEquity.length, 1, "单根 K 线 → 1 点");
+});

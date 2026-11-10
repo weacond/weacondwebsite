@@ -150,7 +150,7 @@ export default function BacktestPage() {
 
   useEffect(() => {
     if (!result?.equityCurve || !chartRef.current) return;
-    drawEquityCurve(result.equityCurve, chartRef.current, config.initialCapital);
+    drawEquityCurve(result.equityCurve, chartRef.current, config.initialCapital, result.marketEquity);
   }, [result, config.initialCapital]);
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -277,6 +277,40 @@ export default function BacktestPage() {
               </div>
             </div>
           )}
+          {/* 对基准（买入持有） */}
+          {result && result.marketEquity && result.marketEquity.length > 1 &&
+            (() => {
+              const m = result.metrics;
+              const benchReturn =
+                ((result.marketEquity[result.marketEquity.length - 1].value / config.initialCapital) - 1) * 100;
+              const alpha = m.totalReturn - benchReturn;
+              const cells = [
+                [L.benchReturn, `${benchReturn > 0 ? "+" : ""}${benchReturn.toFixed(2)}%`, benchReturn > 0],
+                [L.alpha, `${alpha > 0 ? "+" : ""}${alpha.toFixed(2)}%`, alpha > 0],
+                [L.infoRatio, m.informationRatio.toFixed(2), m.informationRatio > 0],
+                [L.upCapture, `${(m.upCapture * 100).toFixed(0)}%`, m.upCapture >= 1],
+                [L.downCapture, `${(m.downCapture * 100).toFixed(0)}%`, m.downCapture <= 1],
+                [L.trackingError, `${(m.trackingError * 100).toFixed(2)}%`, null],
+              ];
+              return (
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+                  <h3 className="font-semibold mb-4">{L.vsBenchmark}</h3>
+                  <p className="text-xs text-slate-400 mb-4">{L.vsBenchmarkHint}</p>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                    {cells.map(([label, value, good]) => (
+                      <div key={label} className="bg-slate-50 rounded-lg p-3 text-center">
+                        <div className="text-xs text-slate-400 mb-1">{label}</div>
+                        <div
+                          className={`font-bold text-lg tabular-nums ${good === null ? "text-slate-700" : good ? "text-green-600" : "text-red-500"}`}
+                        >
+                          {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           {/* 交易明细 */}
           {result && showTrades && result.trades.length > 0 && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
@@ -568,12 +602,14 @@ export default function BacktestPage() {
 }
 
 /** 纯 SVG 绘制权益曲线 */
-function drawEquityCurve(curve, svgEl, initialCapital) {
+function drawEquityCurve(curve, svgEl, initialCapital, marketCurve) {
   if (!svgEl) return;
   const w = 800, h = 256, pad = 30;
   const values = curve.map((c) => c.value);
-  const min = Math.min(...values, initialCapital);
-  const max = Math.max(...values, initialCapital);
+  const mValues = Array.isArray(marketCurve) ? marketCurve.map((c) => c.value) : [];
+  const allValues = mValues.length ? values.concat(mValues) : values;
+  const min = Math.min(...allValues, initialCapital);
+  const max = Math.max(...allValues, initialCapital);
   const range = max - min || 1;
   const points = curve.map((c, i) => {
     const x = pad + (i / (curve.length - 1)) * (w - 2 * pad);
@@ -583,6 +619,18 @@ function drawEquityCurve(curve, svgEl, initialCapital) {
   const baseY = h - pad - ((initialCapital - min) / range) * (h - 2 * pad);
   const linePath = points.join(" ");
   const areaPath = `${pad},${h - pad} ${linePath} ${w - pad},${h - pad}`;
+  // 基准（买入持有）叠加线：与策略曲线同索引、同坐标轴；虚线置于策略线之下，附图例
+  let marketLine = "";
+  let legend = "";
+  if (Array.isArray(marketCurve) && marketCurve.length === curve.length && curve.length > 1) {
+    const mPoints = marketCurve.map((c, i) => {
+      const x = pad + (i / (curve.length - 1)) * (w - 2 * pad);
+      const y = h - pad - ((c.value - min) / range) * (h - 2 * pad);
+      return `${x},${y}`;
+    });
+    marketLine = `<polyline points="${mPoints.join(" ")}" fill="none" stroke="rgb(148,163,184)" stroke-width="1.5" stroke-dasharray="5,3" stroke-linejoin="round"/>`;
+    legend = `<line x1="${w - 232}" y1="14" x2="${w - 212}" y2="14" stroke="rgb(148,163,184)" stroke-width="1.5" stroke-dasharray="5,3"/><text x="${w - 208}" y="18" fill="rgb(148,163,184)" font-size="10">基准(买入持有)</text><line x1="${w - 122}" y1="14" x2="${w - 102}" y2="14" stroke="rgb(99,102,241)" stroke-width="2"/><text x="${w - 98}" y="18" fill="rgb(99,102,241)" font-size="10">策略</text>`;
+  }
   // 回撤叠加：运行峰值线 + 曲线与峰值之间的"水下"红色填充
   let peak = -Infinity;
   const peakPoints = curve.map((c, i) => {
@@ -599,7 +647,9 @@ function drawEquityCurve(curve, svgEl, initialCapital) {
     <polygon points="${areaPath}" fill="url(#eqGrad)"/>
     <polygon points="${underwater}" fill="rgb(239,68,68)" fill-opacity="0.12"/>
     <polyline points="${peakLine}" fill="none" stroke="rgb(239,68,68)" stroke-width="1" stroke-dasharray="3,3" stroke-opacity="0.5"/>
-    <polyline points="${linePath}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round"/>`;
+    ${marketLine}
+    <polyline points="${linePath}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round"/>
+    ${legend}`;
 }
 
 const zh = {
@@ -616,6 +666,14 @@ const zh = {
   distTitle: "收益分布直方图", medianLine: "中位",
   riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", streaks: "连盈/连亏", maxStreak: "最长连亏", obsPeriods: "观测期数", kurtosis: "超额峰度", skewness: "偏度",
   recoveryDays: "回撤恢复(期)", notRecovered: "未恢复", drawdownOverlay: "回撤(水下)",
+  vsBenchmark: "对基准（买入持有）",
+  vsBenchmarkHint: "策略相对市场买入持有的超额表现：Alpha = 策略收益 − 基准收益；信息比率 = 年化超额 / 跟踪误差；捕获率衡量对基准上/下行的跟随程度。",
+  benchReturn: "基准收益",
+  alpha: "超额(Alpha)",
+  infoRatio: "信息比率",
+  upCapture: "上行捕获",
+  downCapture: "下行捕获",
+  trackingError: "跟踪误差",
   riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
   kellyTitle: "仓位建议 (Kelly)", kellyFull: "凯利最优", kellyHalf: "半凯利", winLossRatio: "盈亏比", varBudget: "VaR 风险预算",
   kellyHint: "基于本策略回测的胜率与盈亏比：f* = 胜率 −(1−胜率)×(亏/盈)。满凯利风险大，半凯利更稳健。非投资建议。",
@@ -637,6 +695,15 @@ const en = {
   distTitle: "Return Distribution", medianLine: "Median",
   riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", streaks: "Win/Loss Streak", maxStreak: "Max Loss Streak", obsPeriods: "Obs.", kurtosis: "Excess Kurtosis", skewness: "Skewness",
   recoveryDays: "DD Recovery", notRecovered: "not rec.", drawdownOverlay: "Drawdown",
+  vsBenchmark: "vs Benchmark (Buy & Hold)",
+  vsBenchmarkHint:
+    "Strategy vs market buy-and-hold: Alpha = strategy − benchmark return; Information Ratio = annualized excess / tracking error; capture ratios track up/down moves vs the benchmark.",
+  benchReturn: "Bench Return",
+  alpha: "Alpha",
+  infoRatio: "Info Ratio",
+  upCapture: "Up Capture",
+  downCapture: "Down Capture",
+  trackingError: "Tracking Err.",
   riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",
   kellyTitle: "Position Sizing (Kelly)", kellyFull: "Full Kelly", kellyHalf: "Half Kelly", winLossRatio: "Win/Loss", varBudget: "VaR Budget",
   kellyHint: "From backtest win rate & payoff ratio: f* = p − (1−p)×(loss/win). Full Kelly is aggressive; half Kelly is safer. Not advice.",
