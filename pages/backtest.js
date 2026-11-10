@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY, histogram } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
-import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget } from "../lib/risk.js";
+import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, maxDrawdownStats } from "../lib/risk.js";
 
 export const metadata = {
   title: "策略回测 — Weacond",
@@ -482,6 +482,25 @@ export default function BacktestPage() {
                       <div className="font-bold text-lg">{rp.skewness.toFixed(2)}</div>
                     </div>
                   </div>
+                  {(() => {
+                    const dd = maxDrawdownStats(result.equityCurve);
+                    return (
+                      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-100">
+                        <div className="text-center">
+                          <div className="text-xs text-slate-400">{L.avgDrawdown}</div>
+                          <div className="font-bold text-red-500">−{(dd.avgDD * 100).toFixed(2)}%</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-slate-400">{L.underwaterDays}</div>
+                          <div className="font-bold text-lg">{dd.longestUnderwater}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-slate-400">{L.underwaterPct}</div>
+                          <div className="font-bold text-lg">{dd.pctUnderwater.toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <p className="text-xs text-slate-400 mt-3">{L.riskProfileHint}</p>
                 </div>
               );
@@ -667,6 +686,7 @@ const zh = {
   monteCarlo: "蒙特卡洛模拟 (500次)", p5: "5%分位", p1: "1%分位", median: "中位数", p95: "95%分位", p99: "99%分位",
   distTitle: "收益分布直方图", medianLine: "中位",
   riskProfile: "风险剖面", var95: "95% VaR", cvar95: "95% CVaR", mdd: "最大回撤", streaks: "连盈/连亏", maxStreak: "最长连亏", obsPeriods: "观测期数", kurtosis: "超额峰度", skewness: "偏度",
+  avgDrawdown: "平均回撤", underwaterDays: "最长水下期", underwaterPct: "水下时间占比",
   recoveryDays: "回撤恢复(期)", notRecovered: "未恢复", drawdownOverlay: "回撤(水下)",
   vsBenchmark: "对基准（买入持有）",
   vsBenchmarkHint: "策略相对市场买入持有的超额表现：Alpha = 策略收益 − 基准收益；β = 对市场涨跌的敏感度（1=同幅，>1放大，<1缩小）；信息比率 = 年化超额 / 跟踪误差；捕获率衡量对基准上/下行的跟随程度。",
@@ -698,6 +718,7 @@ const en = {
   monteCarlo: "Monte Carlo (500 runs)", p5: "5th Pct", p1: "1st Pct", median: "Median", p95: "95th Pct", p99: "99th Pct",
   distTitle: "Return Distribution", medianLine: "Median",
   riskProfile: "Risk Profile", var95: "95% VaR", cvar95: "95% CVaR", mdd: "Max Drawdown", streaks: "Win/Loss Streak", maxStreak: "Max Loss Streak", obsPeriods: "Obs.", kurtosis: "Excess Kurtosis", skewness: "Skewness",
+  avgDrawdown: "Avg Drawdown", underwaterDays: "Longest Underwater", underwaterPct: "% Underwater",
   recoveryDays: "DD Recovery", notRecovered: "not rec.", drawdownOverlay: "Drawdown",
   vsBenchmark: "vs Benchmark (Buy & Hold)",
   vsBenchmarkHint:

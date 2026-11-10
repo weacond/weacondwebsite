@@ -10,6 +10,7 @@ import {
   drawdownRecovery,
   detectTailEvents,
   riskProfileFromEquity,
+  maxDrawdownStats,
   kellyFraction,
   fractionalKelly,
   probabilityOfRuin,
@@ -165,6 +166,39 @@ test("riskProfileFromEquity: mdd 与 maxDrawdown 同源一致", () => {
   const prof = riskProfileFromEquity(curve);
   assert.ok(Math.abs(prof.mdd - maxDrawdown(curve)) < 1e-12, "剖面 mdd 应等于 maxDrawdown");
   assert.equal(prof.n, curve.length - 1, "收益点数 = 净值点数 − 1");
+});
+
+// ---------- maxDrawdownStats（回撤画像）----------
+
+test("maxDrawdownStats: 单调上升 → 全 0", () => {
+  const s = maxDrawdownStats([100, 101, 102, 103]);
+  assert.equal(s.maxDD, 0);
+  assert.equal(s.avgDD, 0);
+  assert.equal(s.longestUnderwater, 0);
+  assert.equal(s.pctUnderwater, 0);
+});
+
+test("maxDrawdownStats: 空 / 单点 → 全 0", () => {
+  for (const c of [[], [100]]) {
+    const s = maxDrawdownStats(c);
+    assert.deepEqual(s, { maxDD: 0, avgDD: 0, longestUnderwater: 0, pctUnderwater: 0 });
+  }
+});
+
+test("maxDrawdownStats: 已知回撤曲线（幅度/时长/频率）", () => {
+  // 100→90(−10%)→80(−20%)→100(创新高)→110；水下点 2 个，n=6
+  const s = maxDrawdownStats([100, 100, 90, 80, 100, 110]);
+  assert.ok(Math.abs(s.maxDD - 0.2) < 1e-9, "最大回撤 20%");
+  assert.ok(Math.abs(s.maxDD - maxDrawdown([100, 100, 90, 80, 100, 110])) < 1e-12, "与 maxDrawdown 同源一致");
+  assert.equal(s.longestUnderwater, 2, "连续水下 2 点");
+  assert.ok(Math.abs(s.avgDD - 0.15) < 1e-9, "平均回撤 (10%+20%)/2");
+  assert.ok(Math.abs(s.pctUnderwater - (2 / 6) * 100) < 1e-9, "水下时间占比 2/6");
+});
+
+test("maxDrawdownStats: 同时支持 number[] 与 [{value}]", () => {
+  const nums = [100, 90, 110];
+  const objs = nums.map((v) => ({ value: v }));
+  assert.deepEqual(maxDrawdownStats(objs), maxDrawdownStats(nums));
 });
 
 // ---------- Kelly / 破产概率 ----------
