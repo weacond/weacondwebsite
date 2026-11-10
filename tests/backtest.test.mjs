@@ -14,6 +14,9 @@ import {
   williams,
   obv,
   supertrend,
+  aroon,
+  chandelier,
+  stochRsi,
   signalConsensus,
   signalConsensusSeries,
   runBacktest,
@@ -292,6 +295,72 @@ test("consensus 策略: 先跌后涨产生转多信号", () => {
   ];
   const signals = STRATEGY_REGISTRY.consensus.run(candles, {});
   assert.ok(signals.some((s) => s.action === "buy"), "V 形反转应有共识转多信号");
+});
+
+test("aroon: 等长，值域 [0,100]，预热期 null，单边上涨 Aroon Up = 100", () => {
+  const n = 80;
+  const p = 25;
+  const candles = Array.from({ length: n }, (_, i) => {
+    const c = 100 + 10 * Math.sin(i / 10);
+    return { high: c + 1, low: c - 1, close: c, open: c - 0.5, volume: 1000 + (i % 5) * 10 };
+  });
+  const { up, down } = aroon(candles, p);
+  assert.equal(up.length, n, "输出等长");
+  assert.equal(down.length, n, "输出等长");
+  assert.ok(up[0] === null && up[p - 1] !== null, "前 p-1 根为 null 预热");
+  for (let i = p - 1; i < n; i++) {
+    assert.ok(up[i] >= 0 && up[i] <= 100, "Aroon Up ∈ [0,100]");
+    assert.ok(down[i] >= 0 && down[i] <= 100, "Aroon Down ∈ [0,100]");
+  }
+  const climb = Array.from({ length: 40 }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 99 + i,
+    close: 100 + i,
+    open: 100 + i - 1,
+    volume: 1000,
+  }));
+  assert.ok(aroon(climb, 10).up[39] === 100, "单边上涨 Aroon Up = 100");
+});
+
+test("chandelier: 等长，多头线单调不减/空头线单调不增，方向 ∈ {up,down}", () => {
+  const n = 80;
+  const candles = Array.from({ length: n }, (_, i) => {
+    const c = 100 + 10 * Math.sin(i / 10);
+    return { high: c + 1, low: c - 1, close: c, open: c - 0.5, volume: 1000 + (i % 5) * 10 };
+  });
+  const ch = chandelier(candles, 22, 3);
+  assert.equal(ch.longExit.length, n, "输出等长");
+  assert.ok(
+    ch.direction.filter((d) => d !== null).every((d) => d === "up" || d === "down")
+  );
+  // 多头线只上不下、空头线只下不上（持久化）
+  let longNonDec = true,
+    shortNonInc = true;
+  for (let i = 1; i < n; i++) {
+    if (ch.longExit[i] != null && ch.longExit[i - 1] != null) {
+      if (ch.longExit[i] < ch.longExit[i - 1] - 1e-9) longNonDec = false;
+    }
+    if (ch.shortExit[i] != null && ch.shortExit[i - 1] != null) {
+      if (ch.shortExit[i] > ch.shortExit[i - 1] + 1e-9) shortNonInc = false;
+    }
+  }
+  assert.ok(longNonDec, "多头线单调不减");
+  assert.ok(shortNonInc, "空头线单调不增");
+});
+
+test("stochRsi: 等长，值域 [0,100]，预热期 null", () => {
+  const n = 80;
+  const candles = Array.from({ length: n }, (_, i) => {
+    const c = 100 + 10 * Math.sin(i / 10);
+    return { high: c + 1, low: c - 1, close: c, open: c - 0.5, volume: 1000 + (i % 5) * 10 };
+  });
+  const sr = stochRsi(candles, 14);
+  assert.equal(sr.length, n, "输出等长");
+  assert.ok(sr[0] === null, "前段为 null 预热");
+  for (let i = 0; i < n; i++) {
+    if (sr[i] != null)
+      assert.ok(sr[i] >= -1e-9 && sr[i] <= 100 + 1e-9, "S-RSI ∈ [0,100]");
+  }
 });
 
 // ---------- 回测引擎 ----------
