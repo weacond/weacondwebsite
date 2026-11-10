@@ -36,6 +36,7 @@ import {
   martinRatio,
   calmarRatio,
   payoffRatio,
+  expectancyPerTrade,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -487,9 +488,26 @@ test("payoffRatio: 平均盈利/平均亏损 精确值、封顶、全亏损、�
   assert.equal(payoffRatio(15, NaN), 0, "NaN 亏损 → 0");
 });
 
+// ---------- expectancyPerTrade ----------
+
+test("expectancyPerTrade: 胜率×盈 − 败率×亏 精确值", () => {
+  // p=0.6, avgWin=15, avgLoss=10 → 0.6×15 − 0.4×10 = 9 − 4 = 5
+  assert.ok(Math.abs(expectancyPerTrade(0.6, 15, 10) - 5) < 1e-12, "0.6·15−0.4·10 = 5");
+  // 正期望的前提：胜率足够高
+  assert.ok(expectancyPerTrade(0.6, 15, 10) > 0, "正期望 > 0");
+  // 50/50 且盈亏对称 → 0
+  assert.ok(Math.abs(expectancyPerTrade(0.5, 10, 10) - 0) < 1e-12, "对称 50/50 → 0");
+  // 胜率 0 → −avgLoss；胜率 1 → avgWin
+  assert.ok(Math.abs(expectancyPerTrade(0, 0, 10) + 10) < 1e-12, "胜率 0 → −avgLoss");
+  assert.ok(Math.abs(expectancyPerTrade(1, 15, 10) - 15) < 1e-12, "胜率 1 → avgWin");
+  // winRate 越界被钳到 [0,1]
+  assert.ok(Math.abs(expectancyPerTrade(1.5, 15, 10) - 15) < 1e-12, "p>1 钳到 1");
+  assert.ok(Math.abs(expectancyPerTrade(-0.5, 15, 10) + 10) < 1e-12, "p<0 钳到 0");
+  // 非有限输入 → 0
+  assert.equal(expectancyPerTrade(NaN, 15, 10), 0, "NaN 胜率 → 0");
+});
 
 
-// ---------- drawdownDuration ----------
 
 test("drawdownDuration: 最深回撤区间的 K 线根数；全程上涨/空/单点 → 0", () => {
   // [100,110,90,105]：峰 110(idx1) → 谷 90(idx2)，持续 1 根

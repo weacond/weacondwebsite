@@ -88,7 +88,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   assert.equal(res.equityCurve.length, candles.length);
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
-    "profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "numTrades", "exposure", "calmar", "volatility",
+    "profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "numTrades", "exposure", "calmar", "volatility", "expectancy",
     "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak", "ulcerIndex", "maxDrawdownDuration", "downsideDeviation", "probRuin",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
@@ -139,8 +139,9 @@ test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同�
   assert.equal(m.alpha, 0);
   assert.equal(m.treynor, 0);
   assert.equal(m.martin, 0);
+  assert.equal(m.expectancy, 0);
   // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
-  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "treynor", "martin", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "treynor", "martin", "expectancy", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
     assert.ok(k in m, `空交易仍应有 ${k}`);
   }
   assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
@@ -154,6 +155,18 @@ test("calcMetrics: payoffRatio = avgWin / |avgLoss|（精确值）", () => {
   const eq = [{ date: "2023-01-01", value: 100000 }, { date: "2023-12-31", value: 100000 }];
   const m = calcMetrics(trades, 100000, [], eq);
   assert.ok(Math.abs(m.payoffRatio - 1.5) < 1e-6, "payoff=1.5");
+  // 每笔期望收益：胜率 50% × avgWin 15 − 50% × avgLoss 10 = 2.5
+  assert.ok(Math.abs(m.expectancy - 2.5) < 1e-6, "expectancy=2.5");
+});
+
+test("calcMetrics: 无亏损时 expectancy = avgWin；全亏损 = −avgLoss", () => {
+  const eq = [{ date: "2023-01-01", value: 100000 }, { date: "2023-12-31", value: 100000 }];
+  // 全盈利 [5, 3]：avgWin=4, 胜率 100% → expectancy = 1·4 − 0 = 4
+  const onlyWins = calcMetrics([{ pnl: 5 }, { pnl: 3 }], 100000, [], eq);
+  assert.ok(Math.abs(onlyWins.expectancy - 4) < 1e-6, "全盈利 expectancy=avgWin=4");
+  // 全亏损 [-5, -3]：avgLoss=4, 胜率 0% → expectancy = 0 − 1·4 = -4
+  const onlyLosses = calcMetrics([{ pnl: -5 }, { pnl: -3 }], 100000, [], eq);
+  assert.ok(Math.abs(onlyLosses.expectancy + 4) < 1e-6, "全亏损 expectancy=-avgLoss=-4");
 });
 
 test("calcMetrics: 无亏损时 payoffRatio 封顶 999；全亏损为 0", () => {

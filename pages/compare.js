@@ -43,6 +43,7 @@ const CMP_METRICS = [
   { key: "alpha", label: "阿尔法", labelEn: "Alpha", fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(2)}`, higher: true },
   { key: "beta", label: "β 系数", labelEn: "Beta", fmt: (v) => v.toFixed(2), neutral: true },
   { key: "treynor", label: "特雷诺", labelEn: "Treynor", fmt: (v) => v.toFixed(2), higher: true },
+  { key: "expectancy", label: "每笔期望", labelEn: "Expectancy", fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}`, higher: true },
 ];
 
 const DEFAULT_CONFIG = { initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 };
