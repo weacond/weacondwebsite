@@ -35,6 +35,9 @@ const CMP_METRICS = [
   { key: "maxLosingStreak", label: "最长连亏", labelEn: "Max Loss Streak", fmt: (v) => v.toString(), higher: false },
   { key: "maxWinStreak", label: "最长连盈", labelEn: "Max Win Streak", fmt: (v) => v.toString(), higher: true },
   { key: "numTrades", label: "交易数", labelEn: "Trades", fmt: (v) => v.toString(), higher: false },
+  { key: "informationRatio", label: "信息比率", labelEn: "Info Ratio", fmt: (v) => v.toFixed(2), higher: true },
+  { key: "upCapture", label: "上行捕获", labelEn: "Up Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, higher: true },
+  { key: "downCapture", label: "下行捕获", labelEn: "Down Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, higher: false },
 ];
 
 const DEFAULT_CONFIG = { initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 };

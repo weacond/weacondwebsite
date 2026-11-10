@@ -26,6 +26,8 @@ import {
   tailRatio,
   sterlingRatio,
   drawdownDuration,
+  informationRatio,
+  captureRatios,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -444,6 +446,49 @@ test("drawdownDuration: 取最深回撤区间；多段回撤取更深者", () =>
   assert.equal(drawdownDuration(eq), 2, "多段回撤取最深者，持续 2 根");
   // 全程未创新高：峰在 idx1，谷在 idx5，持续 4 根
   assert.equal(drawdownDuration([100, 120, 100, 90, 80, 70]), 4, "未恢复取全程谷底");
+});
+
+// ---------- informationRatio ----------
+
+test("informationRatio: 与基准完全相同 → 超额恒 0 → IR=0", () => {
+  const r = [0.02, -0.01, 0.03, -0.02, 0.01];
+  assert.equal(informationRatio(r, r), 0, "超额全 0 → σ=0 → IR=0");
+});
+
+test("informationRatio: 策略稳定跑赢基准 → IR>0", () => {
+  const r = [0.02, 0.015, 0.025, 0.018];
+  const b = [0.005, 0.008, 0.006, 0.01];
+  const ir = informationRatio(r, b, 252);
+  assert.ok(ir > 0, "稳定超额 → IR>0");
+});
+
+test("informationRatio: 边界——配对<2 或空 → 0；长度不匹配按较短截断", () => {
+  assert.equal(informationRatio([], []), 0, "空 → 0");
+  assert.equal(informationRatio([0.01], [0.01]), 0, "单点 → 0");
+  // 3 个策略收益 vs 1 个基准 → 仅 1 对（<2）→ 0
+  assert.equal(informationRatio([0.01, 0.02, 0.03], [0.01]), 0, "长度不匹配截断到 1 对 → 0");
+});
+
+// ---------- captureRatios ----------
+
+test("captureRatios: 完美跟踪基准 → up=down=1", () => {
+  const r = [0.02, -0.01, 0.03, -0.02];
+  assert.deepEqual(captureRatios(r, r), { up: 1, down: 1 }, "完美跟踪 → 1/1");
+});
+
+test("captureRatios: 下行捕获 <1（跌得比基准少）；基准全正 → 下行捕获 0", () => {
+  // 基准下行 -0.02，策略仅 -0.005 → 下行捕获 0.005/0.02=0.25
+  const cap = captureRatios([0.0, -0.005], [0.01, -0.02]);
+  assert.ok(Math.abs(cap.down - 0.25) < 1e-9, "下行捕获 = 0.25");
+  // 基准全正 → 无下行区间 → down=0
+  assert.equal(captureRatios([0.01, 0.02], [0.01, 0.02]).down, 0, "基准全正 → 下行捕获 0");
+});
+
+test("captureRatios: 边界——空 → {0,0}；长度不匹配按较短截断", () => {
+  assert.deepEqual(captureRatios([], []), { up: 0, down: 0 }, "空 → {0,0}");
+  const cap = captureRatios([0.01, 0.02, 0.03], [0.01]);
+  assert.equal(cap.up, 1, "截断到 1 对（基准>0）→ up=1");
+  assert.equal(cap.down, 0, "无下行区间 → down=0");
 });
 
 
