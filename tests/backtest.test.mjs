@@ -48,6 +48,16 @@ test("rsi: 全涨=100，全跌=0", () => {
   assert.equal(rsi([15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1], 14).pop(), 0);
 });
 
+test("rsi: 返回与输入等长且按索引对齐（预热期为 null）", () => {
+  const data = Array.from({ length: 60 }, (_, i) => 100 + (i % 5) - 2); // 震荡序列
+  const period = 14;
+  const out = rsi(data, period);
+  assert.equal(out.length, data.length, "输出应与输入等长");
+  for (let i = 0; i < period; i++) assert.equal(out[i], null, `预热期 index ${i} 应为 null`);
+  assert.ok(typeof out[period] === "number", "index=period 起应为数值");
+  assert.ok(out.every((v) => v === null || (v >= 0 && v <= 100)), "RSI 应落在 [0,100]");
+});
+
 test("atr: 长度等于 K 线数", () => {
   const candles = Array.from({ length: 30 }, (_, i) => ({
     high: 10 + i,
