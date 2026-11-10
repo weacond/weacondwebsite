@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -38,6 +38,7 @@ const CMP_METRICS = [
   { key: "informationRatio", label: "信息比率", labelEn: "Info Ratio", fmt: (v) => v.toFixed(2), higher: true },
   { key: "upCapture", label: "上行捕获", labelEn: "Up Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, higher: true },
   { key: "downCapture", label: "下行捕获", labelEn: "Down Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, higher: false },
+  { key: "trackingError", label: "跟踪误差", labelEn: "Tracking Err.", fmt: (v) => `${(v * 100).toFixed(2)}%`, higher: false },
 ];
 
 const DEFAULT_CONFIG = { initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 };
@@ -201,6 +202,9 @@ export default function ComparePage() {
                 // 最优（切点）组合权重：long-only 搜索使组合夏普最大（有效前沿切点）及其夏普
                 const optWeights = maxSharpeWeights(returnsList, vols, M, { grid: 40 });
                 const optSharpe = portfolioSharpe(returnsList, vols, M, optWeights);
+                // 最小方差组合权重（纯粹追求波动最小）及其夏普
+                const mvWeights = minimumVarianceWeights(vols, M, { grid: 40 });
+                const mvSharpe = portfolioSharpe(returnsList, vols, M, mvWeights);
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -227,6 +231,9 @@ export default function ComparePage() {
                       </div>
                       <div className="text-xs text-slate-500">
                         {L.optSharpeLabel} <span className="font-bold text-slate-800">{optSharpe.toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {L.mvSharpeLabel} <span className="font-bold text-slate-800">{mvSharpe.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -303,6 +310,21 @@ export default function ComparePage() {
                         );
                       })}
                     </div>
+                    <div className="mt-3 space-y-1.5">
+                      <div className="text-xs font-medium text-slate-500">{L.mvTitle}</div>
+                      {items.map((it, i) => {
+                        const pct = mvWeights[i] != null && Number.isFinite(mvWeights[i]) ? mvWeights[i] * 100 : 0;
+                        return (
+                          <div key={it.name} className="flex items-center gap-2 text-xs">
+                            <span className="w-20 shrink-0 truncate text-slate-600">{it.name}</span>
+                            <div className="flex-1 h-3 bg-slate-100 rounded overflow-hidden">
+                              <div className="h-full bg-amber-500" style={{ width: `${Math.max(0, Math.min(100, pct)).toFixed(1)}%` }} />
+                            </div>
+                            <span className="w-12 shrink-0 text-right font-mono text-slate-700">{pct.toFixed(1)}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
@@ -335,6 +357,8 @@ const zh = {
   rpTitle: "风险平价权重",
   optSharpeLabel: "最优夏普",
   optTitle: "最优权重（切点组合）",
+  mvSharpeLabel: "最小方差夏普",
+  mvTitle: "最小方差权重",
   rcTitle: "各资产风险贡献（逆波动加权）",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
@@ -358,6 +382,8 @@ const en = {
   rpTitle: "Risk-Parity Weights",
   optSharpeLabel: "Optimal Sharpe",
   optTitle: "Optimal Weights (Tangency Portfolio)",
+  mvSharpeLabel: "Min-Variance Sharpe",
+  mvTitle: "Min-Variance Weights",
   rcTitle: "Risk Contribution (inv-vol weighted)",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };

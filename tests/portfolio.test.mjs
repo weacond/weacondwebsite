@@ -9,6 +9,7 @@ import {
   riskContribution,
   riskParityWeights,
   maxSharpeWeights,
+  minimumVarianceWeights,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -246,4 +247,34 @@ test("maxSharpeWeights: 边界——空→[]、单资产→[1]、维度不匹配
   assert.deepEqual(maxSharpeWeights([], [], []), [], "空 → []");
   assert.deepEqual(maxSharpeWeights([[0.01, 0.02]], [0.02], [[1]]), [1], "单资产 → [1]");
   assert.deepEqual(maxSharpeWeights([[0.01, 0.02], [0.01, 0.02]], [0.01], [[1, 0], [0, 1]]), [], "维度不匹配 → []");
+});
+
+// ---------- minimumVarianceWeights ----------
+
+test("minimumVarianceWeights: 不变式——和=1、全 ≥0、方差 ≤ 逆波动方差", () => {
+  const vols = [0.05, 0.20]; // 资产1 低波动，资产2 高波动
+  const corr = [[1, 0.3], [0.3, 1]];
+  const w = minimumVarianceWeights(vols, corr, { grid: 50 });
+  assert.equal(w.length, 2, "长度=资产数");
+  assert.ok(w.every((x) => x >= 0), "全 ≥0（long-only）");
+  assert.ok(Math.abs(w[0] + w[1] - 1) < 1e-9, "和=1");
+  const ivVar = portfolioVolatility(vols, corr, inverseVolWeights(vols)) ** 2;
+  const mvVar = portfolioVolatility(vols, corr, w) ** 2;
+  assert.ok(mvVar <= ivVar + 1e-12, "最小方差 ≤ 逆波动方差（单调不增）");
+  // 资产1 波动远低于资产2 → 最小方差重仓资产1
+  assert.ok(w[0] > w[1], "低波动资产权重更高");
+});
+
+test("minimumVarianceWeights: 完全相同资产 → 等权", () => {
+  const vols = [0.1, 0.1, 0.1];
+  const corr = [[1, 0.5, 0.5], [0.5, 1, 0.5], [0.5, 0.5, 1]];
+  const w = minimumVarianceWeights(vols, corr);
+  assert.equal(w.length, 3);
+  for (const x of w) assert.ok(Math.abs(x - 1 / 3) < 1e-6, "等权 1/3");
+});
+
+test("minimumVarianceWeights: 边界——空→[]、单资产→[1]、维度不匹配→[]", () => {
+  assert.deepEqual(minimumVarianceWeights([], []), [], "空 → []");
+  assert.deepEqual(minimumVarianceWeights([0.05], [[1]]), [1], "单资产 → [1]");
+  assert.deepEqual(minimumVarianceWeights([0.05, 0.1], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]), [], "维度不匹配 → []");
 });

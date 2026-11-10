@@ -28,6 +28,7 @@ import {
   drawdownDuration,
   informationRatio,
   captureRatios,
+  trackingError,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -489,6 +490,28 @@ test("captureRatios: 边界——空 → {0,0}；长度不匹配按较短截断"
   const cap = captureRatios([0.01, 0.02, 0.03], [0.01]);
   assert.equal(cap.up, 1, "截断到 1 对（基准>0）→ up=1");
   assert.equal(cap.down, 0, "无下行区间 → down=0");
+});
+
+// ---------- trackingError ----------
+
+test("trackingError: 完美跟踪基准 → TE=0；空 / 单点 → 0", () => {
+  const r = [0.02, -0.01, 0.03, -0.02, 0.01];
+  assert.equal(trackingError(r, r), 0, "完美跟踪 → TE=0");
+  assert.equal(trackingError([], []), 0, "空 → 0");
+  assert.equal(trackingError([0.01], [0.01]), 0, "单点 → 0");
+});
+
+test("trackingError: 是信息比率的分母；IR × TE = 年化超额收益（mean × periods）", () => {
+  const r = [0.02, 0.015, 0.025, 0.018];
+  const b = [0.005, 0.008, 0.006, 0.01];
+  const te = trackingError(r, b, 252);
+  const ir = informationRatio(r, b, 252);
+  // 年化超额收益 = mean(active) × periods
+  const active = r.map((x, i) => x - b[i]);
+  const mean = active.reduce((a, c) => a + c, 0) / active.length;
+  assert.ok(te > 0, "存在超额波动 → TE>0");
+  // IR = (mean/σ)·√P，TE = σ·√P ⇒ IR × TE = mean × P
+  assert.ok(Math.abs(ir * te - mean * 252) < 1e-9, "IR × TE = 年化超额收益（mean × periods）");
 });
 
 

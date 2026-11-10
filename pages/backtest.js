@@ -41,6 +41,7 @@ const METRIC_KEYS = [
   { key: "informationRatio", label: "信息比率", labelEn: "Info Ratio", fmt: (v) => v.toFixed(2), good: (v) => v > 0 },
   { key: "upCapture", label: "上行捕获", labelEn: "Up Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, good: (v) => v >= 1 },
   { key: "downCapture", label: "下行捕获", labelEn: "Down Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, good: (v) => v <= 1 },
+  { key: "trackingError", label: "跟踪误差", labelEn: "Tracking Err.", fmt: (v) => `${(v * 100).toFixed(2)}%`, good: () => true },
 ];
 
 // 全策略对比的排序选项标签
