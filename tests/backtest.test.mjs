@@ -15,6 +15,7 @@ import {
   obv,
   supertrend,
   signalConsensus,
+  signalConsensusSeries,
   runBacktest,
   calcMetrics,
   annualizedReturn,
@@ -251,6 +252,36 @@ test("signalConsensus: 数据不足/空输入 → 中性、score=0", () => {
   assert.equal(signalConsensus([1, 2, 3]).score, 0);
   assert.equal(signalConsensus([]).direction, "neutral");
   assert.equal(signalConsensus(null).direction, "neutral");
+});
+
+test("signalConsensusSeries: 上升 → 末值看多、序列长度匹配", () => {
+  const up = Array.from({ length: 80 }, (_, i) => ({ high: 100 + i + 1, low: 100 + i, close: 100 + i + 0.5, open: 100 + i, volume: 1000 }));
+  const { score, direction, agreement } = signalConsensusSeries(up);
+  assert.equal(score.length, 80);
+  assert.equal(direction.length, 80);
+  assert.equal(direction[79], "bull");
+  assert.ok(direction[0] === "neutral" || direction[0] === "bull", "预热期应为 neutral 或已成形");
+});
+
+test("signalConsensusSeries: 数据不足 → 全 neutral、长度匹配", () => {
+  const { direction } = signalConsensusSeries([1, 2, 3]);
+  assert.equal(direction.length, 3);
+  assert.ok(direction.every((d) => d === "neutral"));
+});
+
+test("consensus 策略: 注册且 run 为函数、category 为 trend", () => {
+  assert.ok(STRATEGY_REGISTRY.consensus, "缺少 consensus 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.consensus.run, "function");
+  assert.equal(STRATEGY_REGISTRY.consensus.category, "trend");
+});
+
+test("consensus 策略: 先跌后涨产生转多信号", () => {
+  const candles = [
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 60 + i, low: 59 + i, close: 59.5 + i, open: 60 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.consensus.run(candles, {});
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形反转应有共识转多信号");
 });
 
 // ---------- 回测引擎 ----------
