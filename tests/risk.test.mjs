@@ -34,6 +34,8 @@ import {
   alpha,
   treynorRatio,
   martinRatio,
+  calmarRatio,
+  payoffRatio,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -465,6 +467,27 @@ test("sterlingRatio: 总收益/最长连亏；精确值、封顶、负收益、�
   assert.equal(sterlingRatio(100, NaN), 0, "NaN 连亏 → 0");
   assert.equal(sterlingRatio(100, Infinity), 0, "Infinity 连亏 → 0");
 });
+// ---------- calmarRatio / payoffRatio ----------
+
+test("calmarRatio: CAGR/最大回撤 精确值、无回撤封顶、非有限", () => {
+  assert.ok(Math.abs(calmarRatio(12, 0.2) - 0.6) < 1e-12, "12%/20% = 0.6");
+  assert.ok(calmarRatio(0, 0.1) === 0, "零 CAGR → 0");
+  assert.equal(calmarRatio(12, 0), 999, "正收益无回撤 → 封顶 999（与 Sterling 同惯例）");
+  assert.equal(calmarRatio(-5, 0), 0, "亏损无回撤 → 0");
+  assert.equal(calmarRatio(NaN, 0.2), 0, "NaN → 0");
+  assert.equal(calmarRatio(12, Infinity), 0, "Infinity 回撤 → 0");
+});
+
+test("payoffRatio: 平均盈利/平均亏损 精确值、封顶、全亏损、非有限", () => {
+  assert.ok(Math.abs(payoffRatio(15, 10) - 1.5) < 1e-12, "15/10 = 1.5");
+  assert.equal(payoffRatio(15, 0), 999, "有盈利无亏损 → 封顶 999");
+  assert.equal(payoffRatio(0, 10), 0, "全亏损(无盈利) → 0");
+  assert.equal(payoffRatio(0, 0), 0, "全无盈亏 → 0");
+  assert.equal(payoffRatio(NaN, 10), 0, "NaN 盈利 → 0");
+  assert.equal(payoffRatio(15, NaN), 0, "NaN 亏损 → 0");
+});
+
+
 
 // ---------- drawdownDuration ----------
 
