@@ -2,7 +2,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState, useEffect } from "react";
-import { assessMacroState, correlationMatrix, classifyCorrelation, SAMPLE_MACRO_SERIES } from "../lib/macro";
+import { assessMacroState, correlationMatrix, classifyCorrelation, SAMPLE_MACRO_SERIES, marketRegime } from "../lib/macro";
 import Head from "next/head";
 
 export const metadata = {
@@ -38,6 +38,17 @@ const REGIME_LABELS = {
   bull: { zh: "牛市", en: "Bull", badge: "bg-green-100 text-green-700" },
   neutral: { zh: "中性", en: "Neutral", badge: "bg-slate-100 text-slate-700" },
 };
+
+// 价格/波动状态（regime）标签：由 marketRegime 输出 bull/bear/range/crisis 映射
+const PRICE_REGIME_LABELS = {
+  bull: { zh: "趋势上行", en: "Trending Up", badge: "bg-green-100 text-green-700" },
+  bear: { zh: "趋势下行", en: "Trending Down", badge: "bg-red-100 text-red-700" },
+  range: { zh: "区间震荡", en: "Range-bound", badge: "bg-slate-100 text-slate-700" },
+  crisis: { zh: "高波动/危机", en: "High-Vol / Crisis", badge: "bg-red-100 text-red-700" },
+};
+
+// 演示用市场日收益序列（确定性、非实时）：温和上行、低波动 → 趋势上行
+const DEMO_MARKET_RETURNS = [0.0008, 0.0012, -0.0005, 0.001, 0.0006, 0.0015, -0.0003, 0.0009, 0.0007, 0.0011];
 
 // 风险配色
 function riskColor(score) {
@@ -78,6 +89,9 @@ export default function MacroPage() {
   // 用当前 VIX（演示或真实）重新评估宏观状态；其余指标暂用演示占位
   const MACRO = assessMacroState({ ...DEMO_INDICATORS, vix });
   const regime = REGIME_LABELS[MACRO.regime] || REGIME_LABELS.neutral;
+  // 价格/波动状态：由演示收益序列 + 当前 VIX 判定（与因子状态互补）
+  const priceRegime = marketRegime(DEMO_MARKET_RETURNS, { vix, periods: 252 });
+  const priceRegimeLabel = PRICE_REGIME_LABELS[priceRegime.regime] || PRICE_REGIME_LABELS.range;
 
   // 拉取真实 VIX（Alpha Vantage）；无 key 时接口返回演示数据并标 live:false，此处诚实标注
   const loadRealVix = async () => {
@@ -223,6 +237,15 @@ export default function MacroPage() {
                 <span className={`px-3 py-1 rounded-full ${regime.badge}`}>
                   {lang === "en" ? regime.en : regime.zh}
                 </span>
+              </div>
+              <div className="mt-3">
+                <div className="text-xs text-slate-400 mb-1">{L.priceRegime}</div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-sm ${priceRegimeLabel.badge}`}>
+                    {lang === "en" ? priceRegimeLabel.en : priceRegimeLabel.zh}
+                  </span>
+                  <span className="text-xs text-slate-400">vol {(priceRegime.vol * 100).toFixed(1)}%</span>
+                </div>
               </div>
               <p className="text-sm text-slate-500 mt-3">{L.summary}</p>
             </div>
@@ -446,6 +469,7 @@ const zh = {
   subtitle: "市场状态识别 · 风险评分 · 资产配置建议（引擎评估）",
   demoLabel: "示例数据 · 非实时",
   regime: "当前市场状态",
+  priceRegime: "价格/波动状态（趋势·波动）",
   riskScore: "风险评分",
   riskNote: "综合 VIX、信用利差、通胀与利率；越高越需防御与现金。",
   summary: "状态决定配置基调：危机/滞胀偏防御，宽松/牛市偏进攻，中性均衡。",
@@ -465,6 +489,7 @@ const en = {
   subtitle: "Regime detection · Risk score · Allocation (engine-evaluated)",
   demoLabel: "Demo Data · Not Live",
   regime: "Current Regime",
+  priceRegime: "Price / Vol Regime (trend · vol)",
   riskScore: "Risk Score",
   riskNote: "Composite of VIX, credit spread, inflation & rates; higher = more defensive.",
   summary: "Regime sets the tone: crisis/stagflation lean defensive, boom/bull lean aggressive, neutral is balanced.",
