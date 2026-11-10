@@ -3,7 +3,7 @@
 // normCdf 锚点、退化情形），避免把"背下来的数字"当 oracle。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normCdf, normPdf, priceOption, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
+import { normCdf, normPdf, priceOption, optionGreeks, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
 
 // ---------- normCdf / normPdf 锚点 ----------
 
@@ -81,6 +81,52 @@ test("非法输入: spot≤0 或 iv≤0 → 仅内在价值，不产生 NaN", ()
   assert.equal(c.price, 0); // ATM 零波动 → 0 内在价值
   assert.ok(Number.isFinite(c.price));
   assert.ok(Number.isFinite(c.delta));
+});
+
+// ---------- optionGreeks：rho 新增 + 与 priceOption 同源（DRY）----------
+
+test("optionGreeks: rho 符号（call > 0、put < 0）且非退化", () => {
+  const c = optionGreeks("call", 100, 100, { r: 0.05, t: 1, iv: 0.2 });
+  const p = optionGreeks("put", 100, 100, { r: 0.05, t: 1, iv: 0.2 });
+  assert.ok(c.rho > 0, "call rho > 0，got " + c.rho);
+  assert.ok(p.rho < 0, "put rho < 0，got " + p.rho);
+  // 利率敏感：随 t 增大 rho 幅度单调不减（更长久期更敏感）
+  const rShort = optionGreeks("call", 100, 100, { r: 0.05, t: 0.25, iv: 0.2 }).rho;
+  const rLong = optionGreeks("call", 100, 100, { r: 0.05, t: 1, iv: 0.2 }).rho;
+  assert.ok(rLong > rShort, "rho 随 t 增大而增大，got short=" + rShort + " long=" + rLong);
+});
+
+test("optionGreeks: 退化 t≤0 / iv≤0 → 五希腊全 0（含 rho）", () => {
+  const c = optionGreeks("call", 100, 90, { r: 0.04, t: 0, iv: 0.2 });
+  assert.equal(c.delta, 0);
+  assert.equal(c.gamma, 0);
+  assert.equal(c.theta, 0);
+  assert.equal(c.vega, 0);
+  assert.equal(c.rho, 0);
+  const p = optionGreeks("put", 100, 100, { iv: 0, t: 1, r: 0.04 });
+  assert.equal(p.rho, 0);
+});
+
+test("optionGreeks 与 priceOption 的 delta/gamma/theta/vega 完全一致（DRY 复用）", () => {
+  for (const type of ["call", "put"]) {
+    const px = priceOption(type, 100, 100, { r: 0.05, t: 1, iv: 0.2 });
+    const g = optionGreeks(type, 100, 100, { r: 0.05, t: 1, iv: 0.2 });
+    assert.equal(g.delta, px.delta, `${type} delta`);
+    assert.equal(g.gamma, px.gamma, `${type} gamma`);
+    assert.equal(g.theta, px.theta, `${type} theta`);
+    assert.equal(g.vega, px.vega, `${type} vega`);
+    // priceOption 现在也带 rho
+    assert.equal(px.rho, g.rho, `${type} rho 透传`);
+  }
+});
+
+test("optionGreeks: call−put 平价在希腊层（delta 平价 + rho 之差 = K·t·e^(−rt)/100）", () => {
+  const c = optionGreeks("call", 100, 100, { r: 0.05, t: 1, iv: 0.2 });
+  const p = optionGreeks("put", 100, 100, { r: 0.05, t: 1, iv: 0.2 });
+  assert.ok(Math.abs(c.delta - (p.delta + 1)) < 1e-3, "delta 平价：delta_call − delta_put = 1");
+  // 平价 C−P = S−K·e^(−rt) 对 r 求导：rho_call − rho_put = K·t·e^(−rt)/100
+  const expect = (100 * 1 * Math.exp(-0.05 * 1)) / 100;
+  assert.ok(Math.abs((c.rho - p.rho) - expect) < 1e-3, `rho 之差 ≈ ${expect.toFixed(4)}, got ${(c.rho - p.rho).toFixed(4)}`);
 });
 
 // ---------- computeOptionChain ----------

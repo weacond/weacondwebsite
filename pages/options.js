@@ -181,6 +181,7 @@ function OptionTable({ side, rows, atmStrike, L }) {
               <th className="text-right px-3 py-2 font-medium" title={L.gammaTip}>Γ</th>
               <th className="text-right px-3 py-2 font-medium" title={L.thetaTip}>Θ</th>
               <th className="text-right px-3 py-2 font-medium" title={L.vegaTip}>V</th>
+              <th className="text-right px-3 py-2 font-medium" title={L.rhoTip}>R</th>
             </tr>
           </thead>
           <tbody>
@@ -199,6 +200,7 @@ function OptionTable({ side, rows, atmStrike, L }) {
                   <td className="text-right px-3 py-2">{o.gamma.toFixed(4)}</td>
                   <td className="text-right px-3 py-2 text-rose-500">{o.theta.toFixed(4)}</td>
                   <td className="text-right px-3 py-2">{o.vega.toFixed(4)}</td>
+                  <td className="text-right px-3 py-2">{o.rho.toFixed(4)}</td>
                 </tr>
               );
             })}
@@ -492,7 +494,7 @@ function VolPositioning({ iv, L }) {
 
 const zh = {
   title: "期权链 · 波动面",
-  subtitle: "Black-Scholes 模型估算 · 价格与希腊字母（Δ Γ Θ V）",
+  subtitle: "Black-Scholes 模型估算 · 价格与希腊字母（Δ Γ Θ V ρ）",
   modelBadge: "模型估算 · 非实时",
   symbol: "标的",
   expiry: "到期",
@@ -513,6 +515,7 @@ const zh = {
   gammaTip: "Gamma：Delta 对标的价格的变化",
   thetaTip: "Theta：每日时间衰减",
   vegaTip: "Vega：IV 每变动 1% 的价格变化",
+  rhoTip: "Rho：无风险利率每变动 1% 的价格变化",
   disclaimerTitle: "⚠️ 数据与模型说明",
   disclaimer: "本表为 Black-Scholes-Merton 解析模型估算，非交易所实时期权报价。希腊字母用于教学与示意，实际交易需考虑 bid/ask 价差、跳空、流动性等。",
   disclaimer2: "现货价取最近收盘价（未配置行情密钥时回退为示例值，标注『示例』）。本页面不构成投资建议。",
@@ -564,7 +567,7 @@ const zh = {
 };
 const en = {
   title: "Options Chain · Volatility Surface",
-  subtitle: "Black-Scholes model estimate · price & greeks (Δ Γ Θ V)",
+  subtitle: "Black-Scholes model estimate · price & greeks (Δ Γ Θ V ρ)",
   modelBadge: "Model · Not Live",
   symbol: "Symbol",
   expiry: "Expiry",
@@ -585,6 +588,7 @@ const en = {
   gammaTip: "Gamma: change in delta per underlying move",
   thetaTip: "Theta: daily time decay",
   vegaTip: "Vega: price change per 1% change in IV",
+  rhoTip: "Rho: price change per 1% change in risk-free rate",
   disclaimerTitle: "⚠️ Data & Model Notice",
   disclaimer: "This table is a Black-Scholes-Merton analytical estimate, not a live exchange quote. Greeks are for teaching/illustration; real trading must account for bid/ask spread, gaps, liquidity, etc.",
   disclaimer2: "Spot uses the most recent close (falls back to a demo value when no market-data key is configured, marked 'Demo'). This page is not investment advice.",
