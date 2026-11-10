@@ -8,7 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { STRATEGY_REGISTRY, histogram } from "../lib/backtest";
+import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, maxDrawdownStats } from "../lib/risk.js";
 
@@ -71,6 +71,25 @@ export default function BacktestPage() {
   const [compareInfo, setCompareInfo] = useState(null);
   const chartRef = useRef(null);
   const strategies = useMemo(() => Object.entries(STRATEGY_REGISTRY), []);
+
+  // 技术指标信号（基于回测 K 线取最新值；K 线不足 26 根时返回 null）
+  const techSignals = useMemo(() => {
+    const c = result?.rawCandles;
+    if (!c || c.length < 26) return null;
+    const closes = c.map((x) => x.close);
+    const r = rsi(closes, 14).pop();
+    const m = macd(closes, 12, 26, 9);
+    const s = stochastic(c, 14, 3);
+    const st = supertrend(c, 10, 3);
+    const hist = m.histogram;
+    return {
+      rsi: r,
+      macdHist: hist[hist.length - 1],
+      macdCrossUp: hist[hist.length - 2] <= 0 && hist[hist.length - 1] > 0,
+      stochK: s.k[s.k.length - 1],
+      supertrendDir: st.direction[st.direction.length - 1],
+    };
+  }, [result]);
 
   const handleParamChange = (key, val) => setParams((p) => ({ ...p, [key]: Number(val) }));
 
@@ -275,6 +294,58 @@ export default function BacktestPage() {
                   <span className="inline-block w-3 h-0.5 bg-red-400"></span>
                   {L.drawdownOverlay}
                 </span>
+              </div>
+            </div>
+          )}
+          {/* 技术指标信号 */}
+          {techSignals && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+              <h3 className="font-semibold mb-4">{L.techSignals}</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 mb-1">{L.rsi}</div>
+                  <div
+                    className={`text-lg font-bold ${
+                      techSignals.rsi >= 70 ? "text-red-600" : techSignals.rsi <= 30 ? "text-green-600" : "text-slate-700"
+                    }`}
+                  >
+                    {techSignals.rsi != null ? techSignals.rsi.toFixed(1) : "—"}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    {techSignals.rsi >= 70 ? L.overbought : techSignals.rsi <= 30 ? L.oversold : L.neutralSignal}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 mb-1">MACD</div>
+                  <div className={`text-lg font-bold ${techSignals.macdHist >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {techSignals.macdHist != null ? techSignals.macdHist.toFixed(3) : "—"}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">{techSignals.macdCrossUp ? L.bullishCross : "—"}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 mb-1">{L.stochK}</div>
+                  <div className="text-lg font-bold text-slate-700">
+                    {techSignals.stochK != null ? techSignals.stochK.toFixed(1) : "—"}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 mb-1">{L.supertrend}</div>
+                  <div
+                    className={`text-lg font-bold ${
+                      techSignals.supertrendDir === "up"
+                        ? "text-green-600"
+                        : techSignals.supertrendDir === "down"
+                          ? "text-red-600"
+                          : "text-slate-700"
+                    }`}
+                  >
+                    {techSignals.supertrendDir === "up"
+                      ? L.upSignal
+                      : techSignals.supertrendDir === "down"
+                        ? L.downSignal
+                        : "—"}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -704,6 +775,9 @@ const zh = {
   kellyHint: "基于本策略回测的胜率与盈亏比：f* = 胜率 −(1−胜率)×(亏/盈)。满凯利风险大，半凯利更稳健。非投资建议。",
   assumptions: "回测假设", startDate: "起始", endDate: "结束", candles: "K线数",
   deployToPaper: "部署到模拟盘", deployNote: "用 0 风险先验证策略",
+  techSignals: "技术指标信号", rsi: "RSI", stochK: "Stoch %K", supertrend: "超级趋势",
+  overbought: "超买", oversold: "超卖", neutralSignal: "中性", bullishCross: "金叉",
+  upSignal: "↑ 多头", downSignal: "↓ 空头",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
 };
 const en = {
@@ -737,6 +811,9 @@ const en = {
   kellyHint: "From backtest win rate & payoff ratio: f* = p − (1−p)×(loss/win). Full Kelly is aggressive; half Kelly is safer. Not advice.",
   assumptions: "Assumptions", startDate: "Start", endDate: "End", candles: "Candles",
   deployToPaper: "Deploy to Paper", deployNote: "validate the strategy risk-free",
+  techSignals: "Technical Signals", rsi: "RSI", stochK: "Stoch %K", supertrend: "Supertrend",
+  overbought: "Overbought", oversold: "Oversold", neutralSignal: "Neutral", bullishCross: "Bull Cross",
+  upSignal: "↑ Bullish", downSignal: "↓ Bearish",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
 };
 
