@@ -44,6 +44,9 @@ const CMP_METRICS = [
   { key: "beta", label: "β 系数", labelEn: "Beta", fmt: (v) => v.toFixed(2), neutral: true },
   { key: "treynor", label: "特雷诺", labelEn: "Treynor", fmt: (v) => v.toFixed(2), higher: true },
   { key: "expectancy", label: "每笔期望", labelEn: "Expectancy", fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}`, higher: true },
+  { key: "avgDrawdown", label: "平均回撤", labelEn: "Avg DD", fmt: (v) => `-${v.toFixed(2)}%`, higher: false },
+  { key: "longestUnderwater", label: "最长水下", labelEn: "Underwater", fmt: (v) => `${v} 根`, higher: false },
+  { key: "underwaterPct", label: "水下占比", labelEn: "% Underwater", fmt: (v) => `${v.toFixed(1)}%`, higher: false },
 ];
 
 const DEFAULT_CONFIG = { initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 };

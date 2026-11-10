@@ -140,8 +140,11 @@ test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同�
   assert.equal(m.treynor, 0);
   assert.equal(m.martin, 0);
   assert.equal(m.expectancy, 0);
+  assert.equal(m.avgDrawdown, 0);
+  assert.equal(m.longestUnderwater, 0);
+  assert.equal(m.underwaterPct, 0);
   // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
-  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "treynor", "martin", "expectancy", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "treynor", "martin", "expectancy", "avgDrawdown", "longestUnderwater", "underwaterPct", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
     assert.ok(k in m, `空交易仍应有 ${k}`);
   }
   assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
@@ -175,6 +178,24 @@ test("calcMetrics: 无亏损时 payoffRatio 封顶 999；全亏损为 0", () => 
   assert.equal(onlyWins.payoffRatio, 999, "全盈利封顶 999");
   const onlyLosses = calcMetrics([{ pnl: -5 }, { pnl: -3 }], 100000, [], eq);
   assert.equal(onlyLosses.payoffRatio, 0, "全亏损=0");
+});
+
+test("calcMetrics: 回撤画像（avgDrawdown/longestUnderwater/underwaterPct）", () => {
+  // 权益曲线 100→100→90→80→100→110：峰 100，谷 80(−20%)；水下点 90、80 共 2 个，n=6
+  const eq = [100, 100, 90, 80, 100, 110].map((v, i) => ({ date: `2023-01-0${i + 1}`, value: v }));
+  const m = calcMetrics([{ pnl: 10, returnPct: 1, holdDays: 1 }], 100000, [], eq);
+  // maxDrawdownStats 内部以 vals[0] 为峰，与 initialCapital 量纲无关 → 结果可精确断言
+  assert.ok(Math.abs(m.avgDrawdown - 15) < 1e-6, "平均回撤 15%（(10+20)/2）");
+  assert.equal(m.longestUnderwater, 2, "最长水下 2 根");
+  assert.ok(Math.abs(m.underwaterPct - 33.3) < 1e-6, "水下占比 2/6 ≈ 33.3%（存储 toFixed(1)）");
+});
+
+test("calcMetrics: 无回撤权益曲线 → 回撤画像全 0", () => {
+  const eq = [100, 101, 102, 103].map((v, i) => ({ date: `2023-01-0${i + 1}`, value: v }));
+  const m = calcMetrics([{ pnl: 10, returnPct: 1, holdDays: 1 }], 100000, [], eq);
+  assert.equal(m.avgDrawdown, 0, "单调上升无回撤 → avgDrawdown=0");
+  assert.equal(m.longestUnderwater, 0, "单调上升 → longestUnderwater=0");
+  assert.equal(m.underwaterPct, 0, "单调上升 → underwaterPct=0");
 });
 
 test("calcMetrics: probRuin 破产概率——强正期望<0.5、零期望=0.5、负期望趋近 1、单调", () => {
