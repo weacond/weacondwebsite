@@ -8,6 +8,7 @@ import {
   inverseVolWeights,
   riskContribution,
   riskParityWeights,
+  maxSharpeWeights,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -212,4 +213,37 @@ test("riskParityWeights: 边界——空→[]、单资产→[1]、全 0 波动�
   assert.deepEqual(riskParityWeights([0.1], [[1]]), [1], "单资产 → [1]");
   assert.deepEqual(riskParityWeights([0, 0], [[1, 0], [0, 1]]), [0.5, 0.5], "全 0 波动 → 等权");
   assert.deepEqual(riskParityWeights([0.1, 0.2], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]), [], "维度不匹配 → []");
+});
+
+// ---------- maxSharpeWeights ----------
+
+test("maxSharpeWeights: 不变式——和=1、全 ≥0、长度 N、≥ 逆波动夏普", () => {
+  const A = [0.02, 0.01, 0.03, 0.015, 0.02];
+  const B = [0.005, 0.002, -0.01, 0.001, -0.008];
+  const vols = [0.01, 0.05];
+  const corr = [[1, 0.1], [0.1, 1]];
+  const w = maxSharpeWeights([A, B], vols, corr, { grid: 40 });
+  assert.equal(w.length, 2, "长度=资产数");
+  assert.ok(w.every((x) => x >= 0), "全 ≥0（long-only）");
+  assert.ok(Math.abs(w[0] + w[1] - 1) < 1e-9, "和=1");
+  const sOpt = portfolioSharpe([A, B], vols, corr, w);
+  const sInv = portfolioSharpe([A, B], vols, corr, inverseVolWeights(vols));
+  assert.ok(sOpt >= sInv - 1e-9, "最优夏普 ≥ 逆波动夏普");
+  // 资产 A 高收益低波动占优 → 重仓 A
+  assert.ok(w[0] > 0.5, "占优资产权重 > 0.5");
+});
+
+test("maxSharpeWeights: 完全相同资产 → 等权（任一等权即最优）", () => {
+  const R = [0.01, 0.02, 0.03];
+  const vols = [0.02, 0.02, 0.02];
+  const corr = [[1, 0.5, 0.5], [0.5, 1, 0.5], [0.5, 0.5, 1]];
+  const w = maxSharpeWeights([R, R, R], vols, corr);
+  assert.equal(w.length, 3);
+  for (const x of w) assert.ok(Math.abs(x - 1 / 3) < 1e-6, "等权 1/3");
+});
+
+test("maxSharpeWeights: 边界——空→[]、单资产→[1]、维度不匹配→[]", () => {
+  assert.deepEqual(maxSharpeWeights([], [], []), [], "空 → []");
+  assert.deepEqual(maxSharpeWeights([[0.01, 0.02]], [0.02], [[1]]), [1], "单资产 → [1]");
+  assert.deepEqual(maxSharpeWeights([[0.01, 0.02], [0.01, 0.02]], [0.01], [[1, 0], [0, 1]]), [], "维度不匹配 → []");
 });
