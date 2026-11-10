@@ -47,8 +47,8 @@ const METRIC_KEYS = [
 
 // 全策略对比的排序选项标签
 const SORT_LABELS = {
-  zh: { sharpe: "夏普比率", cagr: "年化收益", sortino: "索提诺", martin: "马丁", maxDrawdown: "最大回撤", winRate: "胜率", profitFactor: "盈亏比", calmar: "卡玛比率" },
-  en: { sharpe: "Sharpe", cagr: "CAGR", sortino: "Sortino", martin: "Martin", maxDrawdown: "Max DD", winRate: "Win Rate", profitFactor: "Profit Factor", calmar: "Calmar" },
+  zh: { sharpe: "夏普比率", cagr: "年化收益", sortino: "索提诺", martin: "马丁", maxDrawdown: "最大回撤", winRate: "胜率", profitFactor: "盈亏比", calmar: "卡玛比率", expectancy: "每笔期望" },
+  en: { sharpe: "Sharpe", cagr: "CAGR", sortino: "Sortino", martin: "Martin", maxDrawdown: "Max DD", winRate: "Win Rate", profitFactor: "Profit Factor", calmar: "Calmar", expectancy: "Expectancy" },
 };
 
 export default function BacktestPage() {
@@ -141,7 +141,7 @@ export default function BacktestPage() {
   // 排行：多数指标越高越好，回撤/波动越低越好
   const sortedComparison = comparison
     ? [...comparison].sort((a, b) => {
-        const higherBetter = { sharpe: 1, cagr: 1, sortino: 1, martin: 1, winRate: 1, profitFactor: 1, calmar: 1, totalReturn: 1 };
+        const higherBetter = { sharpe: 1, cagr: 1, sortino: 1, martin: 1, winRate: 1, profitFactor: 1, calmar: 1, totalReturn: 1, expectancy: 1 };
         return higherBetter[compareSort] ? b[compareSort] - a[compareSort] : a[compareSort] - b[compareSort];
       })
     : null;
@@ -549,7 +549,7 @@ export default function BacktestPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400">{L.sortBy}</span>
                   <select value={compareSort} onChange={(e) => setCompareSort(e.target.value)} className="px-2 py-1 border rounded text-xs">
-                    {["sharpe", "cagr", "sortino", "martin", "maxDrawdown", "winRate", "profitFactor", "calmar"].map((k) => (
+                    {["sharpe", "cagr", "sortino", "martin", "maxDrawdown", "winRate", "profitFactor", "calmar", "expectancy"].map((k) => (
                       <option key={k} value={k}>{SORT_LABELS[lang][k]}</option>
                     ))}
                   </select>
