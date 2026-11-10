@@ -20,6 +20,7 @@ const CMP_METRICS = [
   { key: "cagr", label: "年化", labelEn: "CAGR", fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`, higher: true },
   { key: "sharpe", label: "夏普", labelEn: "Sharpe", fmt: (v) => v.toFixed(2), higher: true },
   { key: "sortino", label: "索提诺", labelEn: "Sortino", fmt: (v) => v.toFixed(2), higher: true },
+  { key: "martin", label: "马丁", labelEn: "Martin", fmt: (v) => v.toFixed(2), higher: true },
   { key: "maxDrawdown", label: "最大回撤", labelEn: "Max DD", fmt: (v) => `-${v.toFixed(1)}%`, higher: false },
   { key: "winRate", label: "胜率", labelEn: "Win Rate", fmt: (v) => `${v.toFixed(0)}%`, higher: true },
   { key: "profitFactor", label: "盈亏比", labelEn: "Profit Factor", fmt: (v) => v.toFixed(2), higher: true },
@@ -41,6 +42,7 @@ const CMP_METRICS = [
   { key: "trackingError", label: "跟踪误差", labelEn: "Tracking Err.", fmt: (v) => `${(v * 100).toFixed(2)}%`, higher: false },
   { key: "alpha", label: "阿尔法", labelEn: "Alpha", fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(2)}`, higher: true },
   { key: "beta", label: "β 系数", labelEn: "Beta", fmt: (v) => v.toFixed(2), neutral: true },
+  { key: "treynor", label: "特雷诺", labelEn: "Treynor", fmt: (v) => v.toFixed(2), higher: true },
 ];
 
 const DEFAULT_CONFIG = { initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 };

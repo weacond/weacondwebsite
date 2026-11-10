@@ -137,8 +137,10 @@ test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同�
   assert.equal(m.trackingError, 0);
   assert.equal(m.beta, 0);
   assert.equal(m.alpha, 0);
+  assert.equal(m.treynor, 0);
+  assert.equal(m.martin, 0);
   // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
-  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "treynor", "martin", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
     assert.ok(k in m, `空交易仍应有 ${k}`);
   }
   assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
@@ -215,6 +217,7 @@ test("calcMetrics: 基准序列 → informationRatio/upCapture/downCapture；无
   assert.equal(noB.trackingError, 0, "无基准 → TE=0");
   assert.equal(noB.beta, 0, "无基准 → β=0");
   assert.equal(noB.alpha, 0, "无基准 → α=0");
+  assert.equal(noB.treynor, 0, "无基准 → 特雷诺=0");
 });
 
 test("calcMetrics: 策略跑赢且波动小 → IR>0；下行捕获 <1（跌得比基准少）", () => {
@@ -234,6 +237,8 @@ test("calcMetrics: 策略跑赢且波动小 → IR>0；下行捕获 <1（跌得�
   // r=[0.02,-0.005], b=[0.01,-0.02]：β=cov/var_b ≈ 0.8333；α>0（跑赢且 β<1）
   assert.ok(Math.abs(m.beta - 0.8333) < 1e-3, "β ≈ 0.833");
   assert.ok(m.alpha > 0, "跑赢 → 年化 α>0");
+  assert.ok(m.treynor > 0, "跑赢且 β>0 → 特雷诺>0");
+  assert.ok(m.martin > 0, "有超额且下行有限 → 马丁>0");
 });
 
 // ---------- 年化 ----------

@@ -46,8 +46,8 @@ const METRIC_KEYS = [
 
 // 全策略对比的排序选项标签
 const SORT_LABELS = {
-  zh: { sharpe: "夏普比率", cagr: "年化收益", sortino: "索提诺", maxDrawdown: "最大回撤", winRate: "胜率", profitFactor: "盈亏比", calmar: "卡玛比率" },
-  en: { sharpe: "Sharpe", cagr: "CAGR", sortino: "Sortino", maxDrawdown: "Max DD", winRate: "Win Rate", profitFactor: "Profit Factor", calmar: "Calmar" },
+  zh: { sharpe: "夏普比率", cagr: "年化收益", sortino: "索提诺", martin: "马丁", maxDrawdown: "最大回撤", winRate: "胜率", profitFactor: "盈亏比", calmar: "卡玛比率" },
+  en: { sharpe: "Sharpe", cagr: "CAGR", sortino: "Sortino", martin: "Martin", maxDrawdown: "Max DD", winRate: "Win Rate", profitFactor: "Profit Factor", calmar: "Calmar" },
 };
 
 export default function BacktestPage() {
@@ -123,7 +123,7 @@ export default function BacktestPage() {
         return {
           key,
           name: lang === "en" ? def.nameEn : def.name,
-          totalReturn: r.totalReturn, cagr: r.cagr, sharpe: r.sharpe, sortino: r.sortino,
+          totalReturn: r.totalReturn, cagr: r.cagr, sharpe: r.sharpe, sortino: r.sortino, martin: r.martin,
           maxDrawdown: r.maxDrawdown, winRate: r.winRate, profitFactor: r.profitFactor,
           numTrades: r.numTrades, calmar: r.calmar, volatility: r.volatility,
         };
@@ -140,7 +140,7 @@ export default function BacktestPage() {
   // 排行：多数指标越高越好，回撤/波动越低越好
   const sortedComparison = comparison
     ? [...comparison].sort((a, b) => {
-        const higherBetter = { sharpe: 1, cagr: 1, sortino: 1, winRate: 1, profitFactor: 1, calmar: 1, totalReturn: 1 };
+        const higherBetter = { sharpe: 1, cagr: 1, sortino: 1, martin: 1, winRate: 1, profitFactor: 1, calmar: 1, totalReturn: 1 };
         return higherBetter[compareSort] ? b[compareSort] - a[compareSort] : a[compareSort] - b[compareSort];
       })
     : null;
@@ -288,6 +288,7 @@ export default function BacktestPage() {
                 [L.benchReturn, `${benchReturn > 0 ? "+" : ""}${benchReturn.toFixed(2)}%`, benchReturn > 0],
                 [L.alpha, `${alpha > 0 ? "+" : ""}${alpha.toFixed(2)}%`, alpha > 0],
                 [L.beta, m.beta.toFixed(2), null],
+                [L.treynor, m.treynor.toFixed(2), m.treynor > 0],
                 [L.infoRatio, m.informationRatio.toFixed(2), m.informationRatio > 0],
                 [L.upCapture, `${(m.upCapture * 100).toFixed(0)}%`, m.upCapture >= 1],
                 [L.downCapture, `${(m.downCapture * 100).toFixed(0)}%`, m.downCapture <= 1],
@@ -528,7 +529,7 @@ export default function BacktestPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400">{L.sortBy}</span>
                   <select value={compareSort} onChange={(e) => setCompareSort(e.target.value)} className="px-2 py-1 border rounded text-xs">
-                    {["sharpe", "cagr", "sortino", "maxDrawdown", "winRate", "profitFactor", "calmar"].map((k) => (
+                    {["sharpe", "cagr", "sortino", "martin", "maxDrawdown", "winRate", "profitFactor", "calmar"].map((k) => (
                       <option key={k} value={k}>{SORT_LABELS[lang][k]}</option>
                     ))}
                   </select>
@@ -672,6 +673,7 @@ const zh = {
   benchReturn: "基准收益",
   alpha: "超额(Alpha)",
   beta: "β 系数",
+  treynor: "特雷诺",
   infoRatio: "信息比率",
   upCapture: "上行捕获",
   downCapture: "下行捕获",
@@ -703,6 +705,7 @@ const en = {
   benchReturn: "Bench Return",
   alpha: "Alpha",
   beta: "Beta",
+  treynor: "Treynor",
   infoRatio: "Info Ratio",
   upCapture: "Up Capture",
   downCapture: "Down Capture",

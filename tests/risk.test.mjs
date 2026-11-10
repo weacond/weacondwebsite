@@ -31,6 +31,8 @@ import {
   trackingError,
   beta,
   alpha,
+  treynorRatio,
+  martinRatio,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -544,6 +546,31 @@ test("alpha: r=b（β=1）→ 0；基准无方差(β=0)→ mean_r×P；rf 在 β
   // β=1 时 rf 抵消：r=b, 任意 rf/P 仍 → 0
   assert.ok(Math.abs(alpha(x, x, 0.0256, 252)) < 1e-12, "β=1 → rf 抵消, α=0");
   assert.equal(alpha([], []), 0, "空 → 0");
+});
+
+test("treynorRatio: r=b(β=1) → mean_r×P；r=2b(β=2) 同除；基准无方差(β=0)/空 → 0", () => {
+  const x = [0.01, -0.02, 0.03, 0.005]; // mean = 0.00625
+  // β=1，rf=0 → (0.00625×252)/1 = 1.575
+  assert.ok(Math.abs(treynorRatio(x, x, 0, 252) - 1.575) < 1e-9, "r=b → 1.575");
+  // r=2b → β=2，mean_r = 2×0.01875 = 0.0375 → (0.0375×252)/2 = 4.725
+  const b = [0.01, 0.02, 0.03, 0.015];
+  assert.ok(Math.abs(treynorRatio(b.map((v) => 2 * v), b, 0, 252) - 4.725) < 1e-9, "r=2b → 4.725");
+  // 基准恒定 → β=0 → 无法归一 → 0
+  assert.equal(treynorRatio([0.01, 0.02], [0.01, 0.01], 0, 252), 0, "基准无方差(β=0) → 0");
+  assert.equal(treynorRatio([], []), 0, "空 → 0");
+  assert.equal(treynorRatio([0.01], [0.01]), 0, "配对<2 → 0");
+});
+
+test("martinRatio: 超额/下行标准差×√P；无下行(全非负)→ 0；空 → 0", () => {
+  const x = [0.01, -0.02, 0.03, 0.005]; // mean=0.00625, dd=√(0.0004/4)=0.01
+  // (0.00625/0.01)×√252 = 0.625×15.8745 ≈ 9.9215
+  assert.ok(Math.abs(martinRatio(x, 252, 0, 0) - 0.625 * Math.sqrt(252)) < 1e-6, "≈9.92");
+  // 全非负 → 下行标准差=0 → 0
+  assert.equal(martinRatio([0.01, 0.02, 0.03], 252, 0, 0), 0, "无下行 → 0");
+  assert.equal(martinRatio([], 252, 0, 0), 0, "空 → 0");
+  // threshold 提高 → 更多样本计入下行 → dd 增大 → martin 下降
+  const mHigh = martinRatio(x, 252, 0, 0.005);
+  assert.ok(mHigh < 0.625 * Math.sqrt(252), "threshold=0.005 → 下行更大 → martin 更小");
 });
 
 
