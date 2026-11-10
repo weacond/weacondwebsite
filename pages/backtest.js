@@ -8,7 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend } from "../lib/backtest";
+import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, signalConsensus } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, maxDrawdownStats } from "../lib/risk.js";
 
@@ -88,6 +88,7 @@ export default function BacktestPage() {
       macdCrossUp: hist[hist.length - 2] <= 0 && hist[hist.length - 1] > 0,
       stochK: s.k[s.k.length - 1],
       supertrendDir: st.direction[st.direction.length - 1],
+      consensus: signalConsensus(c),
     };
   }, [result]);
 
@@ -345,6 +346,29 @@ export default function BacktestPage() {
                         ? L.downSignal
                         : "—"}
                   </div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 text-center">
+                <div className="text-xs text-slate-400 mb-1">{L.consensus}</div>
+                <div className="flex items-center justify-center gap-3">
+                  <span
+                    className={`text-lg font-bold ${
+                      techSignals.consensus.direction === "bull"
+                        ? "text-green-600"
+                        : techSignals.consensus.direction === "bear"
+                          ? "text-red-600"
+                          : "text-slate-700"
+                    }`}
+                  >
+                    {techSignals.consensus.direction === "bull"
+                      ? L.bull
+                      : techSignals.consensus.direction === "bear"
+                        ? L.bear
+                        : L.neutralSignal}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {L.agreement} {Math.round(techSignals.consensus.agreement * 100)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -778,6 +802,7 @@ const zh = {
   techSignals: "技术指标信号", rsi: "RSI", stochK: "Stoch %K", supertrend: "超级趋势",
   overbought: "超买", oversold: "超卖", neutralSignal: "中性", bullishCross: "金叉",
   upSignal: "↑ 多头", downSignal: "↓ 空头",
+  consensus: "信号共识", agreement: "共识强度", bull: "看多", bear: "看空",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
 };
 const en = {
@@ -814,6 +839,7 @@ const en = {
   techSignals: "Technical Signals", rsi: "RSI", stochK: "Stoch %K", supertrend: "Supertrend",
   overbought: "Overbought", oversold: "Oversold", neutralSignal: "Neutral", bullishCross: "Bull Cross",
   upSignal: "↑ Bullish", downSignal: "↓ Bearish",
+  consensus: "Signal Consensus", agreement: "Agreement", bull: "Bull", bear: "Bear",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
 };
 

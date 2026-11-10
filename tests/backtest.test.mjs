@@ -14,6 +14,7 @@ import {
   williams,
   obv,
   supertrend,
+  signalConsensus,
   runBacktest,
   calcMetrics,
   annualizedReturn,
@@ -226,6 +227,30 @@ test("macd_cross 策略: 先跌后涨产生金叉买入、随后死叉卖出", (
   const signals = STRATEGY_REGISTRY.macd_cross.run(candles, {});
   assert.ok(signals.some((s) => s.action === "buy"), "应有 MACD 金叉买入信号");
   assert.ok(signals.some((s) => s.action === "sell"), "应有 MACD 死叉卖出信号");
+});
+
+// ---------- 多指标信号共识 ----------
+
+test("signalConsensus: 上升趋势 → 看多、共识强度为正", () => {
+  const up = Array.from({ length: 80 }, (_, i) => ({ high: 100 + i + 1, low: 100 + i, close: 100 + i + 0.5, open: 100 + i, volume: 1000 }));
+  const c = signalConsensus(up);
+  assert.equal(c.direction, "bull");
+  assert.ok(c.score > 0, "score 应为正");
+  assert.ok(c.agreement === Math.abs(c.score), "agreement = |score|");
+});
+
+test("signalConsensus: 下降趋势 → 看空", () => {
+  const down = Array.from({ length: 80 }, (_, i) => ({ high: 100 - i + 1, low: 100 - i - 1, close: 100 - i - 0.5, open: 100 - i, volume: 1000 }));
+  const c = signalConsensus(down);
+  assert.equal(c.direction, "bear");
+  assert.ok(c.score < 0, "score 应为负");
+});
+
+test("signalConsensus: 数据不足/空输入 → 中性、score=0", () => {
+  assert.equal(signalConsensus([1, 2, 3]).direction, "neutral");
+  assert.equal(signalConsensus([1, 2, 3]).score, 0);
+  assert.equal(signalConsensus([]).direction, "neutral");
+  assert.equal(signalConsensus(null).direction, "neutral");
 });
 
 // ---------- 回测引擎 ----------
