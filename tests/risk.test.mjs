@@ -25,6 +25,7 @@ import {
   omegaRatio,
   tailRatio,
   sterlingRatio,
+  drawdownDuration,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -422,6 +423,27 @@ test("sterlingRatio: 总收益/最长连亏；精确值、封顶、负收益、�
   assert.equal(sterlingRatio(NaN, 5), 0, "NaN 收益 → 0");
   assert.equal(sterlingRatio(100, NaN), 0, "NaN 连亏 → 0");
   assert.equal(sterlingRatio(100, Infinity), 0, "Infinity 连亏 → 0");
+});
+
+// ---------- drawdownDuration ----------
+
+test("drawdownDuration: 最深回撤区间的 K 线根数；全程上涨/空/单点 → 0", () => {
+  // [100,110,90,105]：峰 110(idx1) → 谷 90(idx2)，持续 1 根
+  assert.equal(drawdownDuration([100, 110, 90, 105]), 1);
+  // [100,110,90,70,60,100]：峰 110(idx1) → 谷 60(idx4)，持续 3 根
+  assert.equal(drawdownDuration([100, 110, 90, 70, 60, 100]), 3);
+  assert.equal(drawdownDuration([100, 101, 102, 103]), 0, "全程上涨 → 0");
+  assert.equal(drawdownDuration([]), 0, "空 → 0");
+  assert.equal(drawdownDuration([42]), 0, "单点 → 0");
+});
+
+test("drawdownDuration: 取最深回撤区间；多段回撤取更深者", () => {
+  // 第一段小回撤 idx2→3(1 根)，第二段深回撤 idx5→6(1 根但更深) → 取深者
+  const eq = [100, 105, 102, 101, 110, 90, 80, 130];
+  // 峰 110(idx4) → 谷 80(idx6)，持续 6-4=2 根
+  assert.equal(drawdownDuration(eq), 2, "多段回撤取最深者，持续 2 根");
+  // 全程未创新高：峰在 idx1，谷在 idx5，持续 4 根
+  assert.equal(drawdownDuration([100, 120, 100, 90, 80, 70]), 4, "未恢复取全程谷底");
 });
 
 
