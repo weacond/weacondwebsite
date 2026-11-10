@@ -117,9 +117,9 @@ test("analyzeStrategy: payoffCurve 覆盖 0→上界且单调合理", () => {
 
 // ---------- strategyTemplates ----------
 
-test("strategyTemplates: 9 个常见策略，腿数与结构正确", () => {
+test("strategyTemplates: 11 个常见策略，腿数与结构正确", () => {
   const tpl = strategyTemplates(100, 100, 110);
-  assert.equal(tpl.length, 9);
+  assert.equal(tpl.length, 11);
   const byId = Object.fromEntries(tpl.map((t) => [t.id, t]));
   assert.equal(byId.long_call.legs.length, 1);
   assert.equal(byId.bull_call_spread.legs.length, 2);
@@ -139,11 +139,34 @@ test("strategyTemplates: 9 个常见策略，腿数与结构正确", () => {
   // 风险反转可分析
   const rr = analyzeStrategy(byId.risk_reversal.legs, OPTS);
   assert.ok(rr.premium !== undefined, "风险反转可分析");
+  // 蝶式：3 腿，上下端盈亏皆有界，净收入(credit)
+  assert.equal(byId.call_butterfly.legs.length, 3);
+  assert.equal(byId.put_butterfly.legs.length, 3);
+  const cb = analyzeStrategy(byId.call_butterfly.legs, OPTS);
+  assert.equal(cb.unboundedProfit, false, "看涨蝶式最大盈利有界");
+  assert.equal(cb.unboundedLoss, false, "看涨蝶式最大亏损有界");
   // 每个模板都应能被分析而不抛错
   for (const t of tpl) {
     const res = analyzeStrategy(t.legs, OPTS);
     assert.ok(res.premium !== undefined, `${t.id} 可分析`);
   }
+});
+
+test("strategyTemplates: 蝶式盈亏曲线在中轴 strike 取峰值、上下有界", () => {
+  const tpl = strategyTemplates(100, 100, 110);
+  const byId = Object.fromEntries(tpl.map((t) => [t.id, t]));
+  // 中轴 strike = (100+110)/2 = 105
+  const res = analyzeStrategy(byId.call_butterfly.legs, OPTS);
+  assert.ok(res.maxProfit != null && res.maxLoss != null, "蝶式盈亏皆有界");
+  assert.ok(res.maxProfit > 0, "最大盈利 > 0");
+  assert.ok(res.maxLoss < 0, "最大亏损 < 0（净支出 debit）");
+  // 盈亏曲线：峰值应出现在中轴附近（105），而非端点
+  const curve = res.payoffCurve;
+  const peak = curve.reduce((a, b) => (b.profit > a.profit ? b : a));
+  assert.ok(Math.abs(peak.price - 105) <= 1.5, `峰值应在中轴≈105 附近, got ${peak.price}`);
+  // 两端（最低与最高 strike 之外）盈亏应为最大亏损（有界平台）
+  assert.ok(Math.abs(curve[0].profit - res.maxLoss) < 0.05, "左端 = 最大亏损");
+  assert.ok(Math.abs(curve[curve.length - 1].profit - res.maxLoss) < 0.05, "右端 = 最大亏损");
 });
 
 // ---------- probOfProfit（到期盈利概率） ----------
