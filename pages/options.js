@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
-import { analyzeStrategy, strategyTemplates, probOfProfit } from "../lib/optionsStrategies.js";
+import { analyzeStrategy, strategyTemplates, probOfProfit, strategyGreeks } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
 
@@ -224,6 +224,7 @@ function StrategyLab({ spot, iv, r, t, L }) {
     try {
       const a = analyzeStrategy(tpl.legs, { spot, r, t, iv });
       a.pop = probOfProfit(tpl.legs, { spot, r, t, iv });
+      a.greeks = strategyGreeks(tpl.legs, { spot, r, t, iv });
       return a;
     } catch (e) {
       return null;
@@ -288,6 +289,19 @@ function StrategyLab({ spot, iv, r, t, L }) {
               ))}
             </div>
           </div>
+
+          {analysis.greeks && (
+            <div className="mb-4">
+              <p className="text-xs text-slate-500 mb-1">{L.greeksLabel}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">Δ {analysis.greeks.delta.toFixed(3)}</span>
+                <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">Γ {analysis.greeks.gamma.toFixed(4)}</span>
+                <span className="text-xs px-2 py-1 rounded bg-rose-50 text-rose-600">Θ {analysis.greeks.theta.toFixed(4)}</span>
+                <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">V {analysis.greeks.vega.toFixed(4)}</span>
+                <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">ρ {analysis.greeks.rho.toFixed(4)}</span>
+              </div>
+            </div>
+          )}
 
           <PayoffCurve points={analysis.payoffCurve} breakEvens={analysis.breakEvens} L={L} />
         </>
@@ -533,6 +547,7 @@ const zh = {
   buy: "买",
   sell: "卖",
   share: "正股",
+  greeksLabel: "净希腊字母（Δ Γ Θ V ρ）",
   payoffTitle: "到期盈亏曲线（橙色虚线=盈亏平衡点）",
   unbounded: "∞ 无界",
   credit: "净收入",
@@ -606,6 +621,7 @@ const en = {
   buy: "Buy",
   sell: "Sell",
   share: "Share",
+  greeksLabel: "Net greeks (Δ Γ Θ V ρ)",
   payoffTitle: "Payoff at expiration (orange dashed = break-even)",
   unbounded: "∞ unbounded",
   credit: "Credit",

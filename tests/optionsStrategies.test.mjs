@@ -8,6 +8,7 @@ import {
   analyzeStrategy,
   strategyTemplates,
   probOfProfit,
+  strategyGreeks,
 } from "../lib/optionsStrategies.js";
 
 const OPTS = { spot: 100, r: 0.05, t: 1, iv: 0.2 };
@@ -168,4 +169,61 @@ test("probOfProfit: 买入跨式 POP 介于 (0,1) 且 > 0.1", () => {
 test("probOfProfit: 退化 t=0 → null（无分布）", () => {
   assert.equal(probOfProfit([{ type: "call", strike: 100, qty: 1 }], { ...OPTS, t: 0 }), null);
 });
+
+// ---------- strategyGreeks（多腿净希腊字母） ----------
+
+test("strategyGreeks: 单腿 long call 净希腊符号（Δ>0, Γ>0, V>0, Θ<0, ρ>0）", () => {
+  const g = strategyGreeks([{ type: "call", strike: 100, qty: 1 }], OPTS);
+  assert.ok(g.delta > 0, "call delta > 0");
+  assert.ok(g.gamma > 0, "call gamma > 0");
+  assert.ok(g.vega > 0, "call vega > 0");
+  assert.ok(g.theta < 0, "long call theta < 0");
+  assert.ok(g.rho > 0, "call rho > 0");
+});
+
+test("strategyGreeks: long 与 short 净希腊互为相反数（线性叠加）", () => {
+  const long = strategyGreeks([{ type: "call", strike: 100, qty: 1 }], OPTS);
+  const short = strategyGreeks([{ type: "call", strike: 100, qty: -1 }], OPTS);
+  for (const k of ["delta", "gamma", "theta", "vega", "rho"]) {
+    assert.ok(Math.abs(long[k] + short[k]) < 1e-3, `${k} 反号对称, got ${long[k]}/${short[k]}`);
+  }
+});
+
+test("strategyGreeks: 牛市看涨价差净 delta ∈ (0,1)", () => {
+  const g = strategyGreeks([
+    { type: "call", strike: 90, qty: 1 },
+    { type: "call", strike: 110, qty: -1 },
+  ], OPTS);
+  assert.ok(g.delta > 0 && g.delta < 1, `净 delta=${g.delta} 应 ∈ (0,1)`);
+});
+
+test("strategyGreeks: 备兑看涨 share 贡献 delta=1（净 delta∈(0,1)、gamma<0）", () => {
+  const g = strategyGreeks([
+    { type: "share", qty: 1 },
+    { type: "call", strike: 110, qty: -1 },
+  ], OPTS);
+  assert.ok(g.delta > 0 && g.delta < 1, `净 delta=${g.delta} 应 ∈ (0,1)`);
+  assert.ok(g.gamma < 0, "卖 call → 净 gamma < 0");
+  const onlyShare = strategyGreeks([{ type: "share", qty: 3 }], OPTS);
+  assert.equal(onlyShare.delta, 3);
+  assert.equal(onlyShare.gamma, 0);
+  assert.equal(onlyShare.vega, 0);
+});
+
+test("strategyGreeks: 退化 t=0 → 期权腿希腊全 0，share delta 保留", () => {
+  const g = strategyGreeks(
+    [{ type: "call", strike: 100, qty: 1 }, { type: "share", qty: 2 }],
+    { ...OPTS, t: 0 }
+  );
+  assert.equal(g.gamma, 0, "t=0 gamma=0");
+  assert.equal(g.vega, 0, "t=0 vega=0");
+  assert.equal(g.delta, 2, "t=0 仅 share delta=2");
+});
+
+test("strategyGreeks: 非法输入（非数组 / 缺 qty）→ 全 0", () => {
+  const zero = { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 };
+  assert.deepEqual(strategyGreeks(null, OPTS), zero);
+  assert.deepEqual(strategyGreeks([{ type: "call", strike: 100 }], OPTS), zero);
+});
+
 
