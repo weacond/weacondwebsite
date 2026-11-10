@@ -26,6 +26,7 @@ const CMP_METRICS = [
   { key: "payoffRatio", label: "Payoff", labelEn: "Payoff", fmt: (v) => v.toFixed(2), higher: true },
   { key: "omegaRatio", label: "欧米伽", labelEn: "Omega", fmt: (v) => v.toFixed(2), higher: true },
   { key: "tailRatio", label: "尾部比率", labelEn: "Tail Ratio", fmt: (v) => v.toFixed(2), higher: true },
+  { key: "sterlingRatio", label: "斯特林", labelEn: "Sterling", fmt: (v) => v.toFixed(2), higher: true },
   { key: "calmar", label: "卡玛", labelEn: "Calmar", fmt: (v) => v.toFixed(2), higher: true },
   { key: "ulcerIndex", label: "溃疡指数", labelEn: "Ulcer", fmt: (v) => `${(v * 100).toFixed(1)}%`, higher: false },
   { key: "maxLosingStreak", label: "最长连亏", labelEn: "Max Loss Streak", fmt: (v) => v.toString(), higher: false },

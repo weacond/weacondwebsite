@@ -24,6 +24,7 @@ import {
   downsideDeviation,
   omegaRatio,
   tailRatio,
+  sterlingRatio,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -404,6 +405,23 @@ test("tailRatio: 上尾分位/|下尾分位|；对称 → 1；下尾为 0 → 0"
   assert.equal(tailRatio([]), 0, "空 → 0");
   // 含 0 质量：下尾分位恰为 0 → 0
   assert.equal(tailRatio([0, 0, 0, 0, 1, 2, 3], 0.05, 0.95), 0, "下尾分位 0 → 0");
+});
+
+// ---------- sterlingRatio ----------
+
+test("sterlingRatio: 总收益/最长连亏；精确值、封顶、负收益、非有限", () => {
+  // 100 / 10 = 10
+  assert.ok(Math.abs(sterlingRatio(100, 10) - 10) < 1e-12, "100/10 = 10");
+  // 无连亏(分母 0)：有收益 → 封顶 999；无收益 → 0
+  assert.equal(sterlingRatio(50, 0), 999, "有收益无连亏 → 999");
+  assert.equal(sterlingRatio(-30, 0), 0, "亏损且无连亏 → 0");
+  assert.equal(sterlingRatio(0, 5), 0, "零收益 → 0");
+  // 负收益 / 正连亏 → 负（策略变差，有意义）
+  assert.ok(Math.abs(sterlingRatio(-30, 5) + 6) < 1e-12, "−30/5 = −6");
+  // 非有限输入 → 0（不抛异常）
+  assert.equal(sterlingRatio(NaN, 5), 0, "NaN 收益 → 0");
+  assert.equal(sterlingRatio(100, NaN), 0, "NaN 连亏 → 0");
+  assert.equal(sterlingRatio(100, Infinity), 0, "Infinity 连亏 → 0");
 });
 
 

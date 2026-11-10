@@ -34,6 +34,7 @@ const METRIC_KEYS = [
   { key: "ulcerIndex", label: "溃疡指数", labelEn: "Ulcer", fmt: (v) => `${(v * 100).toFixed(1)}%`, good: () => true },
   { key: "omegaRatio", label: "欧米伽", labelEn: "Omega", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "tailRatio", label: "尾部比率", labelEn: "Tail Ratio", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
+  { key: "sterlingRatio", label: "斯特林", labelEn: "Sterling", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
 ];
 
 // 全策略对比的排序选项标签
