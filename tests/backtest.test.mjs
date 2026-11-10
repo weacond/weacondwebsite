@@ -89,7 +89,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
     "profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "numTrades", "exposure", "calmar", "volatility",
-    "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak", "ulcerIndex", "maxDrawdownDuration",
+    "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak", "ulcerIndex", "maxDrawdownDuration", "downsideDeviation",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
   }
@@ -110,6 +110,8 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   assert.ok(Number.isFinite(res.metrics.sterlingRatio), "sterlingRatio 有限");
   // 最大回撤持续期数：非负整数（回撤区间 K 线根数）
   assert.ok(Number.isInteger(res.metrics.maxDrawdownDuration) && res.metrics.maxDrawdownDuration >= 0, "maxDrawdownDuration 非负整数");
+  // 下行波动：非负有限（仅计 r<0，全样本分母）
+  assert.ok(Number.isFinite(res.metrics.downsideDeviation) && res.metrics.downsideDeviation >= 0, "downsideDeviation 非负有限");
 });
 
 test("runBacktest: 未知策略应抛错", () => {
@@ -127,8 +129,9 @@ test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同�
   assert.equal(m.tailRatio, 0);
   assert.equal(m.sterlingRatio, 0);
   assert.equal(m.maxDrawdownDuration, 0);
+  assert.equal(m.downsideDeviation, 0);
   // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
-  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
     assert.ok(k in m, `空交易仍应有 ${k}`);
   }
   assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
