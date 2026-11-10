@@ -89,7 +89,7 @@ test("runBacktest: 震荡数据产生交易且指标完整", () => {
   for (const key of [
     "totalReturn", "cagr", "sharpe", "maxDrawdown", "winRate",
     "profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "numTrades", "exposure", "calmar", "volatility",
-    "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak", "ulcerIndex", "maxDrawdownDuration", "downsideDeviation",
+    "var95", "cvar95", "recoveryPeriods", "maxLosingStreak", "maxWinStreak", "ulcerIndex", "maxDrawdownDuration", "downsideDeviation", "probRuin",
   ]) {
     assert.ok(key in res.metrics, `指标缺少 ${key}`);
   }
@@ -130,8 +130,9 @@ test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同�
   assert.equal(m.sterlingRatio, 0);
   assert.equal(m.maxDrawdownDuration, 0);
   assert.equal(m.downsideDeviation, 0);
+  assert.equal(m.probRuin, 0);
   // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
-  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
     assert.ok(k in m, `空交易仍应有 ${k}`);
   }
   assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
@@ -153,6 +154,34 @@ test("calcMetrics: 无亏损时 payoffRatio 封顶 999；全亏损为 0", () => 
   assert.equal(onlyWins.payoffRatio, 999, "全盈利封顶 999");
   const onlyLosses = calcMetrics([{ pnl: -5 }, { pnl: -3 }], 100000, [], eq);
   assert.equal(onlyLosses.payoffRatio, 0, "全亏损=0");
+});
+
+test("calcMetrics: probRuin 破产概率——强正期望<0.5、零期望=0.5、负期望趋近 1、单调", () => {
+  const eq = [{ date: "2023-01-01", value: 100000 }, { date: "2023-12-31", value: 100000 }];
+  // 零期望：平均每笔收益为 0 → 破产概率 = 0.5（gambler's-ruin 基准）
+  const zero = calcMetrics(
+    [{ returnPct: 2, pnl: 200 }, { returnPct: -2, pnl: -200 }],
+    100000, [], eq,
+  );
+  assert.ok(Math.abs(zero.probRuin - 0.5) < 1e-6, "零期望 → probRuin=0.5");
+  // 强正期望：足够多交易且每笔收益较高 → 破产概率 < 0.5（随 N 与优势指数衰减）
+  const pos = calcMetrics(
+    Array.from({ length: 5 }, () => ({ returnPct: 10, pnl: 1000 })),
+    100000, [], eq,
+  );
+  assert.ok(pos.probRuin >= 0 && pos.probRuin < 0.5, "强正期望 → probRuin<0.5");
+  // 负期望：每笔亏损 → 破产概率趋近 1（> 0.5）
+  const neg = calcMetrics(
+    Array.from({ length: 5 }, () => ({ returnPct: -10, pnl: -1000 })),
+    100000, [], eq,
+  );
+  assert.ok(neg.probRuin > 0.5, "负期望 → probRuin>0.5");
+  // 单调性：正期望越强，破产概率越低
+  const weak = calcMetrics(
+    Array.from({ length: 5 }, () => ({ returnPct: 1, pnl: 100 })),
+    100000, [], eq,
+  );
+  assert.ok(pos.probRuin < weak.probRuin, "更强正期望 → 更低破产概率");
 });
 
 // ---------- 年化 ----------
