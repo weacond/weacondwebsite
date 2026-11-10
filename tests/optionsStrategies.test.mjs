@@ -10,6 +10,9 @@ import {
   probOfProfit,
   strategyGreeks,
   deltaHedge,
+  probInRange,
+  probAbove,
+  probBelow,
 } from "../lib/optionsStrategies.js";
 
 const OPTS = { spot: 100, r: 0.05, t: 1, iv: 0.2 };
@@ -277,6 +280,43 @@ test("deltaHedge: long/short 对称 hedge([c,1]) = −hedge([c,−1])", () => {
   const a = deltaHedge([{ type: "call", strike: 100, qty: 1 }], OPTS);
   const b = deltaHedge([{ type: "call", strike: 100, qty: -1 }], OPTS);
   assert.ok(Math.abs(a + b) < 1e-3, `对称, got ${a}/${b}`);
+});
+
+// ---------- probInRange / probAbove / probBelow（lognormal 概率原语）----------
+
+test("probAbove + probBelow = 1（同一 level 互补）", () => {
+  const b = probBelow(OPTS, 100);
+  const a = probAbove(OPTS, 100);
+  assert.ok(b >= 0 && b <= 1 && a >= 0 && a <= 1, "∈[0,1]");
+  assert.ok(Math.abs(a + b - 1) < 1e-3, "互补和=1");
+});
+
+test("probInRange: 宽区间→1、单点→0、反序交换、与 probAbove 口径一致", () => {
+  assert.equal(probInRange(OPTS, 0, 100000), 1, "宽区间 → 1");
+  assert.equal(probInRange(OPTS, 100, 100), 0, "单点 → 0");
+  assert.equal(probInRange(OPTS, 110, 90), probInRange(OPTS, 90, 110), "反序自动交换");
+  const p = probInRange(OPTS, 90, 110);
+  assert.ok(p > 0 && p <= 1, "∈(0,1]");
+  assert.ok(Math.abs(probInRange(OPTS, 90, 110) - (probAbove(OPTS, 90) - probAbove(OPTS, 110))) < 1e-3, "P(low≤S≤high)=P(>low)−P(>high)");
+});
+
+test("probInRange/probAbove/probBelow: 退化(t≤0/iv≤0/spot≤0) → null", () => {
+  assert.equal(probInRange({ spot: 100, t: 0, iv: 0.2 }, 90, 110), null, "t=0 → null");
+  assert.equal(probInRange({ spot: 100, t: 1, iv: 0 }, 90, 110), null, "iv=0 → null");
+  assert.equal(probInRange({ spot: 0, t: 1, iv: 0.2 }, 90, 110), null, "spot≤0 → null");
+  assert.equal(probBelow({ spot: 100, t: 1, iv: 0 }, 100), null, "iv=0 → null");
+});
+
+test("probAbove/probBelow/probInRange: 非有限或缺失 level → null", () => {
+  assert.equal(probAbove(OPTS, NaN), null, "NaN → null");
+  assert.equal(probAbove(OPTS, Infinity), null, "Infinity → null");
+  assert.equal(probBelow(OPTS), null, "缺 level → null");
+  assert.equal(probInRange(OPTS, 90), null, "缺上界 → null");
+});
+
+test("probAbove 越低水平概率越大；probInRange 随区间变宽单调不减", () => {
+  assert.ok(probAbove(OPTS, 50) > probAbove(OPTS, 150), "低水平 > 高水平");
+  assert.ok(probInRange(OPTS, 50, 150) >= probInRange(OPTS, 90, 110), "宽区间 ≥ 窄区间");
 });
 
 

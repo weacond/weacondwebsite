@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
-import { analyzeStrategy, strategyTemplates, probOfProfit, strategyGreeks, deltaHedge } from "../lib/optionsStrategies.js";
+import { analyzeStrategy, strategyTemplates, probOfProfit, strategyGreeks, deltaHedge, probInRange } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
 
@@ -226,6 +226,9 @@ function StrategyLab({ spot, iv, r, t, L }) {
       a.pop = probOfProfit(tpl.legs, { spot, r, t, iv });
       a.greeks = strategyGreeks(tpl.legs, { spot, r, t, iv });
       a.hedge = deltaHedge(tpl.legs, { spot, r, t, iv });
+      // 盈利区概率：标的到期价落入盈亏平衡带 [be1, be2] 的概率（恰有 2 个平衡点时才有意义）
+      a.inRange =
+        a.breakEvens.length === 2 ? probInRange({ spot, r, t, iv }, a.breakEvens[0], a.breakEvens[1]) : null;
       return a;
     } catch (e) {
       return null;
@@ -303,6 +306,11 @@ function StrategyLab({ spot, iv, r, t, L }) {
                 <span className="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-700" title={L.hedgeTip}>
                   {L.hedgeLabel} {analysis.hedge.toFixed(2)} {L.hedgeUnit}
                 </span>
+                {analysis.inRange != null && (
+                  <span className="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700" title={L.inRangeTip}>
+                    {L.inRangeLabel} {(analysis.inRange * 100).toFixed(1)}%
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -555,6 +563,8 @@ const zh = {
   hedgeLabel: "Δ 中性对冲",
   hedgeUnit: "股",
   hedgeTip: "使净 delta 归零所需标的股数：正数做多、负数做空",
+  inRangeLabel: "盈利区概率",
+  inRangeTip: "标的到期价落入盈亏平衡带 [be1, be2] 的概率（恰有 2 个平衡点的策略才展示）",
   payoffTitle: "到期盈亏曲线（橙色虚线=盈亏平衡点）",
   unbounded: "∞ 无界",
   credit: "净收入",
@@ -632,6 +642,8 @@ const en = {
   hedgeLabel: "Δ-neutral",
   hedgeUnit: "sh",
   hedgeTip: "Shares to make net delta zero: +long / −short",
+  inRangeLabel: "Profit-zone prob.",
+  inRangeTip: "Probability the underlying expires inside the break-even band [be1, be2] (shown only for 2 break-even strategies)",
   payoffTitle: "Payoff at expiration (orange dashed = break-even)",
   unbounded: "∞ unbounded",
   credit: "Credit",
