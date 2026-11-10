@@ -198,6 +198,36 @@ test("STRATEGY_REGISTRY: 含 ma_cross/rsi/breakout/bollinger 且 run 为函数",
   }
 });
 
+// ---------- 新增策略（复用指标原语）----------
+
+test("STRATEGY_REGISTRY: 含 supertrend/macd_cross 且 run/params 合法", () => {
+  for (const k of ["supertrend", "macd_cross"]) {
+    assert.ok(STRATEGY_REGISTRY[k], `缺少策略 ${k}`);
+    assert.equal(typeof STRATEGY_REGISTRY[k].run, "function", `${k}.run 应为函数`);
+    assert.ok(Array.isArray(STRATEGY_REGISTRY[k].params), `${k}.params 应为数组`);
+    assert.equal(STRATEGY_REGISTRY[k].category, "trend", `${k} 应为趋势类`);
+  }
+});
+
+test("supertrend 策略: 先跌后涨产生翻多买入信号", () => {
+  const candles = [
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 60 + i, low: 59 + i, close: 59.5 + i, open: 60 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.supertrend.run(candles, { period: 10, mult: 3 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部应有翻多买入信号");
+});
+
+test("macd_cross 策略: 先跌后涨产生金叉买入、随后死叉卖出", () => {
+  const candles = [
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 60 + i, low: 59 + i, close: 59.5 + i, open: 60 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.macd_cross.run(candles, {});
+  assert.ok(signals.some((s) => s.action === "buy"), "应有 MACD 金叉买入信号");
+  assert.ok(signals.some((s) => s.action === "sell"), "应有 MACD 死叉卖出信号");
+});
+
 // ---------- 回测引擎 ----------
 test("runBacktest: 震荡数据产生交易且指标完整", () => {
   const candles = Array.from({ length: 200 }, (_, i) => {
