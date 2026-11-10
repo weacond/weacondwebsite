@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
-import { valueAtRisk, expectedShortfall, maxDrawdown, detectTailEvents } from "../lib/risk.js";
+import { valueAtRisk, expectedShortfall, maxDrawdown, detectTailEvents, excessKurtosis, skewness, ulcerIndex } from "../lib/risk.js";
 
 export const metadata = {
   title: "黑天鹅防御 — Weacond",
@@ -37,6 +37,9 @@ const RISK_METRICS = {
   cvar95: expectedShortfall(SAMPLE_RETURNS, 0.95),
   mdd: maxDrawdown(SAMPLE_EQUITY),
   tailCount: detectTailEvents(SAMPLE_RETURNS, 3).count,
+  kurtosis: excessKurtosis(SAMPLE_RETURNS),
+  skew: skewness(SAMPLE_RETURNS),
+  ulcer: ulcerIndex(SAMPLE_EQUITY),
 };
 
 export default function BlackSwanPage() {
@@ -88,6 +91,9 @@ export default function BlackSwanPage() {
               <RiskStat label={L.cvarLabel} value={`−${(RISK_METRICS.cvar95 * 100).toFixed(2)}%`} />
               <RiskStat label={L.mddLabel} value={`−${(RISK_METRICS.mdd * 100).toFixed(2)}%`} />
               <RiskStat label={L.tailEvents} value={`${RISK_METRICS.tailCount}`} />
+              <RiskStat label={L.kurtosisLabel} value={RISK_METRICS.kurtosis.toFixed(2)} />
+              <RiskStat label={L.skewLabel} value={RISK_METRICS.skew.toFixed(2)} />
+              <RiskStat label={L.ulcerLabel} value={`${(RISK_METRICS.ulcer * 100).toFixed(2)}%`} />
             </div>
           </div>
 
@@ -145,6 +151,9 @@ const zh = {
   cvarLabel: "95% CVaR",
   mddLabel: "最大回撤",
   tailEvents: "3σ 尾部事件",
+  kurtosisLabel: "超额峰度",
+  skewLabel: "偏度",
+  ulcerLabel: "溃疡指数",
   history: "历史案例",
   disclaimer: "黑天鹅事件不可预测。历史数据仅供参考，不构成投资建议。",
 };
@@ -159,6 +168,9 @@ const en = {
   cvarLabel: "95% CVaR",
   mddLabel: "Max Drawdown",
   tailEvents: "3σ Tail Events",
+  kurtosisLabel: "Excess Kurtosis",
+  skewLabel: "Skewness",
+  ulcerLabel: "Ulcer Index",
   history: "Historical Cases",
   disclaimer: "Black swan events are unpredictable. Historical data for reference only. Not investment advice.",
 };
