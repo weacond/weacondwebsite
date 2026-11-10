@@ -13,6 +13,7 @@ import {
   herfindahlIndex,
   effectiveNumAssets,
   riskRewardPoints,
+  efficientFrontier,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -339,4 +340,51 @@ test("riskRewardPoints: 接受裸权重数组 + 高波动方案 vol 更大", () 
   assert.equal(out.length, 2);
   assert.equal(out[0].label, "");
   assert.ok(out[1].vol > out[0].vol, "资产2 波动更高 → vol 更大");
+});
+
+// ---------- efficientFrontier ----------
+
+const EF_RETURNS = [
+  [0.03, 0.04, 0.05], // 资产1：高收益
+  [0.005, 0.01, 0.015], // 资产2：低收益、低波动
+];
+const EF_VOLS = [0.08, 0.05];
+const EF_M = [
+  [1, 0],
+  [0, 1],
+];
+
+test("efficientFrontier: 资产数 < 2 → 空结构", () => {
+  const r = efficientFrontier(EF_RETURNS.slice(0, 1), [0.1], [[1]], { nPoints: 5 });
+  assert.equal(r.nPoints, 0);
+  assert.equal(r.minVariance, null);
+  assert.equal(r.maxSharpe, null);
+  assert.deepEqual(r.points, []);
+});
+
+test("efficientFrontier: 返回 nPoints 个点、按波动率升序、权重和=1", () => {
+  const r = efficientFrontier(EF_RETURNS, EF_VOLS, EF_M, { nPoints: 5 });
+  assert.equal(r.points.length, 5);
+  for (let i = 1; i < r.points.length; i++) assert.ok(r.points[i].vol >= r.points[i - 1].vol, "vol 升序");
+  for (const p of r.points) assert.ok(Math.abs(p.weights.reduce((a, b) => a + b, 0) - 1) < 1e-6, "权重和=1");
+  for (const p of r.points) {
+    assert.ok(typeof p.vol === "number" && typeof p.sharpe === "number" && typeof p.mean === "number", "数值字段齐全");
+    assert.ok(typeof p.efficient === "boolean", "efficient 为布尔");
+  }
+});
+
+test("efficientFrontier: 锚点 minVariance 偏低波动、maxSharpe 偏高夏普", () => {
+  const r = efficientFrontier(EF_RETURNS, EF_VOLS, EF_M, { nPoints: 5 });
+  assert.ok(r.minVariance.weights[1] > r.minVariance.weights[0], "min-var 偏向低波动资产2");
+  assert.ok(r.maxSharpe.weights[0] > r.maxSharpe.weights[1], "max-sharpe 偏向高夏普资产1");
+  assert.ok(r.maxSharpe.sharpe >= r.minVariance.sharpe, "max-sharpe 夏普 >= min-var 夏普");
+  assert.ok(r.maxSharpe.vol >= r.minVariance.vol, "max-sharpe 波动 >= min-var 波动");
+});
+
+test("efficientFrontier: 最低波动点=minVariance；至少一个点有效；最高夏普点有效", () => {
+  const r = efficientFrontier(EF_RETURNS, EF_VOLS, EF_M, { nPoints: 5 });
+  assert.equal(r.points[0].vol, r.minVariance.vol, "最低波动点 = minVariance");
+  assert.ok(r.points.some((p) => p.efficient), "至少一个有效点");
+  const top = r.points.reduce((a, b) => (b.sharpe > a.sharpe ? b : a));
+  assert.equal(top.efficient, true, "最高夏普点必然有效");
 });
