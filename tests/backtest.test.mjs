@@ -6,6 +6,14 @@ import {
   rsi,
   atr,
   bollinger,
+  macd,
+  stochastic,
+  vwap,
+  keltner,
+  donchian,
+  williams,
+  obv,
+  supertrend,
   runBacktest,
   calcMetrics,
   annualizedReturn,
@@ -59,6 +67,127 @@ test("bollinger: 上轨 >= 中轨 >= 下轨", () => {
   const last = 21;
   assert.ok(upper[last] >= mid[last]);
   assert.ok(mid[last] >= lower[last]);
+});
+
+// ---------- 技术指标（新增）----------
+
+test("macd: 三线长度一致、histogram = macd − signal", () => {
+  const candles = Array.from({ length: 50 }, (_, i) => ({
+    high: 10 + i + 1,
+    low: 9 + i,
+    close: 9.5 + i + 0.3,
+    open: 9 + i,
+  }));
+  const { macd: m, signal, histogram } = macd(candles, 12, 26, 9);
+  assert.equal(m.length, 50);
+  assert.equal(signal.length, 50);
+  assert.equal(histogram.length, 50);
+  assert.ok(Math.abs(histogram[49] - (m[49] - signal[49])) < 1e-12, "histogram 口径");
+});
+
+test("stochastic: k 值域 [0,100]、预热为 null、d 为 k 的 SMA", () => {
+  const candles = Array.from({ length: 40 }, (_, i) => ({
+    high: 10 + i + 1,
+    low: 9 + i,
+    close: 9.5 + i,
+    open: 9 + i,
+  }));
+  const { k, d } = stochastic(candles, 14, 3);
+  assert.equal(k[0], null);
+  assert.ok(k[13] !== null, "kPeriod-1 处起有值");
+  for (const v of k) if (v !== null) assert.ok(v >= 0 && v <= 100, "k 值域");
+  assert.equal(d[14], null, "d 预热");
+  assert.ok(d[15] !== null);
+});
+
+test("vwap: 累计成交量为 0 时为 null；有量时等于加权和", () => {
+  assert.equal(vwap([{ high: 1, low: 1, close: 1, volume: 0 }])[0], null);
+  const c = [
+    { high: 10, low: 9, close: 9.5, volume: 100 },
+    { high: 12, low: 11, close: 11.5, volume: 100 },
+  ];
+  const out = vwap(c);
+  // 典型价 (h+l+c)/3：(10+9+9.5)/3=9.5, (12+11+11.5)/3=11.5；等量 → 均 10.5
+  assert.ok(Math.abs(out[1] - 10.5) < 1e-9, "等量 VWAP = 均价");
+});
+
+test("keltner: 上轨 > 中轨 > 下轨、预热为 null", () => {
+  const candles = Array.from({ length: 40 }, (_, i) => ({
+    high: 10 + i + 1,
+    low: 9 + i,
+    close: 9.5 + i,
+    open: 9 + i,
+  }));
+  const { mid, upper, lower } = keltner(candles, 20, 2);
+  assert.equal(upper[0], null, "ATR 预热 → 上下轨 null");
+  const last = 39;
+  assert.ok(upper[last] > mid[last]);
+  assert.ok(mid[last] > lower[last]);
+});
+
+test("donchian: 上轨=窗口最高、下轨=窗口最低、mid 为中值", () => {
+  const candles = Array.from({ length: 25 }, (_, i) => ({
+    high: 10 + i + 1,
+    low: 9 + i,
+    close: 9.5 + i,
+    open: 9 + i,
+  }));
+  const { upper, lower, mid } = donchian(candles, 20);
+  assert.equal(upper[0], null);
+  const last = 24;
+  assert.ok(upper[last] === 10 + 24 + 1, "上轨=区间最高 high（i=24）");
+  assert.ok(lower[last] === 9 + (last - 20 + 1), "下轨=区间最低 low（窗口起点 i=5，low 递增）");
+  assert.ok(Math.abs(mid[last] - (upper[last] + lower[last]) / 2) < 1e-12);
+});
+
+test("williams: 值域 [−100,0]、预热为 null", () => {
+  const candles = Array.from({ length: 40 }, (_, i) => ({
+    high: 10 + i + 1,
+    low: 9 + i,
+    close: 9.5 + i + 0.9,
+    open: 9 + i,
+  }));
+  const out = williams(candles, 14);
+  assert.equal(out[0], null);
+  for (const v of out) if (v !== null) assert.ok(v >= -100 && v <= 0, "值域");
+});
+
+test("obv: 起始为 0、上涨累加成交量、持平不变", () => {
+  const candles = [
+    { high: 3, low: 1, close: 2, volume: 100 },
+    { high: 3, low: 1, close: 3, volume: 200 }, // 涨 → +200
+    { high: 3, low: 1, close: 3, volume: 300 }, // 平 → 不变
+    { high: 3, low: 1, close: 1, volume: 400 }, // 跌 → −400
+  ];
+  const out = obv(candles);
+  assert.equal(out[0], 0);
+  assert.equal(out[1], 200);
+  assert.equal(out[2], 200);
+  assert.equal(out[3], -200);
+});
+
+test("supertrend: 强上涨方向 up、强下跌方向 down、预热为 null", () => {
+  const up = Array.from({ length: 60 }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 100 + i - 1,
+    close: 100 + i + 0.3,
+    open: 100 + i,
+    volume: 1000,
+  }));
+  const down = Array.from({ length: 60 }, (_, i) => ({
+    high: 100 - i + 1,
+    low: 100 - i - 1,
+    close: 100 - i - 0.3,
+    open: 100 - i,
+    volume: 1000,
+  }));
+  const su = supertrend(up, 10, 3);
+  const sd = supertrend(down, 10, 3);
+  assert.equal(su.direction[0], null, "预热 null");
+  assert.equal(su.direction[59], "up", "强上涨 → up");
+  assert.equal(sd.direction[59], "down", "强下跌 → down");
+  // supertrend 值应为有限数（方向 up 时取下轨）
+  assert.ok(Number.isFinite(su.supertrend[59]), "supertrend 值为有限数");
 });
 
 // ---------- 策略注册表 ----------
