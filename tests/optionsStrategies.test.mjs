@@ -9,6 +9,7 @@ import {
   strategyTemplates,
   probOfProfit,
   strategyGreeks,
+  deltaHedge,
 } from "../lib/optionsStrategies.js";
 
 const OPTS = { spot: 100, r: 0.05, t: 1, iv: 0.2 };
@@ -224,6 +225,35 @@ test("strategyGreeks: 非法输入（非数组 / 缺 qty）→ 全 0", () => {
   const zero = { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 };
   assert.deepEqual(strategyGreeks(null, OPTS), zero);
   assert.deepEqual(strategyGreeks([{ type: "call", strike: 100 }], OPTS), zero);
+});
+
+// ---------- deltaHedge（delta 中性对冲股数） ----------
+
+test("deltaHedge: 空 / 非法 legs → 0", () => {
+  assert.equal(deltaHedge(null, OPTS), 0);
+  assert.equal(deltaHedge([], OPTS), 0);
+});
+
+test("deltaHedge: long call 净多头 delta → 需做空标的（shares < 0）", () => {
+  const h = deltaHedge([{ type: "call", strike: 100, qty: 1 }], OPTS);
+  assert.ok(h < 0, `long call 应做空对冲, got ${h}`);
+});
+
+test("deltaHedge: long put 净空头 delta → 需做多标的（shares > 0）", () => {
+  const h = deltaHedge([{ type: "put", strike: 100, qty: 1 }], OPTS);
+  assert.ok(h > 0, `long put 应做多对冲, got ${h}`);
+});
+
+test("deltaHedge: = −净 delta（与 strategyGreeks 一致）", () => {
+  const legs = [{ type: "call", strike: 90, qty: 1 }, { type: "call", strike: 110, qty: -1 }];
+  const g = strategyGreeks(legs, OPTS);
+  assert.ok(Math.abs(deltaHedge(legs, OPTS) + g.delta) < 1e-3, "hedge = −净 delta");
+});
+
+test("deltaHedge: long/short 对称 hedge([c,1]) = −hedge([c,−1])", () => {
+  const a = deltaHedge([{ type: "call", strike: 100, qty: 1 }], OPTS);
+  const b = deltaHedge([{ type: "call", strike: 100, qty: -1 }], OPTS);
+  assert.ok(Math.abs(a + b) < 1e-3, `对称, got ${a}/${b}`);
 });
 
 
