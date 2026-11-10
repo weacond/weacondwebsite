@@ -12,6 +12,7 @@ import {
   minimumVarianceWeights,
   herfindahlIndex,
   effectiveNumAssets,
+  riskRewardPoints,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -298,4 +299,44 @@ test("effectiveNumAssets: = 1/HHI；全集中→1，全分散→N，空→0", ()
   assert.ok(Math.abs(effectiveNumAssets([1, 0, 0]) - 1) < 1e-12, "全集中 → 1");
   assert.ok(Math.abs(effectiveNumAssets([1, 1, 1]) - 3) < 1e-12, "非归一 → 3");
   assert.equal(effectiveNumAssets([]), 0, "空 → 0");
+});
+
+// ---------- riskRewardPoints（风险-收益散点）----------
+
+test("riskRewardPoints: 空 weightings → []", () => {
+  assert.deepEqual(riskRewardPoints([], [], [], []), []);
+});
+
+test("riskRewardPoints: 单资产 vol=σ×100，sharpe=μ/σ×√periods", () => {
+  const out = riskRewardPoints([[0.01, 0.03]], [0.05], [[1]], [{ label: "x", weights: [1] }], 252);
+  assert.equal(out.length, 1);
+  assert.ok(Math.abs(out[0].vol - 5) < 1e-9, `vol=5 得 ${out[0].vol}`);
+  assert.ok(Math.abs(out[0].sharpe - 0.4 * Math.sqrt(252)) < 1e-6, `sharpe≈6.35 得 ${out[0].sharpe}`);
+  assert.equal(out[0].label, "x");
+});
+
+test("riskRewardPoints: 两资产不相关等权 vol=√(Σ0.25σ²)×100", () => {
+  const out = riskRewardPoints(
+    [[0.01, 0.02], [0.03, 0.04]],
+    [0.05, 0.1],
+    [[1, 0], [0, 1]],
+    [{ label: "eq", weights: [0.5, 0.5] }],
+    252,
+  );
+  const expVol = Math.sqrt(0.25 * 0.05 * 0.05 + 0.25 * 0.1 * 0.1) * 100;
+  assert.ok(Math.abs(out[0].vol - expVol) < 1e-6, `vol≈5.59 得 ${out[0].vol}`);
+  assert.ok(Number.isFinite(out[0].sharpe));
+});
+
+test("riskRewardPoints: 接受裸权重数组 + 高波动方案 vol 更大", () => {
+  const out = riskRewardPoints(
+    [[0.01, 0.02], [0.03, 0.04]],
+    [0.05, 0.1],
+    [[1, 0], [0, 1]],
+    [[1, 0], [0, 1]],
+    252,
+  );
+  assert.equal(out.length, 2);
+  assert.equal(out[0].label, "");
+  assert.ok(out[1].vol > out[0].vol, "资产2 波动更高 → vol 更大");
 });

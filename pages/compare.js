@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights, herfindahlIndex, effectiveNumAssets } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights, herfindahlIndex, effectiveNumAssets, riskRewardPoints } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -359,6 +359,56 @@ export default function ComparePage() {
                       })}
                       <p className="text-xs text-slate-400 mt-1">{L.hhiHint}</p>
                     </div>
+                    {/* 风险-收益散点：各权重方案 (年化波动率, 组合夏普)，虚线示有效前沿 */}
+                    <div className="mt-3">
+                      <div className="text-xs font-medium text-slate-500">{L.rrTitle}</div>
+                      {(() => {
+                        const schemes = [
+                          { label: L.hhiEqual, w: Array.from({ length: items.length }, () => 1 / items.length), color: "#64748b" },
+                          { label: L.ivSharpeLabel, w: ivWeights, color: "#10b981" },
+                          { label: L.rpSharpeLabel, w: rpWeights, color: "#0ea5e9" },
+                          { label: L.optSharpeLabel, w: optWeights, color: "#6366f1" },
+                          { label: L.mvSharpeLabel, w: mvWeights, color: "#f59e0b" },
+                        ].filter((s) => Array.isArray(s.w) && s.w.length > 0);
+                        const pts = riskRewardPoints(returnsList, vols, M, schemes);
+                        if (pts.length === 0) return <p className="text-xs text-slate-400">{L.rrEmpty}</p>;
+                        const W = 560, H = 260, padL = 44, padR = 16, padT = 16, padB = 36;
+                        const pw = W - padL - padR, ph = H - padT - padB;
+                        const maxVol = Math.max(...pts.map((p) => p.vol)) * 1.1 || 1;
+                        const shs = pts.map((p) => p.sharpe);
+                        const minSh = Math.min(...shs), maxSh = Math.max(...shs);
+                        const shRange = maxSh - minSh;
+                        const yPad = shRange > 0 ? shRange * 0.15 : Math.max(Math.abs(maxSh) * 0.15, 0.1);
+                        const yMin = minSh - yPad, yMax = maxSh + yPad;
+                        const xOf = (v) => padL + (v / maxVol) * pw;
+                        const yOf = (s) => padT + ph - ((s - yMin) / (yMax - yMin || 1)) * ph;
+                        const ordered = [...pts].sort((a, b) => a.vol - b.vol);
+                        const lineD = ordered.map((p, i) => `${i === 0 ? "M" : "L"}${xOf(p.vol).toFixed(1)},${yOf(p.sharpe).toFixed(1)}`).join(" ");
+                        const gridY = [0, 0.5, 1].map((t) => yMin + t * (yMax - yMin));
+                        return (
+                          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxWidth: 560 }}>
+                            {gridY.map((gy, i) => (
+                              <g key={i}>
+                                <line x1={padL} y1={yOf(gy)} x2={W - padR} y2={yOf(gy)} stroke="#e2e8f0" strokeWidth={1} />
+                                <text x={padL - 4} y={yOf(gy) + 3} textAnchor="end" fill="#94a3b8" style={{ fontSize: 9 }}>{gy.toFixed(1)}</text>
+                              </g>
+                            ))}
+                            <line x1={padL} y1={padT} x2={padL} y2={padT + ph} stroke="#cbd5e1" strokeWidth={1} />
+                            <line x1={padL} y1={padT + ph} x2={W - padR} y2={padT + ph} stroke="#cbd5e1" strokeWidth={1} />
+                            {ordered.length > 1 && <path d={lineD} fill="none" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 2" />}
+                            {pts.map((p, i) => (
+                              <g key={i}>
+                                <circle cx={xOf(p.vol)} cy={yOf(p.sharpe)} r={5} fill={schemes[i].color} stroke="#fff" strokeWidth={1.5} />
+                                <text x={xOf(p.vol) + 8} y={yOf(p.sharpe) + 3} fill="#475569" style={{ fontSize: 9 }}>{schemes[i].label}</text>
+                              </g>
+                            ))}
+                            <text x={padL + pw / 2} y={H - 4} textAnchor="middle" fill="#94a3b8" style={{ fontSize: 9 }}>{L.rrVol}</text>
+                            <text x={12} y={padT + ph / 2} textAnchor="middle" transform={`rotate(-90 12 ${padT + ph / 2})`} fill="#94a3b8" style={{ fontSize: 9 }}>{L.rrSharpe}</text>
+                          </svg>
+                        );
+                      })()}
+                      <p className="text-xs text-slate-400 mt-1">{L.rrHint}</p>
+                    </div>
                   </div>
                 );
               })()}
@@ -398,6 +448,11 @@ const zh = {
   hhiEqual: "等权",
   hhiUnit: " 个",
   hhiHint: "HHI = Σwᵢ²，越大越集中；等效资产数 = 1/HHI，越接近资产总数越分散。",
+  rrTitle: "风险-收益散点（波动率 vs 夏普）",
+  rrVol: "年化波动率 σ (%)",
+  rrSharpe: "组合夏普",
+  rrHint: "越靠左上越优（低波动、高夏普）；虚线为各方案按波动率排序的轨迹，贴近'有效前沿'。",
+  rrEmpty: "数据不足，无法绘图",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -427,6 +482,11 @@ const en = {
   hhiEqual: "Equal",
   hhiUnit: "",
   hhiHint: "HHI = Σwᵢ², higher = more concentrated; eff. assets = 1/HHI, closer to N = more diversified.",
+  rrTitle: "Risk-Reward scatter (vol vs Sharpe)",
+  rrVol: "Annualized vol σ (%)",
+  rrSharpe: "Portfolio Sharpe",
+  rrHint: "Top-left is best (low vol, high Sharpe); dashed line traces schemes by vol, approximating the efficient frontier.",
+  rrEmpty: "Not enough data",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 
