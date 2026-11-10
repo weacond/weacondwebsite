@@ -17,6 +17,7 @@ import {
   aroon,
   chandelier,
   stochRsi,
+  adx,
   signalConsensus,
   signalConsensusSeries,
   runBacktest,
@@ -373,6 +374,38 @@ test("stochRsi: 等长，值域 [0,100]，预热期 null", () => {
     if (sr[i] != null)
       assert.ok(sr[i] >= -1e-9 && sr[i] <= 100 + 1e-9, "S-RSI ∈ [0,100]");
   }
+});
+
+test("adx: 等长，ADX/+DI/−DI ∈ [0,100]，预热期 null，单侧趋势 ADX 较高", () => {
+  const n = 120;
+  const p = 14;
+  const candles = Array.from({ length: n }, (_, i) => {
+    const c = 100 + 10 * Math.sin(i / 10);
+    return { high: c + 1, low: c - 1, close: c, open: c - 0.5, volume: 1000 + (i % 5) * 10 };
+  });
+  const r = adx(candles, p);
+  assert.equal(r.adx.length, n, "输出等长");
+  assert.ok(r.adx[0] === null, "ADX 预热期为 null");
+  assert.ok(r.adx[2 * p - 1] !== null, "ADX 在 2×period−1 起有效");
+  for (let i = 0; i < n; i++) {
+    if (r.adx[i] != null)
+      assert.ok(r.adx[i] >= -1e-9 && r.adx[i] <= 100 + 1e-9, "ADX ∈ [0,100]");
+    if (r.plusDI[i] != null)
+      assert.ok(r.plusDI[i] >= -1e-9 && r.plusDI[i] <= 100 + 1e-9, "+DI ∈ [0,100]");
+    if (r.minusDI[i] != null)
+      assert.ok(r.minusDI[i] >= -1e-9 && r.minusDI[i] <= 100 + 1e-9, "−DI ∈ [0,100]");
+  }
+  // 单侧趋势（无回撤）→ ADX 高且 +DI 主导
+  const climb = Array.from({ length: n }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 99 + i,
+    close: 100 + i,
+    open: 100 + i - 1,
+    volume: 1000,
+  }));
+  const climbAdx = adx(climb, p);
+  assert.ok(climbAdx.adx[n - 1] > 40, "单边上涨 ADX 高");
+  assert.ok(climbAdx.plusDI[n - 1] > climbAdx.minusDI[n - 1], "单边上涨 +DI > −DI");
 });
 
 // ---------- 回测引擎 ----------
