@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights, herfindahlIndex, effectiveNumAssets } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -39,6 +39,8 @@ const CMP_METRICS = [
   { key: "upCapture", label: "上行捕获", labelEn: "Up Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, higher: true },
   { key: "downCapture", label: "下行捕获", labelEn: "Down Capture", fmt: (v) => `${(v * 100).toFixed(0)}%`, higher: false },
   { key: "trackingError", label: "跟踪误差", labelEn: "Tracking Err.", fmt: (v) => `${(v * 100).toFixed(2)}%`, higher: false },
+  { key: "alpha", label: "阿尔法", labelEn: "Alpha", fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(2)}`, higher: true },
+  { key: "beta", label: "β 系数", labelEn: "Beta", fmt: (v) => v.toFixed(2), neutral: true },
 ];
 
 const DEFAULT_CONFIG = { initialCapital: 100000, commission: 0.001, slippage: 0.0005, maxPositionPct: 0.25 };
@@ -75,6 +77,7 @@ export default function ComparePage() {
   // 某指标下最优策略的 key（用于高亮）
   const bestOf = (metric) => {
     if (!results) return null;
+    if (metric.neutral) return null; // 无"优劣"方向（如 beta）：不标最优
     let best = null;
     let bestKey = null;
     for (const r of results) {
@@ -325,6 +328,37 @@ export default function ComparePage() {
                         );
                       })}
                     </div>
+                    {/* 集中度对比：HHI / 等效资产数，衡量各权重方案的分散程度 */}
+                    <div className="mt-3 space-y-1.5">
+                      <div className="text-xs font-medium text-slate-500">{L.hhiTitle}</div>
+                      {[
+                        { label: L.hhiEqual, w: Array.from({ length: items.length }, () => 1 / items.length) },
+                        { label: L.ivSharpeLabel, w: ivWeights },
+                        { label: L.rpSharpeLabel, w: rpWeights },
+                        { label: L.optSharpeLabel, w: optWeights },
+                        { label: L.mvSharpeLabel, w: mvWeights },
+                      ].map((row) => {
+                        const w = Array.isArray(row.w) ? row.w : [];
+                        const hhi = herfindahlIndex(w);
+                        const ena = effectiveNumAssets(w);
+                        const n = items.length;
+                        // HHI∈[1/n,1]：越接近 1 越集中；映射到条宽（越长越集中）
+                        const width = n > 1 ? ((hhi - 1 / n) / (1 - 1 / n)) * 100 : 0;
+                        return (
+                          <div key={row.label} className="flex items-center gap-2 text-xs">
+                            <span className="w-28 shrink-0 truncate text-slate-600">{row.label}</span>
+                            <div className="flex-1 h-3 bg-slate-100 rounded overflow-hidden">
+                              <div className="h-full bg-rose-400" style={{ width: `${Math.max(0, Math.min(100, width)).toFixed(1)}%` }} />
+                            </div>
+                            <span className="w-32 shrink-0 text-right font-mono text-slate-700">
+                              {hhi.toFixed(3)} · {ena.toFixed(1)}
+                              {L.hhiUnit}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <p className="text-xs text-slate-400 mt-1">{L.hhiHint}</p>
+                    </div>
                   </div>
                 );
               })()}
@@ -360,6 +394,10 @@ const zh = {
   mvSharpeLabel: "最小方差夏普",
   mvTitle: "最小方差权重",
   rcTitle: "各资产风险贡献（逆波动加权）",
+  hhiTitle: "集中度（HHI · 等效资产数）",
+  hhiEqual: "等权",
+  hhiUnit: " 个",
+  hhiHint: "HHI = Σwᵢ²，越大越集中；等效资产数 = 1/HHI，越接近资产总数越分散。",
   note: "★ 为该指标最优策略。示例数据，结果不代表未来表现。",
 };
 const en = {
@@ -385,6 +423,10 @@ const en = {
   mvSharpeLabel: "Min-Variance Sharpe",
   mvTitle: "Min-Variance Weights",
   rcTitle: "Risk Contribution (inv-vol weighted)",
+  hhiTitle: "Concentration (HHI · eff. assets)",
+  hhiEqual: "Equal",
+  hhiUnit: "",
+  hhiHint: "HHI = Σwᵢ², higher = more concentrated; eff. assets = 1/HHI, closer to N = more diversified.",
   note: "★ = best strategy for this metric. Demo data; results don't imply future performance.",
 };
 

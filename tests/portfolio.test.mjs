@@ -10,6 +10,8 @@ import {
   riskParityWeights,
   maxSharpeWeights,
   minimumVarianceWeights,
+  herfindahlIndex,
+  effectiveNumAssets,
 } from "../lib/portfolio.js";
 
 // ---------- portfolioReturn ----------
@@ -277,4 +279,23 @@ test("minimumVarianceWeights: 边界——空→[]、单资产→[1]、维度不
   assert.deepEqual(minimumVarianceWeights([], []), [], "空 → []");
   assert.deepEqual(minimumVarianceWeights([0.05], [[1]]), [1], "单资产 → [1]");
   assert.deepEqual(minimumVarianceWeights([0.05, 0.1], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]), [], "维度不匹配 → []");
+});
+
+// ---------- herfindahlIndex / effectiveNumAssets ----------
+
+test("herfindahlIndex: 等权 N → 1/N；全集中 → 1；空 → 0；自动归一化", () => {
+  assert.ok(Math.abs(herfindahlIndex([0.25, 0.25, 0.25, 0.25]) - 0.25) < 1e-12, "等权 4 → HHI=0.25");
+  assert.ok(Math.abs(herfindahlIndex([0.5, 0.5]) - 0.5) < 1e-12, "等权 2 → HHI=0.5");
+  assert.ok(Math.abs(herfindahlIndex([1, 0, 0]) - 1) < 1e-12, "全集中 → HHI=1");
+  // 非归一 [1,1,1] → 归一 1/3 → HHI=3×(1/3)²=1/3
+  assert.ok(Math.abs(herfindahlIndex([1, 1, 1]) - 1 / 3) < 1e-12, "非归一自动归一化 → 1/3");
+  assert.equal(herfindahlIndex([]), 0, "空 → 0");
+});
+
+test("effectiveNumAssets: = 1/HHI；全集中→1，全分散→N，空→0", () => {
+  assert.ok(Math.abs(effectiveNumAssets([0.25, 0.25, 0.25, 0.25]) - 4) < 1e-12, "等权 4 → 4 个等效标的");
+  assert.ok(Math.abs(effectiveNumAssets([0.5, 0.5]) - 2) < 1e-12, "等权 2 → 2");
+  assert.ok(Math.abs(effectiveNumAssets([1, 0, 0]) - 1) < 1e-12, "全集中 → 1");
+  assert.ok(Math.abs(effectiveNumAssets([1, 1, 1]) - 3) < 1e-12, "非归一 → 3");
+  assert.equal(effectiveNumAssets([]), 0, "空 → 0");
 });

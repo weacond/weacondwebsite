@@ -135,8 +135,10 @@ test("calcMetrics: 空交易返回全 0（且字段完整，与有交易时同�
   assert.equal(m.upCapture, 0);
   assert.equal(m.downCapture, 0);
   assert.equal(m.trackingError, 0);
+  assert.equal(m.beta, 0);
+  assert.equal(m.alpha, 0);
   // 空交易时字段必须完整，避免 /compare 与 /backtest 读到 undefined
-  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
+  for (const k of ["profitFactor", "payoffRatio", "omegaRatio", "tailRatio", "sterlingRatio", "maxDrawdownDuration", "downsideDeviation", "probRuin", "informationRatio", "upCapture", "downCapture", "trackingError", "beta", "alpha", "var95", "cvar95", "maxLosingStreak", "maxWinStreak", "ulcerIndex"]) {
     assert.ok(k in m, `空交易仍应有 ${k}`);
   }
   assert.equal(m.recoveryPeriods, null, "无恢复期为 null");
@@ -203,12 +205,16 @@ test("calcMetrics: 基准序列 → informationRatio/upCapture/downCapture；无
   assert.ok(Math.abs(m.downCapture - 1) < 1e-9, "下行捕获 = 1");
   assert.equal(m.informationRatio, 0, "完美跟踪 → 超额 0 → IR=0");
   assert.equal(m.trackingError, 0, "完美跟踪 → TE=0");
+  assert.ok(Math.abs(m.beta - 1) < 1e-9, "完美跟踪(r=b) → β=1");
+  assert.equal(m.alpha, 0, "r=b(β=1) → α=0");
   // 无基准 → 三项均为 0（保持字段同构）
   const noB = calcMetrics(trades, 100000, [], eq);
   assert.equal(noB.informationRatio, 0, "无基准 → IR=0");
   assert.equal(noB.upCapture, 0, "无基准 → 上行捕获 0");
   assert.equal(noB.downCapture, 0, "无基准 → 下行捕获 0");
   assert.equal(noB.trackingError, 0, "无基准 → TE=0");
+  assert.equal(noB.beta, 0, "无基准 → β=0");
+  assert.equal(noB.alpha, 0, "无基准 → α=0");
 });
 
 test("calcMetrics: 策略跑赢且波动小 → IR>0；下行捕获 <1（跌得比基准少）", () => {
@@ -225,6 +231,9 @@ test("calcMetrics: 策略跑赢且波动小 → IR>0；下行捕获 <1（跌得�
   assert.ok(m.trackingError > 0, "存在超额波动 → TE>0");
   assert.ok(Math.abs(m.upCapture - 2) < 1e-6, "上行捕获 = 2");
   assert.ok(Math.abs(m.downCapture - 0.25) < 1e-6, "下行捕获 = 0.25（跌得少）");
+  // r=[0.02,-0.005], b=[0.01,-0.02]：β=cov/var_b ≈ 0.8333；α>0（跑赢且 β<1）
+  assert.ok(Math.abs(m.beta - 0.8333) < 1e-3, "β ≈ 0.833");
+  assert.ok(m.alpha > 0, "跑赢 → 年化 α>0");
 });
 
 // ---------- 年化 ----------

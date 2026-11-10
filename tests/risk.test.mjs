@@ -29,6 +29,8 @@ import {
   informationRatio,
   captureRatios,
   trackingError,
+  beta,
+  alpha,
 } from "../lib/risk.js";
 
 // ---------- quantile ----------
@@ -512,6 +514,36 @@ test("trackingError: 是信息比率的分母；IR × TE = 年化超额收益（
   assert.ok(te > 0, "存在超额波动 → TE>0");
   // IR = (mean/σ)·√P，TE = σ·√P ⇒ IR × TE = mean × P
   assert.ok(Math.abs(ir * te - mean * 252) < 1e-9, "IR × TE = 年化超额收益（mean × periods）");
+});
+
+// ---------- beta / alpha ----------
+
+test("beta: 自回归 r=b → 1；r=k·b → k；基准无方差 / 配对<2 → 0", () => {
+  const x = [0.01, -0.02, 0.03, 0.005];
+  assert.ok(Math.abs(beta(x, x) - 1) < 1e-12, "r=b → β=1");
+  // r = 2·b（同斜率放大 2 倍）→ β=2
+  const b = [0.01, 0.02, 0.03, 0.015];
+  assert.ok(Math.abs(beta(b.map((v) => 2 * v), b) - 2) < 1e-9, "r=2b → β=2");
+  assert.equal(beta([0.01, 0.02, 0.03], [0.01, 0.01, 0.01]), 0, "基准恒定(var=0) → 0");
+  assert.equal(beta([], []), 0, "空 → 0");
+  assert.equal(beta([0.01], [0.01]), 0, "配对<2 → 0");
+});
+
+test("beta: 非有限被剔除后仍按有限配对回归", () => {
+  const r = [0.01, NaN, 0.03, Infinity];
+  const bm = [0.01, NaN, 0.03, Infinity];
+  assert.ok(Math.abs(beta(r, bm) - 1) < 1e-12, "剔非有限后 r=b → β=1");
+});
+
+test("alpha: r=b（β=1）→ 0；基准无方差(β=0)→ mean_r×P；rf 在 β=1 时抵消", () => {
+  const x = [0.01, -0.02, 0.03, 0.005];
+  assert.ok(Math.abs(alpha(x, x, 0, 252)) < 1e-12, "r=b, β=1 → α=0");
+  // 基准无方差 → β=0，α = mean_r × P
+  const r2 = [0.01, 0.01];
+  assert.ok(Math.abs(alpha(r2, [0, 0], 0, 252) - 2.52) < 1e-9, "β=0 → α=0.01×252=2.52");
+  // β=1 时 rf 抵消：r=b, 任意 rf/P 仍 → 0
+  assert.ok(Math.abs(alpha(x, x, 0.0256, 252)) < 1e-12, "β=1 → rf 抵消, α=0");
+  assert.equal(alpha([], []), 0, "空 → 0");
 });
 
 
