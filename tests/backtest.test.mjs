@@ -295,6 +295,18 @@ test("signalConsensusSeries: 数据不足 → 全 neutral、长度匹配", () =>
   assert.ok(direction.every((d) => d === "neutral"));
 });
 
+test("signalConsensus / Series: 输出含 adx 字段（上升趋势 ADX 高、数据不足为 null）", () => {
+  const up = Array.from({ length: 80 }, (_, i) => ({ high: 100 + i + 1, low: 100 + i, close: 100 + i + 0.5, open: 100 + i, volume: 1000 }));
+  const c = signalConsensus(up);
+  assert.ok("adx" in c, "含 adx 字段");
+  assert.ok(c.adx != null && c.adx >= 0 && c.adx <= 100, "ADX ∈ [0,100]");
+  assert.ok(c.adx > 40, "单边上涨 ADX 高");
+  assert.equal(signalConsensus([1, 2, 3]).adx, null, "数据不足 adx=null");
+  const s = signalConsensusSeries(up);
+  assert.ok(Array.isArray(s.adx), "序列 adx 为数组");
+  assert.equal(s.adx.length, 80, "adx 序列等长");
+});
+
 test("consensus 策略: 注册且 run 为函数、category 为 trend", () => {
   assert.ok(STRATEGY_REGISTRY.consensus, "缺少 consensus 策略");
   assert.equal(typeof STRATEGY_REGISTRY.consensus.run, "function");
