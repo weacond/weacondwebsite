@@ -1015,6 +1015,48 @@ test("signalConsensusSeries opts.cmf: 含 CMF 第 5 票，长度匹配且 |score
   assert.ok(s.score.some((x) => x > 0), "上涨序列存在看多分数");
 });
 
+// ---------- Keltner 通道：可选第 N 票 + 可回测策略（默认 4 票行为不变）----------
+test("signalConsensus opts.keltner: 可选投票，默认 4 票行为不变", () => {
+  const base = signalConsensus(CMF_UP_CANDLES);
+  const withKel = signalConsensus(CMF_UP_CANDLES, { keltner: true });
+  assert.equal(base.votes.keltner, undefined, "默认不含 keltner 票（行为不变）");
+  assert.equal(typeof withKel.votes.keltner, "number", "opts.keltner 时含 keltner 票");
+  assert.equal(withKel.votes.keltner, 1, "单边上涨收盘破上轨 → +1 票");
+  assert.equal(withKel.direction, "bull");
+  assert.ok(withKel.agreement <= 1, "含 keltner 后 |score|≤1");
+});
+
+test("signalConsensusSeries opts.keltner: 含 keltner 投票，长度匹配且 |score|≤1", () => {
+  const s = signalConsensusSeries(CMF_UP_CANDLES, { keltner: true });
+  assert.equal(s.score.length, CMF_UP_CANDLES.length, "序列长度匹配");
+  assert.ok(s.score.every((x) => Math.abs(x) <= 1), "|score|≤1");
+});
+
+test("signalConsensus opts.cmf+keltner: 双票开启时分母各 +1、默认仍为 4", () => {
+  const base = signalConsensus(CMF_UP_CANDLES);
+  const both = signalConsensus(CMF_UP_CANDLES, { cmf: true, keltner: true });
+  assert.equal(base.votes.keltner, undefined, "默认不含 keltner 票");
+  assert.equal(base.votes.cmf, undefined, "默认不含 cmf 票");
+  assert.equal(typeof both.votes.cmf, "number", "双票时含 cmf 票");
+  assert.equal(typeof both.votes.keltner, "number", "双票时含 keltner 票");
+  assert.ok(both.agreement <= 1, "6 票归一后 |score|≤1");
+});
+
+test("keltnerStrategy: 注册为 trend 类、返回合法信号、缺口突破产生 buy", () => {
+  assert.ok(STRATEGY_REGISTRY.keltner, "keltner 应已注册");
+  assert.equal(STRATEGY_REGISTRY.keltner.category, "trend", "分类为 trend（cats 已覆盖）");
+  assert.equal(typeof STRATEGY_REGISTRY.keltner.run, "function", "run 应为函数");
+  const run = STRATEGY_REGISTRY.keltner.run;
+  // 平盘 30 根建立 EMA/ATR 基线，再一根大缺口向上 → 收盘破上轨 → buy
+  const flat = Array.from({ length: 30 }, () => ({ high: 101, low: 99, open: 100, close: 100, volume: 1000 }));
+  flat.push({ high: 131, low: 129, open: 128, close: 130, volume: 1000 });
+  const sig = run(flat, { period: 20, mult: 2 });
+  assert.ok(Array.isArray(sig), "返回数组");
+  assert.ok(sig.length > 0, "缺口突破应产生信号");
+  assert.equal(sig[sig.length - 1].action, "buy", "末根为向上突破 buy");
+  assert.ok("reason" in sig[0] && "index" in sig[0] && "confidence" in sig[0], "信号含 reason/index/confidence");
+});
+
 // ---------- 策略元数据完整性 + 分类覆盖（防止新增策略漏配 i18n 分类标签）----------
 // KNOWN_STRATEGY_CATEGORIES 必须与 pages/strategies.js 的 cats map 保持同步
 // （cats 当前覆盖 trend / mean_reversion / breakout / momentum）。

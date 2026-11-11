@@ -73,6 +73,7 @@ export default function BacktestPage() {
   const [optTarget, setOptTarget] = useState("sharpe");
   const [runningOpt, setRunningOpt] = useState(false);
   const [includeCmf, setIncludeCmf] = useState(false);
+  const [includeKeltner, setIncludeKeltner] = useState(false);
   const chartRef = useRef(null);
   const strategies = useMemo(() => Object.entries(STRATEGY_REGISTRY), []);
 
@@ -102,9 +103,9 @@ export default function BacktestPage() {
       mfiState: mfiVal == null ? "na" : mfiVal >= 80 ? "overbought" : mfiVal <= 20 ? "oversold" : "neutral",
       cmf: cmfVal,
       cmfState: cmfVal == null ? "na" : cmfVal > 0.05 ? "inflow" : cmfVal < -0.05 ? "outflow" : "neutral",
-      consensus: signalConsensus(c, { cmf: includeCmf }),
+      consensus: signalConsensus(c, { cmf: includeCmf, keltner: includeKeltner }),
     };
-  }, [result, includeCmf]);
+  }, [result, includeCmf, includeKeltner]);
 
   const handleParamChange = (key, val) => setParams((p) => ({ ...p, [key]: Number(val) }));
 
@@ -432,6 +433,15 @@ export default function BacktestPage() {
                   className="accent-indigo-600"
                 />
                 {L.cmfVote}
+              </label>
+              <label className="mt-1.5 flex items-center justify-center gap-2 text-xs text-slate-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeKeltner}
+                  onChange={(e) => setIncludeKeltner(e.target.checked)}
+                  className="accent-indigo-600"
+                />
+                {L.keltnerVote}
               </label>
               <div className="mt-4 pt-4 border-t border-slate-100 text-center">
                 <div className="text-xs text-slate-400 mb-1">{L.consensus}</div>
@@ -969,7 +979,7 @@ const zh = {
   techSignals: "技术指标信号", rsi: "RSI", stochK: "Stoch %K", supertrend: "超级趋势",
   overbought: "超买", oversold: "超卖", neutralSignal: "中性", bullishCross: "金叉",
   upSignal: "↑ 多头", downSignal: "↓ 空头",
-  consensus: "信号共识", agreement: "共识强度", bull: "看多", bear: "看空", adxStrength: "趋势强度 (ADX)", trendStrong: "强", trendWeak: "弱", confidence: "置信度", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "超买/超卖", mfi: "MFI", cmf: "CMF", cmfInflow: "资金流入", cmfOutflow: "资金流出", cmfVote: "共识纳入 CMF 资金流投票（5 指标）",
+  consensus: "信号共识", agreement: "共识强度", bull: "看多", bear: "看空", adxStrength: "趋势强度 (ADX)", trendStrong: "强", trendWeak: "弱", confidence: "置信度", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "超买/超卖", mfi: "MFI", cmf: "CMF", cmfInflow: "资金流入", cmfOutflow: "资金流出", cmfVote: "共识纳入 CMF 资金流投票（5 指标）", keltner: "Keltner", keltnerVote: "共识纳入 Keltner 通道投票（收盘突破上/下轨）",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
 };
 const en = {
@@ -1007,7 +1017,7 @@ const en = {
   techSignals: "Technical Signals", rsi: "RSI", stochK: "Stoch %K", supertrend: "Supertrend",
   overbought: "Overbought", oversold: "Oversold", neutralSignal: "Neutral", bullishCross: "Bull Cross",
   upSignal: "↑ Bullish", downSignal: "↓ Bearish",
-  consensus: "Signal Consensus", agreement: "Agreement", bull: "Bull", bear: "Bear", adxStrength: "Trend Strength (ADX)", trendStrong: "Strong", trendWeak: "Weak", confidence: "Confidence", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "Extreme", mfi: "MFI", cmf: "CMF", cmfInflow: "Money In", cmfOutflow: "Money Out", cmfVote: "Include CMF money-flow vote in consensus (5 indicators)",
+  consensus: "Signal Consensus", agreement: "Agreement", bull: "Bull", bear: "Bear", adxStrength: "Trend Strength (ADX)", trendStrong: "Strong", trendWeak: "Weak", confidence: "Confidence", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "Extreme", mfi: "MFI", cmf: "CMF", cmfInflow: "Money In", cmfOutflow: "Money Out", cmfVote: "Include CMF money-flow vote in consensus (5 indicators)", keltner: "Keltner", keltnerVote: "Include Keltner Channel vote in consensus (close breaking above/below bands)",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
 };
 
