@@ -5,6 +5,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import { positionSize, assessPosition } from "../lib/positionSize";
+import { riskReward, requiredReward } from "../lib/riskReward";
 
 export const metadata = {
   title: "头寸计算器 — Weacond",
@@ -28,6 +29,8 @@ export default function PositionSizePage() {
   const [riskPct, setRiskPct] = useState("1"); // 界面以 % 为单位，计算时 ÷100
   const [entry, setEntry] = useState("100");
   const [stop, setStop] = useState("95");
+  const [target, setTarget] = useState("110");
+  const [winRate, setWinRate] = useState("50");
 
   const res = positionSize({
     account: Number(account),
@@ -37,6 +40,8 @@ export default function PositionSizePage() {
   });
   const verdict = assessPosition(res);
   const vb = VERDICT_BADGE[verdict.verdict];
+  const rr = riskReward(Number(entry), Number(stop), Number(target));
+  const reqR = requiredReward(Number(winRate) / 100);
 
   const num = (v) => (Number.isFinite(v) ? v.toLocaleString() : "—");
 
@@ -60,6 +65,8 @@ export default function PositionSizePage() {
                 <Field label={L.riskPct} value={riskPct} onChange={setRiskPct} suffix="%" />
                 <Field label={L.entry} value={entry} onChange={setEntry} />
                 <Field label={L.stop} value={stop} onChange={setStop} />
+                <Field label={L.target} value={target} onChange={setTarget} />
+                <Field label={L.winRate} value={winRate} onChange={setWinRate} suffix="%" />
               </div>
               <p className="text-xs text-slate-400 mt-4">{L.formula}</p>
             </div>
@@ -77,6 +84,12 @@ export default function PositionSizePage() {
                   <Result label={L.positionPct} value={`${(res.positionPct * 100).toFixed(1)}%`} />
                   <Result label={L.maxLoss} value={num(res.maxLoss)} />
                   <Result label={L.riskAmount} value={num(res.riskAmount)} />
+                  <div className="pt-2 border-t mt-1 space-y-3">
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase">{L.rrSection}</h3>
+                    <Result label={L.riskReward} value={rr.valid ? `${rr.rr.toFixed(2)} : 1` : "—"} highlight />
+                    <Result label={L.breakevenWr} value={rr.valid ? `${(rr.breakevenWinRate * 100).toFixed(1)}%` : "—"} />
+                    <Result label={L.requiredRr} value={reqR != null ? `${reqR.toFixed(2)} : 1` : "—"} />
+                  </div>
                   <p className="text-xs text-slate-400 pt-2 border-t">{L.verdictHint[verdict.verdict]}</p>
                 </div>
               ) : (
@@ -125,6 +138,8 @@ const zh = {
   riskPct: "每笔风险（%）",
   entry: "入场价",
   stop: "止损价",
+  target: "目标价",
+  winRate: "预期胜率（%）",
   formula: "头寸 = ⌊ 账户 × 风险% ÷ |入场 − 止损| ⌋；名义价值 = 头寸 × 入场。",
   results: "结果",
   units: "头寸单位（股/张）",
@@ -132,6 +147,10 @@ const zh = {
   positionPct: "占账户比例",
   maxLoss: "最大亏损",
   riskAmount: "风险预算",
+  rrSection: "风险:收益",
+  riskReward: "R:R 比值",
+  breakevenWr: "盈亏平衡胜率",
+  requiredRr: "该胜率所需 R:R",
   verdictHint: {
     ok: "名义 ≤ 账户，集中度正常。",
     leveraged: "名义超过账户，需杠杆或保证金；注意穿仓风险。",
@@ -149,6 +168,8 @@ const en = {
   riskPct: "Risk per Trade (%)",
   entry: "Entry Price",
   stop: "Stop Price",
+  target: "Target Price",
+  winRate: "Expected Win Rate (%)",
   formula: "Units = ⌊ Equity × Risk% ÷ |Entry − Stop| ⌋; Notional = Units × Entry.",
   results: "Results",
   units: "Units (shares / contracts)",
@@ -156,6 +177,10 @@ const en = {
   positionPct: "Position %",
   maxLoss: "Max Loss",
   riskAmount: "Risk Budget",
+  rrSection: "Risk : Reward",
+  riskReward: "R:R Ratio",
+  breakevenWr: "Breakeven Win Rate",
+  requiredRr: "R:R Needed",
   verdictHint: {
     ok: "Notional ≤ account; concentration is normal.",
     leveraged: "Notional exceeds account — requires leverage/margin; mind blow-up risk.",
