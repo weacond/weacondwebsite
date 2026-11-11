@@ -64,3 +64,17 @@ test("buildPutScreener: 确定性（同输入同输出）", () => {
   const b = JSON.stringify(buildPutScreener());
   assert.equal(a, b);
 });
+
+test("buildPutScreener: 含盈利概率与盈亏平衡（卖方口径）", () => {
+  const rows = buildPutScreener();
+  assert.ok(rows.length > 0, "应有结果");
+  for (const r of rows) {
+    // 盈亏平衡 = 行权价 − 权利金
+    assert.ok(typeof r.breakeven === "number", "breakeven 应为数值");
+    assert.ok(Math.abs(r.breakeven - (r.strike - r.premium)) < 0.01, "breakeven = strike − premium");
+    // 盈利概率 ∈ [0,1]
+    assert.ok(typeof r.probProfit === "number" && r.probProfit >= 0 && r.probProfit <= 1, "probProfit ∈ [0,1]");
+    // 盈利概率应显著高于实值概率（虚值 Put 大概率到期归零）
+    assert.ok(r.probProfit > r.probITM, "盈利概率应高于实值概率");
+  }
+});

@@ -28,6 +28,8 @@ const meta = {
     colExpiry: "到期",
     colIvRank: "IV Rank",
     colPremium: "权利金",
+    colProbProfit: "盈利概率",
+    colBreakeven: "盈亏平衡",
     colProbITM: "实值概率",
     colTheta: "Theta",
     colScore: "综合分",
@@ -61,6 +63,8 @@ const meta = {
     colExpiry: "Expiry",
     colIvRank: "IV Rank",
     colPremium: "Premium",
+    colProbProfit: "P(profit)",
+    colBreakeven: "Breakeven",
     colProbITM: "P(ITM)",
     colTheta: "Theta",
     colScore: "Score",
@@ -149,6 +153,8 @@ export default function PutSellingPage() {
                     <th className="text-right px-4 py-3 font-medium">{t.colExpiry}</th>
                     <th className="text-right px-4 py-3 font-medium">{t.colIvRank}</th>
                     <th className="text-right px-4 py-3 font-medium">{t.colPremium}</th>
+                    <th className="text-right px-4 py-3 font-medium">{t.colProbProfit}</th>
+                    <th className="text-right px-4 py-3 font-medium">{t.colBreakeven}</th>
                     <th className="text-right px-4 py-3 font-medium">{t.colProbITM}</th>
                     <th className="text-right px-4 py-3 font-medium">{t.colTheta}</th>
                     <th className="text-right px-4 py-3 font-medium">{t.colScore}</th>
@@ -171,6 +177,8 @@ export default function PutSellingPage() {
                       <td className="px-4 py-3 text-right tabular-nums text-emerald-600 font-medium">
                         ${fmt(r.premium)}
                       </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-indigo-600 font-medium">{fmt(r.probProfit * 100, 1)}%</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-500">{fmt(r.breakeven)}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{fmt(r.probITM * 100, 1)}%</td>
                       <td className="px-4 py-3 text-right tabular-nums text-slate-500">{fmt(r.theta, 3)}</td>
                       <td className="px-4 py-3 text-right">
