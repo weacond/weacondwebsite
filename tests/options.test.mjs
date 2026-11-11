@@ -3,7 +3,7 @@
 // normCdf 锚点、退化情形），避免把"背下来的数字"当 oracle。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normCdf, normPdf, priceOption, optionGreeks, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
+import { normCdf, normPdf, priceOption, optionGreeks, computeOptionChain, impliedVol, probITM, ivRank, ivPercentile, classifyIVRank, volSmile, impliedMove } from "../lib/options.js";
 
 // ---------- normCdf / normPdf 锚点 ----------
 
@@ -322,6 +322,22 @@ test("volSmile: iv 恒正；退化输入返回空", () => {
   assert.equal(volSmile({ spot: 0, baseIV: 0.2 }).length, 0, "spot≤0 → []");
   assert.equal(volSmile({ spot: 100, baseIV: 0 }).length, 0, "baseIV≤0 → []");
   assert.equal(volSmile({ spot: 100, baseIV: 0.2, steps: 0 }).length, 0, "steps<1 → []");
+});
+
+test("impliedMove: 1σ 区间对称于 spot、95% 更宽、oneSigmaPct=iv·√t·100、退化→null", () => {
+  const m = impliedMove({ spot: 100, iv: 0.2, t: 1 });
+  assert.ok(m, "合法输入应返回对象");
+  // 1σ 绝对移动 = spot·iv·√t = 100·0.2·1 = 20 → oneSigmaPct = 20%
+  assert.ok(Math.abs(m.oneSigmaPct - 20) < 1e-6, "oneSigmaPct = iv·√t·100 = 20%");
+  // 区间关于 spot 对称
+  assert.ok(Math.abs(m.oneSigmaLow + m.oneSigmaHigh - 2 * 100) < 0.01, "1σ 区间关于 spot 对称");
+  assert.ok(m.oneSigmaLow === 80 && m.oneSigmaHigh === 120, "1σ 区间 = [80,120]");
+  // 95% 区间宽于 1σ 区间
+  assert.ok(m.p95High - m.p95Low > m.oneSigmaHigh - m.oneSigmaLow, "95% 区间宽于 1σ");
+  // 退化 → null
+  assert.equal(impliedMove({ spot: 0, iv: 0.2, t: 1 }), null, "spot≤0 → null");
+  assert.equal(impliedMove({ spot: 100, iv: 0, t: 1 }), null, "iv≤0 → null");
+  assert.equal(impliedMove({ spot: 100, iv: 0.2, t: 0 }), null, "t≤0 → null");
 });
 
 
