@@ -24,9 +24,34 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+  # Job 1.5: R2 双桶就绪门禁 — 两桶（weacond-public / weacond-private）都就绪才放行部署。
+  # 未配 R2 密钥时自动跳过（不阻断）；配好 R2_API_TOKEN + R2_ACCOUNT_ID 后本步变为强制门禁，
+  # 任一桶缺失即失败 → 阻止半残上线。
+  r2-gate:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - name: R2 双桶就绪检查（enableR2 --check）
+        run: |
+          if [ -z "${R2_API_TOKEN:-}" ] || [ -z "${R2_ACCOUNT_ID:-}" ]; then
+            echo "⚠️ 未配置 R2 密钥 → 跳过 R2 就绪门禁（不阻断）。配好 R2_API_TOKEN + R2_ACCOUNT_ID 后本步变为强制门禁。"
+            exit 0
+          fi
+          echo "检查 R2 双桶 weacond-public / weacond-private 是否就绪..."
+          node scripts/enableR2.mjs --check
+        env:
+          R2_API_TOKEN: ${{ secrets.R2_API_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+
   # Job 1: 构建 + 部署到 Cloudflare Workers
   deploy-worker:
-    needs: test
+    needs: [test, r2-gate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

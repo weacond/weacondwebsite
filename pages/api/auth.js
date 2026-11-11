@@ -46,6 +46,29 @@ export default async function handler(req, res) {
         break;
       }
 
+      case "oauth": {
+        // OAuth（Google / GitHub / Apple 等）：provider 白名单化，默认 google,github,apple，
+        // 可用 NEXT_PUBLIC_OAUTH_PROVIDERS（逗号分隔）覆盖。返回授权 URL 供前端跳转。
+        const provider = String(rest.provider || "").trim().toLowerCase();
+        const allowed = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS || "google,github,apple")
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        if (!provider || !allowed.includes(provider)) {
+          return res.status(400).json({ error: `OAuth provider not allowed. Allowed: ${allowed.join(", ") || "none"}` });
+        }
+        const redirectTo = process.env.NEXT_PUBLIC_SITE_URL
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+          : "/auth/callback";
+        const { data, error } = await client.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo },
+        });
+        if (error) return res.status(400).json({ error: error.message });
+        res.status(200).json({ provider, redirectTo, url: data.url });
+        break;
+      }
+
       default:
         return res.status(400).json({ error: "Unknown action" });
     }

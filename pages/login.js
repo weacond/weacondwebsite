@@ -96,6 +96,45 @@ export default function LoginPage() {
     }
   };
 
+  // OAuth 登录（Google / GitHub / Apple 等）：provider 由 NEXT_PUBLIC_OAUTH_PROVIDERS 控制；
+  // 未配置时不渲染按钮（优雅降级）。沿用动态 import 保持 supabase-js 分包按需加载。
+  const oauthProviders = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  const handleOAuth = async (provider) => {
+    setLoading(true);
+    setError("");
+    const { getSupabaseClient } = await import("../lib/supabase.js");
+    const client = getSupabaseClient();
+    if (!client) {
+      // Supabase 未配置时的降级：模拟 OAuth 登录（与邮箱登录一致，仅本地演示）
+      localStorage.setItem("weacond_user", JSON.stringify({
+        email: `oauth-${provider}@weacond.local`,
+        name: `${provider} user`,
+        plan: "free",
+      }));
+      router.push("/dashboard");
+      return;
+    }
+    try {
+      const { error: supaErr } = await client.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: process.env.NEXT_PUBLIC_SITE_URL
+            ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+            : "/auth/callback",
+        },
+      });
+      if (supaErr) throw supaErr;
+      // signInWithOAuth 会跳转到 provider 授权页；未抛错即视为已发起跳转。
+    } catch (err) {
+      setError(err.message || L.oauthFailed);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <Head>
@@ -167,6 +206,29 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {oauthProviders.length > 0 && (
+            <>
+              <div className="my-4 flex items-center">
+                <div className="flex-1 border-t border-slate-200" />
+                <span className="px-3 text-xs text-slate-400">{L.oauthOr}</span>
+                <div className="flex-1 border-t border-slate-200" />
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {oauthProviders.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => handleOAuth(p)}
+                    disabled={loading}
+                    className="w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg border border-slate-200 transition-colors disabled:opacity-50"
+                  >
+                    {L.oauthPrefix} {PROVIDER_NAMES[p]?.[lang] || p}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           <p className="mt-6 text-center text-xs text-slate-400">
             {L.trialNote}
           </p>
@@ -187,6 +249,9 @@ const zh = {
   trialNote: "注册即享 3 天免费体验高级功能",
   loginFailed: "登录失败，请检查邮箱和密码",
   signupFailed: "注册失败，邮箱可能已注册",
+  oauthPrefix: "使用",
+  oauthOr: "第三方登录",
+  oauthFailed: "第三方登录失败，请重试",
   loading: "处理中...",
 };
 
@@ -201,5 +266,16 @@ const en = {
   trialNote: "New users get 3 days free premium trial",
   loginFailed: "Login failed. Check your email and password.",
   signupFailed: "Sign up failed. Email may already be registered.",
+  oauthPrefix: "Continue with",
+  oauthOr: "Sign in with",
+  oauthFailed: "OAuth sign-in failed. Please try again.",
   loading: "Processing...",
+};
+
+// OAuth provider 显示名（按语言）。仅展示 NEXT_PUBLIC_OAUTH_PROVIDERS 中列出的 provider。
+const PROVIDER_NAMES = {
+  google: { zh: "Google", en: "Google" },
+  github: { zh: "GitHub", en: "GitHub" },
+  apple: { zh: "Apple", en: "Apple" },
+  twitter: { zh: "X / Twitter", en: "X / Twitter" },
 };

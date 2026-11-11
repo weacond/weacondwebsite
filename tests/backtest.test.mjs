@@ -22,6 +22,7 @@ import {
   cci,
   roc,
   mfi,
+  cmf,
   signalConsensus,
   signalConsensusSeries,
   runBacktest,
@@ -563,6 +564,34 @@ test("mfi: 等长、前 period 根 null、值域 [0,100]、上涨趋近 100/下�
   assert.ok(mfi(down, p)[n - 1] < 20, "单边下跌 MFI 趋近 0");
 });
 
+test("cmf: 等长、前 period 根 null、值域 [-1,1]、上涨趋近 +1/下跌趋近 -1", () => {
+  const n = 120;
+  const p = 20;
+  // 单边上涨：典型价单调上升 → 全部为正资金流，CMF 趋近 +1
+  const up = Array.from({ length: n }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 100 + i,
+    close: 100 + i + 0.5,
+    open: 100 + i,
+    volume: 1000,
+  }));
+  const m = cmf(up, p);
+  assert.equal(m.length, n, "输出等长");
+  for (let i = 0; i < p; i++) assert.ok(m[i] === null, "前 period 根为 null");
+  assert.ok(m[p] != null, "第 period 根起有效");
+  for (let i = p; i < n; i++) assert.ok(m[i] >= -1 && m[i] <= 1, "CMF ∈ [-1,1]");
+  assert.ok(m[n - 1] > 0.5, "单边上涨 CMF 趋近 +1");
+  // 单边下跌：全部为负资金流，CMF 趋近 -1
+  const down = Array.from({ length: n }, (_, i) => ({
+    high: 300 - i + 1,
+    low: 300 - i,
+    close: 300 - i - 0.5,
+    open: 300 - i,
+    volume: 1000,
+  }));
+  assert.ok(cmf(down, p)[n - 1] < -0.5, "单边下跌 CMF 趋近 -1");
+});
+
 
 // ---------- 回测引擎 ----------
 test("runBacktest: 震荡数据产生交易且指标完整", () => {
@@ -839,6 +868,20 @@ test("mfi 策略: 注册、mean_reversion 类、params 合法、V 形先跌后�
   ];
   const signals = STRATEGY_REGISTRY.mfi.run(candles, { period: 14, oversold: 20, overbought: 80 });
   assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 MFI 从超卖回升应产生买入信号");
+});
+
+test("cmf 策略: 注册、momentum 类、params 合法、V 形先跌后涨产生翻多买入", () => {
+  assert.ok(STRATEGY_REGISTRY.cmf, "缺少 cmf 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.cmf.run, "function");
+  assert.equal(STRATEGY_REGISTRY.cmf.category, "momentum");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.cmf.params), "cmf.params 应为数组");
+  // V 形：先持续下跌（CMF 跌入流出区）后持续上涨（CMF 回升穿越 +阈值 → 买入）
+  const candles = [
+    ...Array.from({ length: 60 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 60 }, (_, i) => ({ high: 40 + i, low: 39 + i, close: 39.5 + i, open: 40 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.cmf.run(candles, { period: 20, threshold: 0.05 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 CMF 从流出回升应产生买入信号");
 });
 
 // ---------- optimizeStrategy（参数网格优化）----------

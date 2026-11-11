@@ -47,3 +47,11 @@ test("auth: 未配置 Supabase → 503（优雅降级）", () => {
   assert.equal(res.statusCode, 503);
   assert.equal(res.body?.error, "Auth not configured");
 });
+
+test("auth: oauth 未配置 Supabase → 503（优雅降级，provider 白名单在 client 缺失前不触网）", () => {
+  clearSupabaseEnv();
+  const res = makeRes();
+  handler({ method: "POST", body: { action: "oauth", provider: "google" } }, res);
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body?.error, "Auth not configured");
+});

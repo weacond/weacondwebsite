@@ -236,3 +236,20 @@
 
 > 验证状态：`node --check` 通过、`npm run check:r2` 在缺密钥时给清晰提示并退出 1、
 > `--dry` 正常、`checkLeak` 通过、`npm test` 401/401 全绿。应用代码未改动，仅新增脚本/文档/配置。
+
+---
+
+## 附录 C：本批次开发增量（4 项全做）
+
+| 项 | 结论 | 验证 |
+|---|---|---|
+| ① 宏观接 FRED | **已存在**：`pages/macro.js` 的 `loadFred()`/`loadYieldCurve()` 已拉 `/api/marketdata?fred=…`，无 key 时诚实回退演示值。无需改动。 | build 通过 |
+| ② 新增指标 | 新增 **CMF（Chaikin 资金流）** 指标 + `cmf` 资金流策略（momentum 类），进 `STRATEGY_REGISTRY`，回测/对比 UI 自动可用。 | 2 个新测试 |
+| ③ OAuth 登录 | `/api/auth` 增 `oauth` action（provider 白名单 + 优雅降级）+ `pages/login.js` 增第三方登录按钮（`NEXT_PUBLIC_OAUTH_PROVIDERS` 控制，未配则不渲染）。 | 1 个新测试 + build |
+| ④ CI R2 门禁 | `deploy.yml` 增 `r2-gate` job（`enableR2 --check`）：未配密钥自动跳过、配好即强制；`deploy-worker` 依赖它。 | YAML 校验通过 |
+
+> 本批次后：`npm test` **404/404** 全绿；`next build` 退出 0（`/login`、`/macro`、`/pricing` 等全部编译通过）。
+> 仍待你提供密钥（提供即自动生效，无需改代码）：
+> - **FRED**：`FREDSERIESKEY`（或 `ALPHA_VANTAGE_API_KEY`）→ 宏观页出真实利率/通胀/就业/信用利差。
+> - **OAuth**：在 Supabase Dashboard 配好 provider 的 client 凭证，并设 `NEXT_PUBLIC_OAUTH_PROVIDERS`（如 `google,github`）→ 登录页出现第三方登录按钮。
+> - **R2**：`R2_API_TOKEN` + `R2_ACCOUNT_ID` → `npm run enable:r2` 建桶，CI `r2-gate` 变强制门禁。
