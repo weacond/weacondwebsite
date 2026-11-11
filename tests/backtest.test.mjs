@@ -1014,3 +1014,26 @@ test("signalConsensusSeries opts.cmf: 含 CMF 第 5 票，长度匹配且 |score
   assert.ok(s.score.every((x) => Math.abs(x) <= 1), "|score|≤1");
   assert.ok(s.score.some((x) => x > 0), "上涨序列存在看多分数");
 });
+
+// ---------- 策略元数据完整性 + 分类覆盖（防止新增策略漏配 i18n 分类标签）----------
+// KNOWN_STRATEGY_CATEGORIES 必须与 pages/strategies.js 的 cats map 保持同步
+// （cats 当前覆盖 trend / mean_reversion / breakout / momentum）。
+const KNOWN_STRATEGY_CATEGORIES = ["trend", "mean_reversion", "breakout", "momentum"];
+
+test("STRATEGY_REGISTRY: 每个策略元数据完整且分类已在 cats 中登记", () => {
+  assert.ok(STRATEGY_REGISTRY.cmf, "cmf 策略应已注册");
+  assert.ok(STRATEGY_REGISTRY.cmf.category === "momentum", "cmf 分类为 momentum（需 cats 覆盖）");
+  for (const [key, def] of Object.entries(STRATEGY_REGISTRY)) {
+    assert.equal(typeof def.name, "string", `${key}.name 应为字符串`);
+    assert.ok(def.name.trim().length > 0, `${key}.name 不应为空`);
+    assert.equal(typeof def.nameEn, "string", `${key}.nameEn 应为字符串`);
+    assert.ok(def.nameEn.trim().length > 0, `${key}.nameEn 不应为空`);
+    assert.ok(Array.isArray(def.params), `${key}.params 应为数组`);
+    assert.equal(typeof def.run, "function", `${key}.run 应为函数`);
+    assert.ok(
+      KNOWN_STRATEGY_CATEGORIES.includes(def.category),
+      `${key}.category "${def.category}" 未在 cats i18n 中登记`
+    );
+  }
+});
+
