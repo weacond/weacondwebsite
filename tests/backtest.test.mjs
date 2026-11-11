@@ -317,9 +317,17 @@ test("signalConsensus / Series: 输出含 adx 字段（上升趋势 ADX 高、�
   assert.ok(c.adx != null && c.adx >= 0 && c.adx <= 100, "ADX ∈ [0,100]");
   assert.ok(c.adx > 40, "单边上涨 ADX 高");
   assert.equal(signalConsensus([1, 2, 3]).adx, null, "数据不足 adx=null");
+  // confidence = agreement × ADX 因子：强趋势下接近 agreement、震荡下打折
+  assert.ok("confidence" in c, "含 confidence 字段");
+  assert.ok(c.confidence > 0 && c.confidence <= c.agreement + 1e-9, "强趋势 confidence ≤ agreement 且 >0");
+  assert.ok(c.confidence > c.agreement * 0.5, "高 ADX 下 confidence 不低于 0.5×agreement");
+  assert.equal(signalConsensus([1, 2, 3]).confidence, 0, "数据不足 confidence=0");
   const s = signalConsensusSeries(up);
   assert.ok(Array.isArray(s.adx), "序列 adx 为数组");
   assert.equal(s.adx.length, 80, "adx 序列等长");
+  assert.ok(Array.isArray(s.confidence), "序列 confidence 为数组");
+  assert.equal(s.confidence.length, 80, "confidence 序列等长");
+  assert.ok(s.confidence[79] > 0 && s.confidence[79] <= s.agreement[79] + 1e-9, "序列末根 confidence ∈ (0, agreement]");
 });
 
 test("consensus 策略: 注册且 run 为函数、category 为 trend", () => {
