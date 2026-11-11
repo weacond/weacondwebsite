@@ -36,6 +36,8 @@ const METRIC_KEYS = [
   { key: "tailRatio", label: "尾部比率", labelEn: "Tail Ratio", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "sterlingRatio", label: "斯特林", labelEn: "Sterling", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "maxDrawdownDuration", label: "回撤周期", labelEn: "DD Duration", fmt: (v) => `${v} 根`, good: () => true },
+  { key: "maxLosingStreak", label: "最长连亏", labelEn: "Max Loss Streak", fmt: (v) => `${v} 笔`, good: (v) => v <= 3 },
+  { key: "maxWinStreak", label: "最长连盈", labelEn: "Max Win Streak", fmt: (v) => `${v} 笔`, good: () => true },
   { key: "downsideDeviation", label: "下行波动", labelEn: "Downside σ", fmt: (v) => `${(v * 100).toFixed(2)}%`, good: () => true },
   { key: "probRuin", label: "破产概率", labelEn: "Prob. Ruin", fmt: (v) => `${(v * 100).toFixed(1)}%`, good: (v) => v < 0.5 },
   { key: "informationRatio", label: "信息比率", labelEn: "Info Ratio", fmt: (v) => v.toFixed(2), good: (v) => v > 0 },
