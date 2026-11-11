@@ -40,6 +40,7 @@ const METRIC_KEYS = [
   { key: "maxWinStreak", label: "最长连盈", labelEn: "Max Win Streak", fmt: (v) => `${v} 笔`, good: () => true },
   { key: "cvar95", label: "条件VaR(ES)", labelEn: "Expected Shortfall", fmt: (v) => `${(Math.abs(v) * 100).toFixed(2)}%`, good: (v) => Math.abs(v) < 0.03 },
   { key: "avgDrawdown", label: "平均回撤", labelEn: "Avg DD", fmt: (v) => `-${v.toFixed(1)}%`, good: () => true },
+  { key: "underwaterPct", label: "水下时间", labelEn: "Underwater %", fmt: (v) => `${v.toFixed(0)}%`, good: (v) => v < 50 },
   { key: "downsideDeviation", label: "下行波动", labelEn: "Downside σ", fmt: (v) => `${(v * 100).toFixed(2)}%`, good: () => true },
   { key: "probRuin", label: "破产概率", labelEn: "Prob. Ruin", fmt: (v) => `${(v * 100).toFixed(1)}%`, good: (v) => v < 0.5 },
   { key: "informationRatio", label: "信息比率", labelEn: "Info Ratio", fmt: (v) => v.toFixed(2), good: (v) => v > 0 },
