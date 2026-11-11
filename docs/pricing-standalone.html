@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Weacond · 快车道金融智能系统 — 定价 / 7 天邮件 / SLA（可打印）</title>
+<style>
+  :root { --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --brand:#4f46e5; --ok:#16a34a; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", Segoe UI, sans-serif;
+    color: var(--ink); margin: 0; padding: 32px 24px; line-height: 1.55; background:#fff; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; }
+  .star { color: var(--brand); font-weight: 700; }
+  .price { font-weight: 700; font-size: 15px; }
+  .cta { color: var(--brand); font-weight: 700; }
+  .day { background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin:10px 0; }
+  .day b { color: var(--brand); }
+  .small { font-size: 12px; color: var(--muted); }
+  .ok { color: var(--ok); font-weight: 700; }
+  code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; }
+  .foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid var(--line); font-size:12px; color:var(--muted); }
+  @media print {
+    body { padding: 0; font-size: 11px; }
+    .day, table, .box { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+  <h1>Weacond · 快车道金融智能系统 <span class="small">Fastlane Quant Platform</span></h1>
+  <p class="sub">定价 / 7 天邮件转化序列 / SLA / 合规底线 — 一页可打印（浏览器打开后「打印 → 存为 PDF」）。
+    数据与计算在用户本地，金融数据不出本地；所有信号仅供教育/研究，不构成投资建议。</p>
+
+  <h2>一、三档定价（锚点：放最高档，主推中档）</h2>
+  <table>
+    <tr><th>档位</th><th>价格</th><th>关键功能</th><th>CTA</th></tr>
+    <tr><td>Free · 引流</td><td class="price">$0</td>
+      <td>注册 + 3 天高级体验券；每日 SignalCard；入门电子书章节</td><td class="cta">免费开始</td></tr>
+    <tr><td>Basic · 入门</td><td class="price">$9.9/月 · $99/年</td>
+      <td>每日技术信号（突破/支撑位）、月度电子书、关注收藏、基础任务</td><td class="cta">升级 Basic</td></tr>
+    <tr><td class="star">PutSeller · 主推 ★</td><td class="price">$29.9–59/月 · $299–590/年</td>
+      <td>每日 5–10 条卖 Put 筛选、IV Rank、FairValue、Greeks 摘要、执行/风控分配、导出表格、平仓提醒（Telegram/Push）</td>
+      <td class="cta">最推荐 · 立即订阅</td></tr>
+    <tr><td>ProQuant · 专业</td><td class="price">$149–199/月 · $1490/年</td>
+      <td>回测引擎、模拟盘、实时信号、高配 API、策略市场优先上架、历史绩效面板</td><td class="cta">面向专业</td></tr>
+    <tr><td>Enterprise · 白标</td><td class="price">$999+/月 起</td>
+      <td>高配 API、实时行情、复制交易对接、白标、专属客户经理 + SLA</td><td class="cta">联系商务</td></tr>
+  </table>
+  <p class="small">退款：7 天无条件（年付首次/活动除外），24h 内处理。年付享约 16–17% 折扣（≈2 个月免费）。
+    动态定价在 <code>lib/stripe.js</code>，无需在 Stripe 后台逐建产品。</p>
+
+  <h2>二、7 天邮件转化序列（复制即用）</h2>
+  <div class="day"><b>Day 0 · 欢迎</b>：主题「你的 3 天高级体验已开启」。正文：说明已启用体验，直接展示今日 SignalCard，CTA → 仪表盘。</div>
+  <div class="day"><b>Day 1 · 教学</b>：主题「3 分钟读懂 SignalCard」。正文：嵌入 2–3 分钟教学视频 + 一个小任务（观看并标记完成）。</div>
+  <div class="day"><b>Day 2 · 行动</b>：主题「完成一次模拟下单，延长体验」。正文：step-by-step 引导做一笔模拟盘，完成即延长 3 天。</div>
+  <div class="day"><b>Day 3 · 社群</b>：主题「加入 VIP 社群」。正文：展示社群价值（实时讨论 / 重要信号 / 案例）。</div>
+  <div class="day"><b>Day 4 · 社会证据</b>：主题「他们这样做」。正文：展示用户案例或回测摘要（注意：只描述历史绩效，不承诺回报）。</div>
+  <div class="day"><b>Day 5 · 优惠</b>：主题「年付立减 2 个月」。正文：限时年付折扣，推动转化。</div>
+  <div class="day"><b>Day 6 · 紧迫感</b>：主题「体验明天到期」。正文：提醒即将到期，给专属 $1 续费链接。</div>
+  <div class="day"><b>Day 7 · 回访</b>：主题「感谢 + 小问卷」。正文：NPS 调查 + 感谢 + 忠诚奖励；NPS&lt;7 自动二次回访。</div>
+
+  <h2>三、SLA 要点（写给商务/法务）</h2>
+  <table>
+    <tr><th>级别</th><th>定义</th><th>响应</th><th>恢复</th></tr>
+    <tr><td class="ok">P0</td><td>系统不可用 / 支付中断</td><td>≤ 15 分钟公告</td><td>≤ 4 小时</td></tr>
+    <tr><td>P1</td><td>关键功能故障（如信号/回测）</td><td>≤ 1 小时</td><td>≤ 24 小时</td></tr>
+    <tr><td>P2</td><td>次要功能受影响</td><td>≤ 4 小时</td><td>≤ 48 小时</td></tr>
+  </table>
+  <p class="small">可用率目标：个人版 99.5%/月，企业版 99.9%/月。数据延迟阈值触发「延迟模式」并告知用户。
+    支付重大故障：30 分钟内公告修复计划，24h 内完成或给补偿（延长订阅/退款）。</p>
+
+  <h2>四、合规底线（上线前必须）</h2>
+  <p class="small">走 <b>Route A</b>：只做 SaaS + 数据 + 教育，<b>不代客理财、不代下单、不托管资金</b> → 无需金融牌照。
+  ① 每页免责声明；② 完整服务条款 + 隐私政策；③ 数据源商用授权；④ 只用 Apache-2.0/MIT 模型并留 LICENSE；
+  ⑤ 注册法律主体；⑥ 收款邮箱可用。复制交易/托管属 Route C，需先做牌照评估。</p>
+
+  <div class="foot">Weacond · weacond.com · 本文件由仓库 <code>docs/pricing-standalone.html</code> 生成，可自由打印/转 PDF/发给投资人或法务。</div>
+</body>
+</html>

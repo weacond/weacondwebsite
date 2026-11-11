@@ -30,6 +30,7 @@ import { join } from "node:path";
 
 const ROOT = process.cwd();
 const DRY = process.argv.includes("--dry");
+const CHECK = process.argv.includes("--check");
 
 // ---- 读取配置：环境变量优先，其次解析 .env.local ----
 function loadEnvLocal() {
@@ -129,6 +130,29 @@ async function setPublicAccess(bucket, enabled) {
     `      请到 Dashboard → R2 → 该桶 → “Public access” 手动 ${enabled ? "开启" : "关闭"}。`);
 }
 
+// --check：只读自检，不创建。两桶都在 → 退出 0；否则退出 1（可挂 CI 门禁）。
+async function checkMode() {
+  console.log(`\n=== R2 自检（--check，只读不创建）===`);
+  let existing;
+  try {
+    existing = await listBuckets();
+  } catch (e) {
+    console.error(`❌ 无法列出 R2 桶：${e.message}`);
+    console.error("   检查 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID 是否正确、且含 R2 权限。");
+    process.exit(1);
+  }
+  const hasPublic = existing.has(PUBLIC_BUCKET);
+  const hasPrivate = existing.has(PRIVATE_BUCKET);
+  console.log(`  ${hasPublic ? "✓ 已存在" : "✗ 缺失"}  公开桶  ${PUBLIC_BUCKET}`);
+  console.log(`  ${hasPrivate ? "✓ 已存在" : "✗ 缺失"}  私有桶  ${PRIVATE_BUCKET}`);
+  if (hasPublic && hasPrivate) {
+    console.log(`\n✅ 两桶就绪：可取消 wrangler.toml 的 [[r2_buckets]] 注释，并 npm run uploadR2 上传内容。`);
+    process.exit(0);
+  }
+  console.log(`\n🔴 尚未就绪：缺失的桶请先 npm run enable:r2（需真实 CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID）。`);
+  process.exit(1);
+}
+
 async function main() {
   console.log(`\n=== R2 双桶创建${DRY ? "（预演，不真调用 API）" : ""} ===`);
   console.log(`账号：${ACCOUNT_ID || "<未设置 CLOUDFLARE_ACCOUNT_ID>"}`);
@@ -142,6 +166,12 @@ async function main() {
     console.log(`  4) POST 开启 ${PUBLIC_BUCKET} 公共访问`);
     console.log(`  5) POST 关闭 ${PRIVATE_BUCKET} 公共访问（确保正文不可公开访问）`);
     console.log(`\n去掉 --dry 真正执行： node scripts/enableR2.mjs`);
+    console.log(`只自检不创建：        node scripts/enableR2.mjs --check  （两桶都在才放行，可挂 CI）`);
+    return;
+  }
+
+  if (CHECK) {
+    await checkMode();
     return;
   }
 

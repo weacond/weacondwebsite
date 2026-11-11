@@ -205,3 +205,34 @@
 - Vercel ToS（Hobby 非商用）：https://vercel.com/legal/terms
 - Stripe Webhooks：https://stripe.com/docs/webhooks
 - Supabase RLS：https://supabase.com/docs/guides/database/postgres/row-level-security
+
+---
+
+## 附录 A：书放在哪（速查）
+
+共 **25 本**，每本**中英双语**（英文=默认 `.md` 无后缀；中文=`.cn.md` / `.cn.pdf`）。
+
+| 位置 | 内容 | 文件数 | 上哪个 R2 桶 |
+|---|---|---|---|
+| `private/ebooks/content/` | 全书正文（`.md` + `.cn.md`） | 50 | 私有桶 `weacond-private`（key `content/{slug}(.cn).md`） |
+| `private/ebooks/files/` | 可下载 PDF（`.pdf` + `.cn.pdf`） | 50 | 私有桶 `weacond-private`（key `files/{slug}(.cn).pdf`） |
+| `public/ebooks/preview/` | 第 1 章预览（公网可读） | 50 | 公开桶 `weacond-public`（key `preview/{slug}(.cn).md`） |
+| `public/ebooks/index.json` | 目录（slug/中英标题/价格/类别） | 1 | 公开桶 `weacond-public`（key `index.json`） |
+
+- 目录/编目源 = `public/ebooks/index.json`；定价读自 `lib/stripe.js`；消费方 `pages/ebooks/[slug].js`、`pages/api/ebook-content.js`、`pages/api/checkout*.js`。
+- R2 客户端 = `lib/r2.js`（公开 `fetchEbookIndex`/`fetchEbookContent`；私有 `presignPrivate`/`fetchPrivateContent`，走 `R2_ACCOUNT_ID`+`R2_API_TOKEN` 的 REST API）。
+- 生成/上传：`node scripts/genEbooks.mjs`（补占位内容，幂等）、`node scripts/uploadR2.mjs`（传 R2，先 `--dry`）。
+- 守卫：`scripts/checkLeak.mjs`（build 前）+ CI 熔断，确保付费全文绝不进 `public/`。
+
+## 附录 B：本次新增/改动文件
+
+| 文件 | 作用 |
+|---|---|
+| `PLAN.md`（本文件） | 单一事实来源：平台结论/架构/功能→平台→代码→法律/路线图/风险 |
+| `scripts/enableR2.mjs` | 一条命令幂等建双桶 + 开公共访问；`--dry` 预演、`--check` 只读自检（可挂 CI） |
+| `wrangler.toml` | R2 绑定改为「安全恢复模板」（保持注释，含前置步骤；桶不存在则不取消以免破坏部署） |
+| `docs/pricing-standalone.html` | 可打印/转 PDF：三档定价 + CTA + 7 天邮件序列 + SLA + 合规底线（无外部依赖） |
+| `package.json` | 新增 `enable:r2` 与 `check:r2` 脚本 |
+
+> 验证状态：`node --check` 通过、`npm run check:r2` 在缺密钥时给清晰提示并退出 1、
+> `--dry` 正常、`checkLeak` 通过、`npm test` 401/401 全绿。应用代码未改动，仅新增脚本/文档/配置。

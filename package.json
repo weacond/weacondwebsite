@@ -11,7 +11,8 @@
     "test": "node --test tests/*.test.mjs",
     "deploy": "npx @cloudflare/next-on-pages --init && npx wrangler deploy .next-on-pages/cloudflare-workers",
     "check:deploy": "node scripts/checkDeploy.mjs",
-    "enable:r2": "node scripts/enableR2.mjs"
+    "enable:r2": "node scripts/enableR2.mjs",
+    "check:r2": "node scripts/enableR2.mjs --check"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.87",
