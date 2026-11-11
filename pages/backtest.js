@@ -8,7 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, cci, roc, adx, signalConsensus } from "../lib/backtest";
+import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, cci, roc, adx, signalConsensus, optimizeStrategy } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, maxDrawdownStats } from "../lib/risk.js";
 
@@ -69,6 +69,9 @@ export default function BacktestPage() {
   const [compareSort, setCompareSort] = useState("sharpe");
   const [loadingCompare, setLoadingCompare] = useState(false);
   const [compareInfo, setCompareInfo] = useState(null);
+  const [optResult, setOptResult] = useState(null);
+  const [optTarget, setOptTarget] = useState("sharpe");
+  const [runningOpt, setRunningOpt] = useState(false);
   const chartRef = useRef(null);
   const strategies = useMemo(() => Object.entries(STRATEGY_REGISTRY), []);
 
@@ -160,6 +163,27 @@ export default function BacktestPage() {
     } finally {
       setLoadingCompare(false);
     }
+  };
+
+  // 参数网格优化：对当前策略在 [min,max] 上采样，按 optTarget 排名
+  const runOptimization = async () => {
+    setRunningOpt(true); setOptResult(null);
+    try {
+      const { candles } = await getMarketCandles();
+      const r = optimizeStrategy(candles, strategyKey, { maxPerParam: 5, target: optTarget }, config);
+      setOptResult(r);
+    } catch (e) {
+      setError(e.message || (lang === "en" ? "Optimization failed" : "优化失败"));
+    } finally {
+      setRunningOpt(false);
+    }
+  };
+
+  // 采用最优参数组合：写回参数滑杆（用户再点"运行"应用），并收起优化面板
+  const applyBestParams = () => {
+    if (!optResult?.best) return;
+    setParams(optResult.best.params);
+    setOptResult(null);
   };
 
   // 排行：多数指标越高越好，回撤/波动越低越好
@@ -260,6 +284,9 @@ export default function BacktestPage() {
               </button>
               <button onClick={runComparison} disabled={loadingCompare} className="mt-2 w-full bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50">
                 {loadingCompare ? L.comparing : L.compareAll}
+              </button>
+              <button onClick={runOptimization} disabled={runningOpt} className="mt-2 w-full bg-indigo-100 text-indigo-700 font-semibold py-2.5 rounded-lg hover:bg-indigo-200 transition-colors disabled:opacity-50">
+                {runningOpt ? L.optimizing : L.optimize}
               </button>
             </div>
             {/* 指标 */}
@@ -719,6 +746,76 @@ export default function BacktestPage() {
               <p className="text-xs text-slate-400 mt-3">{L.comNote}</p>
             </div>
           )}
+          {/* 参数网格优化 */}
+          {optResult && optResult.count > 0 && (
+            (() => {
+              const strat = STRATEGY_REGISTRY[strategyKey];
+              const paramDefs = strat?.params || [];
+              const top = optResult.results.slice(0, 12);
+              const best = optResult.best;
+              const vals = top.map((r) => r.targetValue);
+              const vMin = Math.min(0, ...vals);
+              const vMax = Math.max(0, ...vals);
+              const span = vMax - vMin || 1;
+              const fmtVal = (v) =>
+                optTarget === "totalReturn" || optTarget === "cagr"
+                  ? `${v > 0 ? "+" : ""}${v.toFixed(1)}%`
+                  : v.toFixed(2);
+              const paramText = (p) => paramDefs.map((d) => `${d.key}=${p[d.key]}`).join("  ·  ");
+              return (
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <h3 className="font-semibold">{L.optTitle}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">{L.sortBy}</span>
+                      <select value={optTarget} onChange={(e) => setOptTarget(e.target.value)} className="px-2 py-1 border rounded text-xs">
+                        {["sharpe", "cagr", "calmar", "totalReturn", "sortino"].map((k) => (
+                          <option key={k} value={k}>{SORT_LABELS[lang][k]}</option>
+                        ))}
+                      </select>
+                      <button onClick={applyBestParams} className="text-xs font-semibold bg-indigo-600 text-white px-3 py-1 rounded-full hover:bg-indigo-500 whitespace-nowrap">
+                        {L.applyBest}
+                      </button>
+                    </div>
+                  </div>
+                  {/* 最优参数高亮 */}
+                  <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg p-4 mb-4 border border-indigo-100">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div>
+                        <div className="text-xs text-indigo-500 mb-1">🏆 {L.bestParams}</div>
+                        <div className="font-mono text-sm text-indigo-800">{paramText(best.params)}</div>
+                      </div>
+                      <div className="flex gap-4 text-center">
+                        <div><div className="text-xs text-slate-400">{SORT_LABELS[lang].sharpe}</div><div className="font-bold text-indigo-600">{best.metrics.sharpe.toFixed(2)}</div></div>
+                        <div><div className="text-xs text-slate-400">{SORT_LABELS[lang].cagr}</div><div className="font-bold text-indigo-600">+{best.metrics.cagr.toFixed(1)}%</div></div>
+                        <div><div className="text-xs text-slate-400">{SORT_LABELS[lang].maxDrawdown}</div><div className="font-bold text-red-500">-{best.metrics.maxDrawdown.toFixed(1)}%</div></div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* 目标值横向条形图（top 12） */}
+                  <div className="mb-4">
+                    <div className="text-xs text-slate-400 mb-2">{L.optChart}（{top.length} / {optResult.count}）</div>
+                    <div className="space-y-1.5">
+                      {top.map((r, i) => {
+                        const w = ((r.targetValue - vMin) / span) * 100;
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="w-5 text-right text-xs text-slate-400 tabular-nums">{i + 1}</span>
+                            <div className="flex-1 h-4 bg-slate-100 rounded relative overflow-hidden">
+                              <div className={`absolute left-0 top-0 h-full rounded ${i === 0 ? "bg-indigo-500" : "bg-indigo-300"}`} style={{ width: `${Math.max(2, w)}%` }} />
+                            </div>
+                            <span className={`w-14 text-right text-xs font-mono ${i === 0 ? "text-indigo-700 font-bold" : "text-slate-500"}`}>{fmtVal(r.targetValue)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {optResult.truncated && <p className="text-xs text-amber-600 mb-2">⚠ {L.optTruncated}</p>}
+                  <p className="text-xs text-slate-400">{L.optNote}</p>
+                </div>
+              );
+            })()
+          )}
           {/* 部署到模拟盘（回测→纸面闭环） */}
           {result && (
             <div className="flex items-center justify-between flex-wrap gap-3 bg-indigo-50 rounded-xl p-4 border border-indigo-100 mb-8">
@@ -810,6 +907,7 @@ const zh = {
   capital: "初始资金", commission: "佣金率", slippage: "滑点率", positionPct: "最大仓位%",
   run: "运行回测", running: "运行中...", compareAll: "对比全部策略", comparing: "对比中...",
   comparison: "全策略对比", sortBy: "排序", comNote: "按所选指标排行；🏆 为该项最优。模拟数据，仅供参考，不构成投资建议。",
+  optTitle: "参数网格优化", optimize: "优化参数", optimizing: "优化中…", bestParams: "最优参数组合", applyBest: "采用最优参数", optChart: "目标值排名", optTruncated: "参数组合超过上限，已截断前 100 组", optNote: "网格搜索易过拟合，请结合样本外验证。模拟数据，仅供参考，不构成投资建议。",
   metrics: "绩效指标", noResult: "选择策略并点击「运行回测」",
   equityCurve: "权益曲线", showTrades: "查看交易明细", hideTrades: "隐藏交易明细",
   tradeLog: "交易记录", entryDate: "入场日", exitDate: "出场日", entryPrice: "入场价", exitPrice: "出场价",
@@ -846,6 +944,7 @@ const en = {
   capital: "Initial Capital", commission: "Commission", slippage: "Slippage", positionPct: "Max Position %",
   run: "Run Backtest", running: "Running...", compareAll: "Compare all strategies", comparing: "Comparing...",
   comparison: "Strategy Comparison", sortBy: "Sort by", comNote: "Ranked by selected metric; 🏆 is best on that metric. Simulated data, for reference only. Not investment advice.",
+  optTitle: "Parameter Grid Search", optimize: "Optimize Params", optimizing: "Optimizing…", bestParams: "Best parameter set", applyBest: "Apply best", optChart: "Target ranking", optTruncated: "Combos exceed the cap; truncated to the first 100.", optNote: "Grid search can overfit; validate out-of-sample. Simulated data, for reference only. Not investment advice.",
   metrics: "Performance", noResult: "Select strategy and click Run",
   equityCurve: "Equity Curve", showTrades: "Show Trades", hideTrades: "Hide Trades",
   tradeLog: "Trade Log", entryDate: "Entry", exitDate: "Exit", entryPrice: "Entry", exitPrice: "Exit",

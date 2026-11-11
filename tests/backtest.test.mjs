@@ -31,6 +31,7 @@ import {
   monteCarlo,
   histogram,
   STRATEGY_REGISTRY,
+  optimizeStrategy,
 } from "../lib/backtest.js";
 
 // ---------- 技术指标 ----------
@@ -838,4 +839,45 @@ test("mfi 策略: 注册、mean_reversion 类、params 合法、V 形先跌后�
   ];
   const signals = STRATEGY_REGISTRY.mfi.run(candles, { period: 14, oversold: 20, overbought: 80 });
   assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 MFI 从超卖回升应产生买入信号");
+});
+
+// ---------- optimizeStrategy（参数网格优化）----------
+const OPT_CANDLES = Array.from({ length: 120 }, (_, i) => {
+  const c = 100 + 12 * Math.sin(i / 6) + i * 0.05; // 带缓慢上行的震荡序列，RSI 会多次穿越
+  return { open: c, high: c + 0.8, low: c - 0.8, close: c, volume: 1000, date: new Date(2023, 0, 1 + i).toISOString() };
+});
+
+test("optimizeStrategy: 未知策略 → no-params 空结果，best 为 null", () => {
+  const r = optimizeStrategy(OPT_CANDLES, "does_not_exist", { maxPerParam: 3 });
+  assert.equal(r.error, "no-params");
+  assert.deepEqual(r.results, []);
+  assert.equal(r.best, null);
+  assert.equal(r.count, 0);
+  assert.equal(r.truncated, false);
+});
+
+test("optimizeStrategy: rsi 三参数 maxPerParam=3 → 不截断，按目标降序，best=rank1，params 完整", () => {
+  const r = optimizeStrategy(OPT_CANDLES, "rsi", { maxPerParam: 3, target: "sharpe" });
+  assert.equal(r.truncated, false, "3^3=27 < 100 不截断");
+  assert.ok(r.count >= 1, "至少一组有效结果");
+  // 目标值降序
+  for (let i = 1; i < r.results.length; i++) {
+    assert.ok(r.results[i - 1].targetValue >= r.results[i].targetValue, "目标降序");
+  }
+  assert.equal(r.results[0].rank, 1, "首个 rank=1");
+  assert.equal(r.best, r.results[0], "best 即 rank1");
+  const p0 = r.results[0].params;
+  assert.ok("period" in p0 && "oversold" in p0 && "overbought" in p0, "params 含 rsi 三参数");
+  assert.ok(p0.oversold < p0.overbought, "oversold < overbought");
+});
+
+test("optimizeStrategy: 切换 target；maxPerParam=5 触发截断(5^3=125>100 → 取 100)", () => {
+  const r = optimizeStrategy(OPT_CANDLES, "rsi", { maxPerParam: 5, target: "totalReturn" });
+  assert.equal(r.target, "totalReturn");
+  assert.equal(r.truncated, true, "125 > 100 → 截断");
+  assert.equal(r.count, 100, "截断到 100 组");
+  for (let i = 1; i < r.results.length; i++) {
+    assert.ok(r.results[i - 1].targetValue >= r.results[i].targetValue, "totalReturn 降序");
+  }
+  assert.equal(r.results[0].rank, 1);
 });
