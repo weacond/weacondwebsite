@@ -37,6 +37,8 @@ const METRIC_KEYS = [
   { key: "tailRatio", label: "尾部比率", labelEn: "Tail Ratio", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "sterlingRatio", label: "斯特林", labelEn: "Sterling", fmt: (v) => v.toFixed(2), good: (v) => v > 1 },
   { key: "maxDrawdownDuration", label: "回撤周期", labelEn: "DD Duration", fmt: (v) => `${v} 根`, good: () => true },
+  { key: "longestUnderwater", label: "最长水下期", labelEn: "Longest UW", fmt: (v) => `${Number(v) || 0} 根`, good: () => true },
+  { key: "recoveryPeriods", label: "恢复周期", labelEn: "Recovery", fmt: (v) => (v == null ? "—" : `${v} 根`), good: () => true },
   { key: "maxLosingStreak", label: "最长连亏", labelEn: "Max Loss Streak", fmt: (v) => `${v} 笔`, good: (v) => v <= 3 },
   { key: "maxWinStreak", label: "最长连盈", labelEn: "Max Win Streak", fmt: (v) => `${v} 笔`, good: () => true },
   { key: "var95", label: "VaR(95%)", labelEn: "VaR 95%", fmt: (v) => `${(Math.abs(v) * 100).toFixed(2)}%`, good: (v) => Math.abs(v) < 0.03 },
