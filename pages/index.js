@@ -87,6 +87,20 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 计算工具 */}
+      <section className="max-w-5xl mx-auto px-4 py-20">
+        <h2 className="text-3xl font-bold text-center mb-12 text-slate-900">{L.toolsTitle}</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {L.tools.map((f, i) => (
+            <Link key={i} href={f.href} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow block">
+              <div className="text-3xl mb-3">{f.icon}</div>
+              <h3 className="font-semibold text-slate-900 mb-2">{f.title}</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* 定价预览 */}
       <section className="bg-white py-20">
         <div className="max-w-5xl mx-auto px-4 text-center">
@@ -180,6 +194,12 @@ const zh = {
     { icon: "🎯", title: "任务系统", desc: "3天体验任务引导，完成即解锁高级功能" },
     { icon: "🛡️", title: "黑天鹅模块", desc: "尾部风险检测+对冲建议+教育" },
   ],
+  toolsTitle: "计算工具",
+  tools: [
+    { icon: "🎯", title: "支点计算器", desc: "经典/伍迪/卡马拉拉/斐波那契日内支撑阻力位", href: "/pivots" },
+    { icon: "📐", title: "斐波那契", desc: "回撤/扩展关键位，趋势反转与目标", href: "/fibonacci" },
+    { icon: "📏", title: "头寸 & Kelly", desc: "风险预算、R:R 盈亏比与最优仓位比例", href: "/position-size" },
+  ],
   pricingTitle: "灵活定价，按需选择",
   pricingSubtitle: "从免费体验到机构级服务",
   viewPlans: "查看完整方案",
@@ -215,6 +235,12 @@ const en = {
     { icon: "⭐", title: "Watchlist", desc: "Cross-tab synced watchlist, one-tap to paper" },
     { icon: "🎯", title: "Task System", desc: "3-day trial, unlock premium" },
     { icon: "🛡️", title: "Black Swan", desc: "Tail risk detection & hedging" },
+  ],
+  toolsTitle: "Calculators",
+  tools: [
+    { icon: "🎯", title: "Pivot Points", desc: "Classic / Woodie / Camarilla / Fibonacci intraday levels", href: "/pivots" },
+    { icon: "📐", title: "Fibonacci", desc: "Retracement & extension — reversal zones & trend targets", href: "/fibonacci" },
+    { icon: "📏", title: "Position & Kelly", desc: "Risk budget, R:R ratio, and optimal bet sizing", href: "/position-size" },
   ],
   pricingTitle: "Flexible Pricing",
   pricingSubtitle: "From free trial to enterprise",
