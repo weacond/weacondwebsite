@@ -8,7 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, cci, roc, adx, signalConsensus, optimizeStrategy } from "../lib/backtest";
+import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, cci, roc, adx, mfi, signalConsensus, optimizeStrategy } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, maxDrawdownStats } from "../lib/risk.js";
 
@@ -86,6 +86,7 @@ export default function BacktestPage() {
     const st = supertrend(c, 10, 3);
     const hist = m.histogram;
     const last = c.length - 1;
+    const mfiVal = mfi(c, 14)[last];
     return {
       rsi: r,
       macdHist: hist[hist.length - 1],
@@ -95,6 +96,8 @@ export default function BacktestPage() {
       cci: cci(c, 14)[last],
       roc: roc(closes, 10)[last],
       adx: adx(c, 14).adx[last],
+      mfi: mfiVal,
+      mfiState: mfiVal == null ? "na" : mfiVal >= 80 ? "overbought" : mfiVal <= 20 ? "oversold" : "neutral",
       consensus: signalConsensus(c),
     };
   }, [result]);
@@ -397,6 +400,15 @@ export default function BacktestPage() {
                     {techSignals.adx != null ? techSignals.adx.toFixed(0) : "—"}
                   </div>
                   <div className="text-xs text-slate-400 mt-0.5">{techSignals.adx != null ? (techSignals.adx >= 25 ? L.trendStrong : L.trendWeak) : "—"}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 mb-1">{L.mfi}</div>
+                  <div className={`text-lg font-bold ${techSignals.mfi != null && (techSignals.mfi >= 80 || techSignals.mfi <= 20) ? "text-slate-500" : "text-slate-700"}`}>
+                    {techSignals.mfi != null ? techSignals.mfi.toFixed(1) : "—"}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    {techSignals.mfi == null ? "—" : { overbought: L.overbought, oversold: L.oversold, neutral: L.neutralSignal }[techSignals.mfiState]}
+                  </div>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 text-center">
@@ -935,7 +947,7 @@ const zh = {
   techSignals: "技术指标信号", rsi: "RSI", stochK: "Stoch %K", supertrend: "超级趋势",
   overbought: "超买", oversold: "超卖", neutralSignal: "中性", bullishCross: "金叉",
   upSignal: "↑ 多头", downSignal: "↓ 空头",
-  consensus: "信号共识", agreement: "共识强度", bull: "看多", bear: "看空", adxStrength: "趋势强度 (ADX)", trendStrong: "强", trendWeak: "弱", confidence: "置信度", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "超买/超卖",
+  consensus: "信号共识", agreement: "共识强度", bull: "看多", bear: "看空", adxStrength: "趋势强度 (ADX)", trendStrong: "强", trendWeak: "弱", confidence: "置信度", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "超买/超卖", mfi: "MFI",
   disclaimer: "回测结果不代表未来表现。模拟数据用于演示，不构成投资建议。",
 };
 const en = {
@@ -973,7 +985,7 @@ const en = {
   techSignals: "Technical Signals", rsi: "RSI", stochK: "Stoch %K", supertrend: "Supertrend",
   overbought: "Overbought", oversold: "Oversold", neutralSignal: "Neutral", bullishCross: "Bull Cross",
   upSignal: "↑ Bullish", downSignal: "↓ Bearish",
-  consensus: "Signal Consensus", agreement: "Agreement", bull: "Bull", bear: "Bear", adxStrength: "Trend Strength (ADX)", trendStrong: "Strong", trendWeak: "Weak", confidence: "Confidence", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "Extreme",
+  consensus: "Signal Consensus", agreement: "Agreement", bull: "Bull", bear: "Bear", adxStrength: "Trend Strength (ADX)", trendStrong: "Strong", trendWeak: "Weak", confidence: "Confidence", cci: "CCI", roc: "ROC", adx: "ADX", cciExtreme: "Extreme", mfi: "MFI",
   disclaimer: "Past performance does not guarantee future results. Simulated data for demo only. Not investment advice.",
 };
 
