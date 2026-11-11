@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, cci, roc, adx, mfi, cmf, signalConsensus, optimizeStrategy } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
-import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, maxDrawdownStats } from "../lib/risk.js";
+import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, probabilityOfRuin, maxDrawdownStats } from "../lib/risk.js";
 
 export const metadata = {
   title: "策略回测 — Weacond",
@@ -716,10 +716,13 @@ export default function BacktestPage() {
               const half = fractionalKelly(m.winRate / 100, 0.5, m.avgWin, m.avgLoss);
               // VaR 风险预算：以组合 95% 日 VaR 作每单位 VaR，1% 日亏上限下的名义仓位
               const varBudget = m.var95 ? Math.min(1, riskBudget(Math.abs(m.var95), 0.01)) : 0;
+              // 破产概率：每笔期望收益作为下注优势（占平均盈利的比例），100 笔下破产概率（有优势→趋 0，无优势→0.5，负→趋 1）
+              const edge = m.avgWin > 0 ? (m.expectancy || 0) / m.avgWin : 0;
+              const ruin = probabilityOfRuin(edge, 100);
               return (
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
                   <h3 className="font-semibold mb-4">{L.kellyTitle}</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="text-center">
                       <div className="text-xs text-slate-400">{L.kellyFull}</div>
                       <div className="font-bold text-lg text-indigo-600">{(full * 100).toFixed(1)}%</div>
@@ -735,6 +738,10 @@ export default function BacktestPage() {
                     <div className="text-center">
                       <div className="text-xs text-slate-400">{L.winLossRatio}</div>
                       <div className="font-bold text-lg">{(m.avgWin / m.avgLoss).toFixed(2)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-slate-400">{L.probRuin}</div>
+                      <div className={`font-bold text-lg ${ruin < 0.3 ? "text-green-600" : ruin > 0.5 ? "text-red-600" : "text-orange-500"}`}>{(ruin * 100).toFixed(1)}%</div>
                     </div>
                   </div>
                   <p className="text-xs text-slate-400 mt-3">{L.kellyHint}</p>
@@ -972,8 +979,8 @@ const zh = {
   downCapture: "下行捕获",
   trackingError: "跟踪误差",
   riskProfileHint: "VaR/CVaR 由权益曲线日收益的历史分位估计；CVaR 为超过 VaR 的尾部平均损失。非实时，非投资建议。",
-  kellyTitle: "仓位建议 (Kelly)", kellyFull: "凯利最优", kellyHalf: "半凯利", winLossRatio: "盈亏比", varBudget: "VaR 风险预算",
-  kellyHint: "基于本策略回测的胜率与盈亏比：f* = 胜率 −(1−胜率)×(亏/盈)。满凯利风险大，半凯利更稳健。非投资建议。",
+  kellyTitle: "仓位建议 (Kelly)", kellyFull: "凯利最优", kellyHalf: "半凯利", winLossRatio: "盈亏比", varBudget: "VaR 风险预算", probRuin: "破产概率(100笔)",
+  kellyHint: "基于本策略回测的胜率与盈亏比：f* = 胜率 −(1−胜率)×(亏/盈)。满凯利风险大，半凯利更稳健。破产概率：100 笔下按每笔期望优势估计，趋 0 表示有优势、趋 1 表示长期必亏。非投资建议。",
   assumptions: "回测假设", startDate: "起始", endDate: "结束", candles: "K线数",
   deployToPaper: "部署到模拟盘", deployNote: "用 0 风险先验证策略",
   techSignals: "技术指标信号", rsi: "RSI", stochK: "Stoch %K", supertrend: "超级趋势",
@@ -1011,7 +1018,7 @@ const en = {
   trackingError: "Tracking Err.",
   riskProfileHint: "VaR/CVaR estimated from historical daily-return percentiles of the equity curve; CVaR is the average tail loss beyond VaR. Not live, not advice.",
   kellyTitle: "Position Sizing (Kelly)", kellyFull: "Full Kelly", kellyHalf: "Half Kelly", winLossRatio: "Win/Loss", varBudget: "VaR Budget",
-  kellyHint: "From backtest win rate & payoff ratio: f* = p − (1−p)×(loss/win). Full Kelly is aggressive; half Kelly is safer. Not advice.",
+  kellyHint: "From backtest win rate & payoff ratio: f* = p − (1−p)×(loss/win). Full Kelly is aggressive; half Kelly is safer. Ruin probability estimates the chance of ruin over 100 trades by per-trade edge: →0 means an edge, →1 means long-term loss. Not advice.",
   assumptions: "Assumptions", startDate: "Start", endDate: "End", candles: "Candles",
   deployToPaper: "Deploy to Paper", deployNote: "validate the strategy risk-free",
   techSignals: "Technical Signals", rsi: "RSI", stochK: "Stoch %K", supertrend: "Supertrend",
