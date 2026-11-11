@@ -3,7 +3,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
-import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, volSmile } from "../lib/options.js";
+import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, volSmile, impliedMove } from "../lib/options.js";
 import { analyzeStrategy, strategyTemplates, probOfProfit, strategyGreeks, deltaHedge, probInRange } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
@@ -150,6 +150,24 @@ export default function OptionsPage() {
 
           {/* 波动率定位（IV Rank） */}
           <VolPositioning iv={iv} L={L} />
+
+          {/* 到期预期移动（Implied Move / Expected Range） */}
+          {(() => {
+            const mv = impliedMove({ spot, iv, t });
+            if (!mv) return null;
+            return (
+              <div className="mt-6 bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+                <h2 className="text-lg font-bold mb-1">{L.impliedMoveTitle}</h2>
+                <p className="text-slate-500 text-sm mb-4">{L.impliedMoveSubtitle}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Metric label={L.oneSigmaRange} value={`${mv.oneSigmaLow}–${mv.oneSigmaHigh}`} tone="indigo" />
+                  <Metric label={L.p95Range} value={`${mv.p95Low}–${mv.p95High}`} tone="indigo" />
+                  <Metric label={L.oneSigmaPct} value={`±${mv.oneSigmaPct}%`} tone="indigo" />
+                  <Metric label={L.atmSpot} value={mv.spot.toFixed(2)} tone="slate" />
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="mt-6 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 leading-relaxed">
             <p className="font-medium text-slate-600 mb-1">{L.disclaimerTitle}</p>
@@ -578,6 +596,12 @@ const zh = {
   histLow: "历史 IV 低值(%)",
   histHigh: "历史 IV 高值(%)",
   ivPercentile: "IV 百分位",
+  impliedMoveTitle: "🎯 到期预期移动 · Implied Move",
+  impliedMoveSubtitle: "市场隐含的对数正态到期分布：spot ± spot·iv·√t。非投资建议。",
+  oneSigmaRange: "1σ 区间(≈68%)",
+  p95Range: "95% 区间(±1.96σ)",
+  oneSigmaPct: "1σ 移动",
+  atmSpot: "现价",
   volLow: "低 IV · 买方优势",
   volHigh: "高 IV · 卖方优势",
   volNeutral: "中性 · IV 适中",
@@ -657,6 +681,12 @@ const en = {
   histLow: "Historical IV low (%)",
   histHigh: "Historical IV high (%)",
   ivPercentile: "IV Percentile",
+  impliedMoveTitle: "🎯 Implied Move · Expected Range at Expiry",
+  impliedMoveSubtitle: "Lognormal expiry distribution implied by the market: spot ± spot·iv·√t. Not investment advice.",
+  oneSigmaRange: "1σ Range (~68%)",
+  p95Range: "95% Range (±1.96σ)",
+  oneSigmaPct: "1σ Move",
+  atmSpot: "Spot",
   volLow: "Low IV · buyer's edge",
   volHigh: "High IV · seller's edge",
   volNeutral: "Neutral · moderate IV",
