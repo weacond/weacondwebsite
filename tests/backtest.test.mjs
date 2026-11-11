@@ -988,3 +988,29 @@ test("adx 策略: 注册、trend 类、params 合法、平后涨产生 ADX 突�
   const signals = STRATEGY_REGISTRY.adx.run(FLAT_UP_CANDLES, { period: 14, threshold: 25 });
   assert.ok(signals.some((s) => s.action === "buy"), "ADX 突破 25 且 +DI 领先应产生买入信号");
 });
+
+// ---------- CMF 作为可选第 5 票纳入共识（默认 4 票行为不变）----------
+const CMF_UP_CANDLES = Array.from({ length: 120 }, (_, i) => ({
+  high: 100 + i + 1,
+  low: 99 + i,
+  close: 100 + i,
+  open: 100 + i - 1,
+  volume: 1000,
+}));
+
+test("signalConsensus opts.cmf: 可选第 5 票（资金流方向），默认 4 票行为不变", () => {
+  const base = signalConsensus(CMF_UP_CANDLES);
+  const withCmf = signalConsensus(CMF_UP_CANDLES, { cmf: true });
+  assert.equal(base.votes.cmf, undefined, "默认不含 cmf 票（行为不变）");
+  assert.equal(typeof withCmf.votes.cmf, "number", "opts.cmf 时含 cmf 票");
+  assert.equal(withCmf.votes.cmf, 1, "单边上涨 CMF>0 → +1 票");
+  assert.equal(withCmf.direction, "bull");
+  assert.ok(withCmf.agreement <= 1, "5 票归一后 |score|≤1");
+});
+
+test("signalConsensusSeries opts.cmf: 含 CMF 第 5 票，长度匹配且 |score|≤1", () => {
+  const s = signalConsensusSeries(CMF_UP_CANDLES, { cmf: true });
+  assert.equal(s.score.length, CMF_UP_CANDLES.length, "序列长度匹配");
+  assert.ok(s.score.every((x) => Math.abs(x) <= 1), "|score|≤1");
+  assert.ok(s.score.some((x) => x > 0), "上涨序列存在看多分数");
+});

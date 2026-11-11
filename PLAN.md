@@ -253,3 +253,8 @@
 > - **FRED**：`FREDSERIESKEY`（或 `ALPHA_VANTAGE_API_KEY`）→ 宏观页出真实利率/通胀/就业/信用利差。
 > - **OAuth**：在 Supabase Dashboard 配好 provider 的 client 凭证，并设 `NEXT_PUBLIC_OAUTH_PROVIDERS`（如 `google,github`）→ 登录页出现第三方登录按钮。
 > - **R2**：`R2_API_TOKEN` + `R2_ACCOUNT_ID` → `npm run enable:r2` 建桶，CI `r2-gate` 变强制门禁。
+>
+> 追加：① `/ebooks` 落地页（已存在：R2 公开桶 + 本地 `index.json` 兜底 + 已购校验）；
+> ② 新增 `pages/auth/callback.js` 闭环 OAuth（supabase 自动换 session，未配则回登录页，
+> 8s 兜底）；③ CMF 作为**可选第 5 票**纳入 `signalConsensus`/`signalConsensusSeries`
+> （`opts.cmf`，默认 4 票行为完全不变，零回归）。测试 **406/406** 全绿，`next build` 退出 0。
