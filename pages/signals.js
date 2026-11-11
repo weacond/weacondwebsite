@@ -3,11 +3,12 @@ import Footer from "../components/Footer";
 import SignalCard from "../components/SignalCard";
 import SignalHistory from "../components/SignalHistory";
 import { computeSignalScore } from "../lib/signals";
+import { signalConsensus } from "../lib/backtest";
 import { buildSignalHistory, summarizeHistory } from "../lib/signalHistory";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const metadata = {
   title: "今日信号 — Weacond",
@@ -15,7 +16,7 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-// 标的池 + 各引擎输入（mock；接入行情后只替换这里即可实时化）
+// 标的池 + 各引擎估算输入（技术面在客户端用真实行情重算；基本面/期权为估算，待期权链数据接入）
 const UNIVERSE = [
   { ticker: "NVDA", name: "NVIDIA", fairValueScore: 0.82, technicalScore: 0.85, ivRank: 78, thetaScore: 0.7 },
   { ticker: "MSFT", name: "Microsoft", fairValueScore: 0.78, technicalScore: 0.68, ivRank: 55, thetaScore: 0.65 },
@@ -44,10 +45,52 @@ const HISTORY_SUMMARY = summarizeHistory(HISTORY);
 export default function SignalsPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
+  const [signals, setSignals] = useState(SIGNALS);
+  const [dataLive, setDataLive] = useState(false);
+  const [techLoading, setTechLoading] = useState(true);
 
   // 记录"已查看信号"，供仪表盘 3 天任务 Day0 读取（localStorage 持久，跨页）
   useEffect(() => {
     localStorage.setItem("weacond_seen_signals", "1");
+  }, []);
+
+  // 技术面用真实行情重算：/api/marketdata 有 key 返回实时 K 线（live:true），无 key 返回演示 K 线。
+  // 技术面分 = signalConsensus(共识方向 × 同意度) 映射到 0-1；基本面/期权仍为估算。
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTech() {
+      const results = await Promise.all(UNIVERSE.map(async (u) => {
+        try {
+          const res = await fetch(`/api/marketdata?symbol=${encodeURIComponent(u.ticker)}&interval=Daily&months=6`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          const candles = data.candles || [];
+          if (candles.length < 30) return null;
+          const cs = signalConsensus(candles);
+          const technicalScore = Math.max(0, Math.min(1, 0.5 + (cs.direction / 4) * (cs.agreement / 100) * 0.8));
+          return { ticker: u.ticker, technicalScore, live: !!data.live };
+        } catch {
+          return null;
+        }
+      }));
+      if (cancelled) return;
+      const techMap = {};
+      let anyLive = false;
+      results.filter(Boolean).forEach((r) => { techMap[r.ticker] = r.technicalScore; if (r.live) anyLive = true; });
+      if (Object.keys(techMap).length === 0) { setTechLoading(false); return; } // 全部失败 → 保留估算
+      const rebuilt = UNIVERSE.map((u) => {
+        const s = computeSignalScore(
+          { fundamental: 0.35, technical: 0.3, volatility: 0.35 },
+          { fairValueScore: u.fairValueScore, technicalScore: techMap[u.ticker] ?? 0.5, ivRank: u.ivRank, thetaScore: u.thetaScore }
+        );
+        return { ticker: u.ticker, name: u.name, ivRank: u.ivRank, source: "Weacond Engine v0.1", ...s };
+      }).sort((a, b) => b.score - a.score);
+      setSignals(rebuilt);
+      setDataLive(anyLive);
+      setTechLoading(false);
+    }
+    loadTech();
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -61,14 +104,14 @@ export default function SignalsPage() {
               <h1 className="text-3xl font-bold">{L.title}</h1>
               <p className="text-slate-500 text-sm mt-1">{L.subtitle}</p>
             </div>
-            <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
-              {L.demoLabel}
+            <span className={`text-xs px-3 py-1 rounded-full ${dataLive ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+              {techLoading ? L.techLoading : dataLive ? L.liveLabel : L.demoLabel}
             </span>
           </div>
 
-          {/* 信号卡片（引擎计算 → SignalCard 渲染 → 串联回测/AI） */}
+          {/* 信号卡片（引擎计算 → SignalCard 渲染 → 串联回测/AI；技术面随真实行情刷新） */}
           <div className="space-y-4">
-            {SIGNALS.map((s) => (
+            {signals.map((s) => (
               <SignalCard key={s.ticker} signal={s} />
             ))}
           </div>
@@ -92,8 +135,10 @@ export default function SignalsPage() {
 
 const zh = {
   title: "今日信号",
-  subtitle: "三引擎合成评分 · 可解释 · 引擎计算（mock 输入）",
-  demoLabel: "示例数据 · 非实时",
+  subtitle: "三引擎合成评分 · 技术面实时 · 可解释",
+  demoLabel: "示例数据 · 技术面估算",
+  liveLabel: "实时行情 · 技术面",
+  techLoading: "加载技术面...",
   upgradePrompt: "解锁每日 5-10 条卖 Put 筛选、IV Rank、Greeks 摘要与风控建议",
   upgradeCta: "查看 PutSeller 方案",
   historyTitle: "近 30 日信号历史",
@@ -104,8 +149,10 @@ const zh = {
 };
 const en = {
   title: "Today's Signals",
-  subtitle: "3-Engine composite scoring · Explainable · Engine-computed",
-  demoLabel: "Demo Data · Not Live",
+  subtitle: "3-Engine composite · live technicals · explainable",
+  demoLabel: "Demo Data · technicals estimated",
+  liveLabel: "Live · technicals",
+  techLoading: "Loading technicals...",
   upgradePrompt: "Unlock 5-10 put options daily, IV Rank, Greeks, and risk management",
   upgradeCta: "View PutSeller Plan",
   historyTitle: "Last 30 Days of Signals",
