@@ -724,6 +724,33 @@ test("monteCarloDrawdown: 回撤分位单调递增且≥0；财富分位单调�
   assert.equal(r.horizon, 30);
 });
 
+test("monteCarloDrawdown: 向后兼容（不传 paths 时 samplePaths 空、band 为 null）", () => {
+  const rets = [0.01, -0.02, 0.015, -0.03, 0.02, 0.005, -0.01];
+  const r = monteCarloDrawdown(rets, { nPaths: 100, horizon: 10, seed: 5 });
+  assert.deepEqual(r.samplePaths, [], "未请求 paths → samplePaths 为空数组");
+  assert.equal(r.band, null, "未请求 paths → band 为 null");
+  assert.ok(r.nPaths === 100 && r.horizon === 10, "既有字段不变");
+});
+
+test("monteCarloDrawdown: 请求 paths 时返回扇形路径与分位带", () => {
+  const rets = [0.01, -0.02, 0.015, -0.03, 0.02, 0.005, -0.01, 0.04, -0.01, 0.012];
+  const r = monteCarloDrawdown(rets, { nPaths: 300, horizon: 20, seed: 7, paths: 30 });
+  // 路径条数 = min(paths, nPaths)；每条长度 = horizon+1
+  assert.equal(r.samplePaths.length, 30, "返回 30 条路径");
+  for (const p of r.samplePaths) {
+    assert.equal(p.length, 21, "每条路径长度 horizon+1=21");
+    assert.equal(p[0], 1, "路径起点=1");
+  }
+  // 分位带：p5 ≤ p50 ≤ p95 逐点成立，长度 horizon+1
+  assert.ok(r.band && r.band.p5.length === 21 && r.band.p50.length === 21 && r.band.p95.length === 21, "分位带长度");
+  for (let t = 0; t <= 20; t++) {
+    assert.ok(r.band.p5[t] <= r.band.p50[t] && r.band.p50[t] <= r.band.p95[t], `t=${t} 分位带单调`);
+  }
+  // 路径按终端财富等距抽取 → 终端值升序
+  const terminals = r.samplePaths.map((p) => p[p.length - 1]);
+  assert.ok(terminals[0] <= terminals[terminals.length - 1], "路径按终端财富升序");
+});
+
 
 
 

@@ -42,12 +42,13 @@ const RISK_METRICS = {
   ulcer: ulcerIndex(SAMPLE_EQUITY),
 };
 
-// 蒙特卡洛压力测试（确定性：seed 固定，结果可复现）：模拟 60 期最大回撤分布
+// 蒙特卡洛压力测试（确定性：seed 固定，结果可复现）：模拟 60 期最大回撤分布 + 路径扇形
 const MC_STRESS = monteCarloDrawdown(SAMPLE_RETURNS, {
   nPaths: 2000,
   horizon: 60,
   seed: 1,
   percentiles: [0.05, 0.5, 0.95],
+  paths: 40, // 额外返回 40 条代表性路径 + p5/p50/p95 分位带，用于扇形图
 });
 
 export default function BlackSwanPage() {
@@ -116,6 +117,77 @@ export default function BlackSwanPage() {
             </div>
           </div>
 
+          {/* 蒙特卡洛路径扇形图：分位带 p5–p95 + 中位 + 抽样路径 */}
+          {MC_STRESS.band &&
+            MC_STRESS.samplePaths.length > 0 &&
+            (() => {
+              const { band, samplePaths, horizon } = MC_STRESS;
+              const W = 600, H = 320, padL = 44, padR = 12, padT = 16, padB = 32;
+              const pw = W - padL - padR, ph = H - padT - padB;
+              // y 轴范围：跨所有分位/抽样路径的财富最小/最大
+              let yMin = Infinity, yMax = -Infinity;
+              for (const v of band.p5) if (v < yMin) yMin = v;
+              for (const v of band.p95) if (v > yMax) yMax = v;
+              for (const p of samplePaths) {
+                for (const v of p) {
+                  if (v < yMin) yMin = v;
+                  if (v > yMax) yMax = v;
+                }
+              }
+              if (!Number.isFinite(yMin) || !Number.isFinite(yMax) || yMax === yMin) {
+                yMin = 0;
+                yMax = 1;
+              }
+              const yPad = (yMax - yMin) * 0.05 || 0.05;
+              yMin -= yPad;
+              yMax += yPad;
+              const xOf = (t) => padL + (t / horizon) * pw;
+              const yOf = (w) => padT + ph - ((w - yMin) / (yMax - yMin || 1)) * ph;
+              const line = (arr) => arr.map((v, t) => `${t === 0 ? "M" : "L"}${xOf(t).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ");
+              // 分位带填充：p5 从左到右，再 p95 从右到左，闭合
+              const bandPath =
+                band.p5.map((v, t) => `${t === 0 ? "M" : "L"}${xOf(t).toFixed(1)},${yOf(v).toFixed(1)}`).join(" ") +
+                " " +
+                band.p95.map((_, t) => `L${xOf(horizon - t).toFixed(1)},${yOf(band.p95[horizon - t]).toFixed(1)}`).join(" ");
+              const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => yMin + f * (yMax - yMin));
+              const startRow = 1;
+              return (
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+                  <h3 className="font-semibold mb-1">{L.fanTitle}</h3>
+                  <p className="text-xs text-slate-400 mb-4">{L.fanHint}</p>
+                  <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} role="img" aria-label="Monte Carlo equity path fan chart">
+                    {yTicks.map((yt, i) => (
+                      <g key={`yt${i}`}>
+                        <line x1={padL} y1={yOf(yt)} x2={W - padR} y2={yOf(yt)} stroke="#f1f5f9" strokeWidth={1} />
+                        <text x={padL - 6} y={yOf(yt) + 3} textAnchor="end" fill="#94a3b8" style={{ fontSize: 9 }}>{yt.toFixed(2)}</text>
+                      </g>
+                    ))}
+                    {/* 分位带 p5–p95 */}
+                    <path d={bandPath} fill="rgba(244,63,94,0.10)" stroke="none" />
+                    {/* 抽样路径（细、半透明） */}
+                    {samplePaths.map((p, i) => (
+                      <path key={`sp${i}`} d={line(p)} fill="none" stroke="rgba(148,163,184,0.25)" strokeWidth={0.7} />
+                    ))}
+                    {/* p5 / p95 边界（虚线） */}
+                    <path d={line(band.p5)} fill="none" stroke="rgba(244,63,94,0.55)" strokeWidth={1} strokeDasharray="3 2" />
+                    <path d={line(band.p95)} fill="none" stroke="rgba(16,185,129,0.55)" strokeWidth={1} strokeDasharray="3 2" />
+                    {/* 中位 p50（粗线） */}
+                    <path d={line(band.p50)} fill="none" stroke="#e11d48" strokeWidth={2} />
+                    {/* 起点财富=1 参考线 */}
+                    <line x1={padL} y1={yOf(startRow)} x2={W - padR} y2={yOf(startRow)} stroke="#cbd5e1" strokeWidth={1} strokeDasharray="4 3" />
+                    <text x={W - padR} y={yOf(startRow) - 4} textAnchor="end" fill="#94a3b8" style={{ fontSize: 9 }}>{L.fanStart}</text>
+                    <text x={padL} y={H - 8} fill="#94a3b8" style={{ fontSize: 9 }}>0</text>
+                    <text x={W - padR} y={H - 8} textAnchor="end" fill="#94a3b8" style={{ fontSize: 9 }}>{horizon}{L.fanPeriodUnit}</text>
+                  </svg>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-slate-500">
+                    <span className="flex items-center gap-1"><span className="inline-block w-4 h-0.5 bg-rose-600" />{L.fanMedian}</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-4 h-2.5 bg-rose-100 border border-rose-200" />{L.fanBand}</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-4 h-0.5 bg-slate-400" style={{ opacity: 0.45 }} />{L.fanPaths}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
           {/* 历史案例 */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
             <h3 className="font-semibold mb-4">{L.history}</h3>
@@ -175,6 +247,13 @@ const zh = {
   ulcerLabel: "溃疡指数",
   monteCarlo: "蒙特卡洛压力测试（最大回撤分位）",
   monteCarloHint: "用样本收益的 μ/σ 模拟 2000 条 60 期路径，取最大回撤的 5% / 50% / 95% 分位（确定性 seed，非实时）。",
+  fanTitle: "蒙特卡洛路径扇形",
+  fanHint: "2000 条 60 期模拟路径：灰线为抽样路径，红色带为 5%–95% 分位区间，粗红线为中位（确定性 seed，非实时）。",
+  fanStart: "起点 = 1",
+  fanPeriodUnit: " 期",
+  fanMedian: "中位 (50%)",
+  fanBand: "5%–95% 分位带",
+  fanPaths: "抽样路径",
   history: "历史案例",
   disclaimer: "黑天鹅事件不可预测。历史数据仅供参考，不构成投资建议。",
 };
@@ -194,6 +273,13 @@ const en = {
   ulcerLabel: "Ulcer Index",
   monteCarlo: "Monte Carlo Stress (Max DD percentiles)",
   monteCarloHint: "Simulates 2000 paths over 60 periods using the sample μ/σ; shows the 5% / 50% / 95% percentile of max drawdown (deterministic seed, not live).",
+  fanTitle: "Monte Carlo Path Fan",
+  fanHint: "2000 simulated 60-period paths: grey = sample paths, red band = 5%–95% percentile corridor, bold red = median (deterministic seed, not live).",
+  fanStart: "start = 1",
+  fanPeriodUnit: " periods",
+  fanMedian: "Median (50%)",
+  fanBand: "5%–95% band",
+  fanPaths: "Sample paths",
   history: "Historical Cases",
   disclaimer: "Black swan events are unpredictable. Historical data for reference only. Not investment advice.",
 };
