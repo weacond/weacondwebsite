@@ -21,6 +21,7 @@ import {
   parabolicSAR,
   cci,
   roc,
+  mfi,
   signalConsensus,
   signalConsensusSeries,
   runBacktest,
@@ -532,6 +533,35 @@ test("roc: 等长、前 period 根 null、上涨为正/下跌为负", () => {
   }));
   assert.ok(roc(fall, p)[n - 1] < 0, "单边下跌 ROC 为负");
 });
+
+test("mfi: 等长、前 period 根 null、值域 [0,100]、上涨趋近 100/下跌趋近 0", () => {
+  const n = 120;
+  const p = 14;
+  // 单边上涨：典型价单调上升 → 全部为正资金流，MFI 趋近 100
+  const up = Array.from({ length: n }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 100 + i,
+    close: 100 + i + 0.5,
+    open: 100 + i,
+    volume: 1000,
+  }));
+  const m = mfi(up, p);
+  assert.equal(m.length, n, "输出等长");
+  for (let i = 0; i < p; i++) assert.ok(m[i] === null, "前 period 根为 null");
+  assert.ok(m[p] != null, "第 period 根起有效");
+  for (let i = p; i < n; i++) assert.ok(m[i] >= 0 && m[i] <= 100, "MFI ∈ [0,100]");
+  assert.ok(m[n - 1] > 80, "单边上涨 MFI 趋近 100");
+  // 单边下跌：全部为负资金流，MFI 趋近 0
+  const down = Array.from({ length: n }, (_, i) => ({
+    high: 300 - i + 1,
+    low: 300 - i,
+    close: 300 - i - 0.5,
+    open: 300 - i,
+    volume: 1000,
+  }));
+  assert.ok(mfi(down, p)[n - 1] < 20, "单边下跌 MFI 趋近 0");
+});
+
 
 // ---------- 回测引擎 ----------
 test("runBacktest: 震荡数据产生交易且指标完整", () => {
