@@ -6,6 +6,7 @@ import { useState } from "react";
 import Head from "next/head";
 import { positionSize, assessPosition } from "../lib/positionSize";
 import { riskReward, requiredReward } from "../lib/riskReward";
+import { kellyFraction } from "../lib/kelly";
 
 export const metadata = {
   title: "头寸计算器 — Weacond",
@@ -31,6 +32,7 @@ export default function PositionSizePage() {
   const [stop, setStop] = useState("95");
   const [target, setTarget] = useState("110");
   const [winRate, setWinRate] = useState("50");
+  const [odds, setOdds] = useState("1");
 
   const res = positionSize({
     account: Number(account),
@@ -42,6 +44,7 @@ export default function PositionSizePage() {
   const vb = VERDICT_BADGE[verdict.verdict];
   const rr = riskReward(Number(entry), Number(stop), Number(target));
   const reqR = requiredReward(Number(winRate) / 100);
+  const kelly = kellyFraction(Number(winRate) / 100, Number(odds));
 
   const num = (v) => (Number.isFinite(v) ? v.toLocaleString() : "—");
 
@@ -67,6 +70,7 @@ export default function PositionSizePage() {
                 <Field label={L.stop} value={stop} onChange={setStop} />
                 <Field label={L.target} value={target} onChange={setTarget} />
                 <Field label={L.winRate} value={winRate} onChange={setWinRate} suffix="%" />
+                <Field label={L.odds} value={odds} onChange={setOdds} suffix={L.oddsSuffix} />
               </div>
               <p className="text-xs text-slate-400 mt-4">{L.formula}</p>
             </div>
@@ -89,6 +93,13 @@ export default function PositionSizePage() {
                     <Result label={L.riskReward} value={rr.valid ? `${rr.rr.toFixed(2)} : 1` : "—"} highlight />
                     <Result label={L.breakevenWr} value={rr.valid ? `${(rr.breakevenWinRate * 100).toFixed(1)}%` : "—"} />
                     <Result label={L.requiredRr} value={reqR != null ? `${reqR.toFixed(2)} : 1` : "—"} />
+                  </div>
+                  <div className="pt-2 border-t mt-1 space-y-3">
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase">{L.kellySection}</h3>
+                    <Result label={L.kellyFull} value={kelly.valid ? `${(Math.max(kelly.fStar, 0) * 100).toFixed(1)}%` : "—"} highlight />
+                    <Result label={L.halfKelly} value={kelly.valid ? `${(Math.max(kelly.half, 0) * 100).toFixed(1)}%` : "—"} />
+                    <Result label={L.quarterKelly} value={kelly.valid ? `${(Math.max(kelly.quarter, 0) * 100).toFixed(1)}%` : "—"} />
+                    {kelly.valid && kelly.fStar <= 0 ? <p className="text-xs text-orange-500">{L.kellyNoEdge}</p> : null}
                   </div>
                   <p className="text-xs text-slate-400 pt-2 border-t">{L.verdictHint[verdict.verdict]}</p>
                 </div>
@@ -151,6 +162,13 @@ const zh = {
   riskReward: "R:R 比值",
   breakevenWr: "盈亏平衡胜率",
   requiredRr: "该胜率所需 R:R",
+  odds: "净赔率（每 1 单位风险赚）",
+  oddsSuffix: ": 1",
+  kellySection: "Kelly 仓位",
+  kellyFull: "全 Kelly",
+  halfKelly: "半 Kelly",
+  quarterKelly: "1/4 Kelly",
+  kellyNoEdge: "无正期望（f*≤0），建议不下注。",
   verdictHint: {
     ok: "名义 ≤ 账户，集中度正常。",
     leveraged: "名义超过账户，需杠杆或保证金；注意穿仓风险。",
@@ -181,6 +199,13 @@ const en = {
   riskReward: "R:R Ratio",
   breakevenWr: "Breakeven Win Rate",
   requiredRr: "R:R Needed",
+  odds: "Net Odds (profit per 1 risked)",
+  oddsSuffix: ": 1",
+  kellySection: "Kelly Sizing",
+  kellyFull: "Full Kelly",
+  halfKelly: "Half Kelly",
+  quarterKelly: "Quarter Kelly",
+  kellyNoEdge: "No positive edge (f*≤0); skip the trade.",
   verdictHint: {
     ok: "Notional ≤ account; concentration is normal.",
     leveraged: "Notional exceeds account — requires leverage/margin; mind blow-up risk.",
