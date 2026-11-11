@@ -2,7 +2,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState, useEffect } from "react";
-import { assessMacroState, correlationMatrix, classifyCorrelation, SAMPLE_MACRO_SERIES, marketRegime } from "../lib/macro";
+import { assessMacroState, correlationMatrix, classifyCorrelation, SAMPLE_MACRO_SERIES, marketRegime, getFactorSensitivity, MACRO_FACTORS } from "../lib/macro";
 import Head from "next/head";
 
 export const metadata = {
@@ -70,6 +70,14 @@ const CORRELATION_STRENGTH = {
   moderate: { zh: "中", en: "Moderate" },
   weak: { zh: "弱", en: "Weak" },
   "n/a": { zh: "—", en: "—" },
+};
+
+// 资产类标签（getFactorSensitivity 的敏感度键 growth/value/bonds/cash）
+const ASSET_CLASS_LABELS = {
+  growth: { zh: "成长", en: "Growth" },
+  value: { zh: "价值", en: "Value" },
+  bonds: { zh: "债券", en: "Bonds" },
+  cash: { zh: "现金", en: "Cash" },
 };
 export default function MacroPage() {
   const { lang } = useLanguage();
@@ -351,6 +359,45 @@ export default function MacroPage() {
             </table>
           </div>
 
+          {/* 因子敏感度（getFactorSensitivity：各宏观因子对资产类的敏感度） */}
+          <h2 className="text-lg font-bold mt-8 mb-3">{L.sensitivityTitle}</h2>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-400 border-b">
+                  <th className="pb-2 font-medium">{L.factor}</th>
+                  <th className="pb-2 font-medium">{L.impact}</th>
+                  <th className="pb-2 font-medium">{L.sensitivityCol}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(MACRO_FACTORS).map((f) => {
+                  const info = getFactorSensitivity(f);
+                  if (!info) return null;
+                  const mf = MACRO_FACTORS[f];
+                  const name = lang === "en" ? mf.nameEn : mf.name;
+                  const impact = lang === "en" ? mf.impactEn : mf.impact;
+                  const sens = Object.entries(info.sensitivity).map(([k, v]) => (
+                    <span
+                      key={k}
+                      className={`inline-block mr-2 ${v > 0 ? "text-green-600" : v < 0 ? "text-red-600" : "text-slate-400"}`}
+                    >
+                      {ASSET_CLASS_LABELS[k]?.[lang] || k} {Number(v).toFixed(1)}
+                    </span>
+                  ));
+                  return (
+                    <tr key={f} className="border-b last:border-0">
+                      <td className="py-2 font-medium">{name}</td>
+                      <td className="py-2 text-slate-500 text-xs">{impact}</td>
+                      <td className="py-2 text-slate-600 text-xs">{sens}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="text-xs text-slate-400 mt-3">{L.sensitivityHint}</p>
+          </div>
+
           <p className="text-xs text-slate-400 mt-6 text-center">{L.disclaimer}</p>
         </div>
       </section>
@@ -482,6 +529,11 @@ const zh = {
   strongestPair: "最强相关：",
   asset: "资产",
   reason: "理由",
+  sensitivityTitle: "宏观因子敏感度",
+  factor: "因子",
+  impact: "影响",
+  sensitivityCol: "对资产类敏感度（+利好 / −利空）",
+  sensitivityHint: "数值越大越利好该资产类，越小越利空。如利率 −0.8 成长 / −1.0 债券：利率上行利空成长股与债券。",
   disclaimer: "基于 lib/macro 引擎评估；VIX 可加载实时行情，其余指标为演示占位。配置建议非投资建议。",
 };
 const en = {
@@ -502,6 +554,11 @@ const en = {
   strongestPair: "Strongest pair:",
   asset: "Asset",
   reason: "Reason",
+  sensitivityTitle: "Macro Factor Sensitivity",
+  factor: "Factor",
+  impact: "Impact",
+  sensitivityCol: "Sensitivity to asset class (+benefits / −harms)",
+  sensitivityHint: "Larger = more beneficial to that asset class, smaller = more harmful. E.g. rates −0.8 growth / −1.0 bonds: rising rates hurt growth stocks and bonds.",
   disclaimer: "Evaluated by lib/macro; VIX can load live data, other indicators are demo placeholders. Allocation suggestions are not investment advice.",
 };
 
