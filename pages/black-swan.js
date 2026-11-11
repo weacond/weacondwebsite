@@ -3,9 +3,11 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { valueAtRisk, expectedShortfall, maxDrawdown, detectTailEvents, excessKurtosis, skewness, ulcerIndex, monteCarloDrawdown } from "../lib/risk.js";
+import { detectBlackSwan } from "../lib/signals.js";
 
 export const metadata = {
   title: "黑天鹅防御 — Weacond",
@@ -54,6 +56,47 @@ const MC_STRESS = monteCarloDrawdown(SAMPLE_RETURNS, {
 export default function BlackSwanPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
+
+  // 实时黑天鹅检测：detectBlackSwan 评估「现在是否正在发生尾部事件」。
+  // 默认用演示数据（VIX 18.5 / 分位 50 / 样本收益）保证始终有内容；挂载后拉真实 VIX 覆盖并标 live。
+  const DEMO_VERDICT = detectBlackSwan({ vix: 18.5, vixPercentile: 50, returns: SAMPLE_RETURNS, sectorCorrelation: 0.5 });
+  const [verdict, setVerdict] = useState(DEMO_VERDICT);
+  const [vixLive, setVixLive] = useState(null);
+  const [vixPctLive, setVixPctLive] = useState(50);
+  const [bsLive, setBsLive] = useState(false);
+  const [bsLoading, setBsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setBsLoading(true);
+      try {
+        const res = await fetch("/api/marketdata?symbol=VIX&interval=Daily&months=12");
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const data = await res.json();
+        const candles = data.candles || [];
+        if (candles.length < 5) throw new Error("no vix");
+        const closes = candles.map((c) => Number(c.close)).filter((x) => Number.isFinite(x));
+        const vix = closes[closes.length - 1];
+        const pct = (closes.filter((x) => x <= vix).length / closes.length) * 100;
+        const v = detectBlackSwan({ vix, vixPercentile: pct, returns: SAMPLE_RETURNS, sectorCorrelation: 0.5 });
+        if (cancelled) return;
+        setVixLive(vix);
+        setVixPctLive(pct);
+        setVerdict(v);
+        setBsLive(!!data.live);
+      } catch {
+        // 失败 → 保留演示 verdict，诚实标注为示意
+      } finally {
+        if (!cancelled) setBsLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
@@ -62,6 +105,46 @@ export default function BlackSwanPage() {
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">{L.title}</h1>
           <p className="text-slate-500 mb-8">{L.subtitle}</p>
+
+          {/* 实时黑天鹅检测（detectBlackSwan：VIX 分位 + 尾部事件 + 板块相关性） */}
+          <div className={`rounded-xl p-6 shadow-sm border mb-8 ${verdict.triggered ? "border-red-300 bg-red-50" : "border-green-300 bg-green-50"}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">{L.detectorTitle}</h3>
+              <span className="text-xs text-slate-500">
+                {bsLoading ? L.detectorLoading : bsLive ? L.detectorLive : L.detectorDemo}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <span className={`text-2xl font-bold ${verdict.triggered ? "text-red-600" : "text-green-600"}`}>
+                {verdict.triggered ? L.detectorTriggered : L.detectorCalm}
+              </span>
+              <span className="text-xs text-slate-500">
+                {L.detectorVix} {vixLive != null ? vixLive.toFixed(1) : "—"} · {L.detectorPct} {vixPctLive.toFixed(0)}%
+              </span>
+            </div>
+            {verdict.triggered ? (
+              <>
+                <div className="mt-4">
+                  <div className="text-xs font-semibold text-slate-600 mb-2">{L.detectorTriggers}</div>
+                  <ul className="space-y-1 text-sm text-red-700 list-disc list-inside">
+                    {verdict.triggers.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="mt-4">
+                  <div className="text-xs font-semibold text-slate-600 mb-2">{L.detectorRecs}</div>
+                  <ul className="space-y-1 text-sm text-slate-700 list-decimal list-inside">
+                    {verdict.recommendations.map((r) => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-slate-600">{L.detectorCalmNote}</p>
+            )}
+          </div>
 
           {/* 风险因子仪表盘 */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
@@ -234,6 +317,17 @@ function RiskStat({ label, value }) {
 const zh = {
   title: "黑天鹅防御",
   subtitle: "尾部风险识别与对冲，从2008到2020的历史复盘",
+  detectorTitle: "实时黑天鹅检测",
+  detectorLoading: "检测中…",
+  detectorLive: "实时 VIX",
+  detectorDemo: "示意数据",
+  detectorTriggered: "触发 · 尾部风险上升",
+  detectorCalm: "未触发 · 相对平静",
+  detectorVix: "VIX",
+  detectorPct: "分位",
+  detectorTriggers: "触发条件",
+  detectorRecs: "建议动作",
+  detectorCalmNote: "当前未满足黑天鹅触发条件（VIX 分位 < 90 且无显著 3σ 尾部事件）。保持监控。",
   riskFactors: "风险因子仪表盘",
   hedgeSuggestions: "对冲建议",
   riskMetrics: "尾部风险度量",
@@ -260,6 +354,17 @@ const zh = {
 const en = {
   title: "Black Swan Defense",
   subtitle: "Tail risk identification and hedging. 2008-2020 case studies",
+  detectorTitle: "Live Black-Swan Detector",
+  detectorLoading: "Detecting…",
+  detectorLive: "Live VIX",
+  detectorDemo: "Demo data",
+  detectorTriggered: "Triggered · elevated tail risk",
+  detectorCalm: "Calm · no trigger",
+  detectorVix: "VIX",
+  detectorPct: "percentile",
+  detectorTriggers: "Triggers",
+  detectorRecs: "Recommended actions",
+  detectorCalmNote: "No black-swan trigger right now (VIX percentile < 90 and no significant 3σ tail event). Keep monitoring.",
   riskFactors: "Risk Factor Dashboard",
   hedgeSuggestions: "Hedge Suggestions",
   riskMetrics: "Tail Risk Metrics",
