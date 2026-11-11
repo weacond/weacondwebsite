@@ -825,3 +825,17 @@ test("histogram: bins<1 归一为 1 箱；NaN 清洗", () => {
   const h2 = histogram([1, NaN, 3, 4], 4);
   assert.equal(h2.total, 3, "NaN 被清洗，total=3");
 });
+
+test("mfi 策略: 注册、mean_reversion 类、params 合法、V 形先跌后涨产生翻多买入", () => {
+  assert.ok(STRATEGY_REGISTRY.mfi, "缺少 mfi 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.mfi.run, "function");
+  assert.equal(STRATEGY_REGISTRY.mfi.category, "mean_reversion");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.mfi.params), "mfi.params 应为数组");
+  // V 形：先持续下跌（MFI 跌入超卖区）后持续上涨（MFI 回升穿越超卖线 → 买入）
+  const candles = [
+    ...Array.from({ length: 60 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 60 }, (_, i) => ({ high: 40 + i, low: 39 + i, close: 39.5 + i, open: 40 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.mfi.run(candles, { period: 14, oversold: 20, overbought: 80 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 MFI 从超卖回升应产生买入信号");
+});
