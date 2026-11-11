@@ -1057,6 +1057,20 @@ test("keltnerStrategy: 注册为 trend 类、返回合法信号、缺口突破�
   assert.ok("reason" in sig[0] && "index" in sig[0] && "confidence" in sig[0], "信号含 reason/index/confidence");
 });
 
+test("donchianStrategy: 注册为 breakout 类、缺口突破产生 buy、无前视", () => {
+  assert.ok(STRATEGY_REGISTRY.donchian, "donchian 应已注册");
+  assert.equal(STRATEGY_REGISTRY.donchian.category, "breakout", "分类为 breakout（cats 已覆盖）");
+  assert.equal(typeof STRATEGY_REGISTRY.donchian.run, "function", "run 应为函数");
+  // 平盘 30 根建立通道基线，再一根大缺口向上 → 收盘突破前窗口高点 → buy
+  const flat = Array.from({ length: 30 }, () => ({ high: 101, low: 99, open: 100, close: 100, volume: 1000 }));
+  flat.push({ high: 131, low: 129, open: 128, close: 130, volume: 1000 });
+  const sig = STRATEGY_REGISTRY.donchian.run(flat, { period: 20 });
+  assert.ok(Array.isArray(sig), "返回数组");
+  assert.ok(sig.length > 0, "缺口突破应产生信号");
+  assert.equal(sig[sig.length - 1].action, "buy", "末根为向上突破 buy");
+  assert.ok(sig[sig.length - 1].index === flat.length - 1, "突破发生在缺口那根");
+});
+
 // ---------- 策略元数据完整性 + 分类覆盖（防止新增策略漏配 i18n 分类标签）----------
 // KNOWN_STRATEGY_CATEGORIES 必须与 pages/strategies.js 的 cats map 保持同步
 // （cats 当前覆盖 trend / mean_reversion / breakout / momentum）。
