@@ -12,7 +12,7 @@ import { useState } from "react";
 import { STRATEGY_REGISTRY } from "../lib/backtest";
 import { PRESET_MARKETS, runFullBacktest } from "../lib/marketdata";
 import { correlationMatrix, diversificationRatio } from "../lib/correlation";
-import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights, herfindahlIndex, effectiveNumAssets, riskRewardPoints, efficientFrontier } from "../lib/portfolio";
+import { portfolioSharpe, portfolioVolatility, inverseVolWeights, riskContribution, riskParityWeights, maxSharpeWeights, minimumVarianceWeights, herfindahlIndex, effectiveNumAssets, riskRewardPoints, efficientFrontier, volTargetScale } from "../lib/portfolio";
 
 // 对比用指标（higher=true 表示越大越好；maxDrawdown 越小越好）
 const CMP_METRICS = [
@@ -56,6 +56,8 @@ export default function ComparePage() {
   const L = lang === "en" ? en : zh;
   const [preset, setPreset] = useState("SPY_2023");
   const [results, setResults] = useState(null);
+  // 波动率目标：将风险平价组合缩放到目标年化波动（%），用于展示波动率目标化后的夏普
+  const [targetVol, setTargetVol] = useState(15);
   const [running, setRunning] = useState(false);
 
   const strategies = Object.entries(STRATEGY_REGISTRY);
@@ -214,6 +216,15 @@ export default function ComparePage() {
                 // 最小方差组合权重（纯粹追求波动最小）及其夏普
                 const mvWeights = minimumVarianceWeights(vols, M, { grid: 40 });
                 const mvSharpe = portfolioSharpe(returnsList, vols, M, mvWeights);
+                // 波动率目标化：把风险平价权重按 scale = 目标σ / 当前σ 缩放，使组合年化波动≈目标，再算其夏普
+                const vtTarget = (Number(targetVol) || 0) / 100;
+                const vtScale = volTargetScale(vols, M, rpWeights, vtTarget);
+                const vtWeights =
+                  Array.isArray(rpWeights) && rpWeights.length > 0
+                    ? rpWeights.map((w) => w * vtScale)
+                    : [];
+                const vtVol = vtWeights.length > 0 ? portfolioVolatility(vols, M, vtWeights) * 100 : 0;
+                const vtSharpe = vtWeights.length > 0 ? portfolioSharpe(returnsList, vols, M, vtWeights) : NaN;
                 const corrBg = (c) => {
                   if (c >= 0.95) return "rgba(239,68,68,0.85)"; // 完全相关（分散差）
                   if (c > 0) return `rgba(239,68,68,${(c * 0.5).toFixed(2)})`; // 正相关 → 红
@@ -243,6 +254,31 @@ export default function ComparePage() {
                       </div>
                       <div className="text-xs text-slate-500">
                         {L.mvSharpeLabel} <span className="font-bold text-slate-800">{mvSharpe.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    {/* 波动率目标化：把风险平价组合缩放到目标年化波动，展示缩放后波动 + 夏普 */}
+                    <div className="mt-3 flex items-center gap-3 flex-wrap bg-slate-50 rounded-lg p-3 border border-slate-100">
+                      <div className="text-xs font-medium text-slate-500 shrink-0">{L.vtLabel}</div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="40"
+                        step="1"
+                        value={targetVol}
+                        onChange={(e) => setTargetVol(Number(e.target.value))}
+                        className="flex-1 min-w-[120px] accent-indigo-500"
+                        aria-label="target annualized volatility percent"
+                      />
+                      <div className="text-xs text-slate-500 whitespace-nowrap">
+                        {Number.isFinite(vtSharpe) ? (
+                          <span>
+                            {L.vtResult} <span className="font-bold text-slate-800">{vtVol.toFixed(1)}%</span>
+                            <span className="text-slate-400 mx-1">·</span>
+                            {L.vtSharpe} <span className="font-bold text-slate-800">{vtSharpe.toFixed(2)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">{L.vtNa}</span>
+                        )}
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -456,6 +492,10 @@ const zh = {
   optSharpeLabel: "最优夏普",
   optTitle: "最优权重（切点组合）",
   mvSharpeLabel: "最小方差夏普",
+  vtLabel: "波动率目标化（缩放风险平价）",
+  vtResult: "目标化后 →",
+  vtSharpe: "夏普",
+  vtNa: "需 ≥2 个策略且有有效风险平价权重",
   mvTitle: "最小方差权重",
   rcTitle: "各资产风险贡献（逆波动加权）",
   hhiTitle: "集中度（HHI · 等效资产数）",
@@ -491,6 +531,10 @@ const en = {
   optSharpeLabel: "Optimal Sharpe",
   optTitle: "Optimal Weights (Tangency Portfolio)",
   mvSharpeLabel: "Min-Variance Sharpe",
+  vtLabel: "Vol Targeting (scale risk-parity)",
+  vtResult: "Targeted →",
+  vtSharpe: "Sharpe",
+  vtNa: "needs ≥2 strategies with valid risk-parity weights",
   mvTitle: "Min-Variance Weights",
   rcTitle: "Risk Contribution (inv-vol weighted)",
   hhiTitle: "Concentration (HHI · eff. assets)",
