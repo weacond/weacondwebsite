@@ -881,3 +881,67 @@ test("optimizeStrategy: 切换 target；maxPerParam=5 触发截断(5^3=125>100 �
   }
   assert.equal(r.results[0].rank, 1);
 });
+
+// ---------- 新晋信号源策略（CCI / ROC / Williams / Aroon / OBV / ADX）----------
+const V_CANDLES = [
+  ...Array.from({ length: 60 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+  ...Array.from({ length: 60 }, (_, i) => ({ high: 40 + i, low: 39 + i, close: 39.5 + i, open: 40 + i, volume: 1000 })),
+];
+const FLAT_UP_CANDLES = Array.from({ length: 120 }, (_, i) => {
+  const c = i < 40 ? 100 : 100 + (i - 40) * 1.2; // 先平后涨，ADX 从低位突破阈值
+  return { open: c, high: c + 0.8, low: c - 0.8, close: c, volume: 1000 };
+});
+
+test("cci 策略: 注册、mean_reversion 类、params 合法、V 形先跌后涨产生超卖回升买入", () => {
+  assert.ok(STRATEGY_REGISTRY.cci, "缺少 cci 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.cci.run, "function");
+  assert.equal(STRATEGY_REGISTRY.cci.category, "mean_reversion");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.cci.params), "cci.params 应为数组");
+  const signals = STRATEGY_REGISTRY.cci.run(V_CANDLES, { period: 20, oversold: -100, overbought: 100 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 CCI 从超卖回升应产生买入信号");
+});
+
+test("roc 策略: 注册、momentum 类、params 合法、V 形先跌后涨产生上穿零轴买入", () => {
+  assert.ok(STRATEGY_REGISTRY.roc, "缺少 roc 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.roc.run, "function");
+  assert.equal(STRATEGY_REGISTRY.roc.category, "momentum");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.roc.params), "roc.params 应为数组");
+  const signals = STRATEGY_REGISTRY.roc.run(V_CANDLES, { period: 12 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 ROC 上穿零轴应产生买入信号");
+});
+
+test("williams 策略: 注册、mean_reversion 类、params 合法、V 形先跌后涨产生超卖回升买入", () => {
+  assert.ok(STRATEGY_REGISTRY.williams, "缺少 williams 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.williams.run, "function");
+  assert.equal(STRATEGY_REGISTRY.williams.category, "mean_reversion");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.williams.params), "williams.params 应为数组");
+  const signals = STRATEGY_REGISTRY.williams.run(V_CANDLES, { period: 14, oversold: -80, overbought: -20 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 %R 从超卖回升应产生买入信号");
+});
+
+test("aroon 策略: 注册、trend 类、params 合法、V 形先跌后涨产生 Up 上穿 Down 买入", () => {
+  assert.ok(STRATEGY_REGISTRY.aroon, "缺少 aroon 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.aroon.run, "function");
+  assert.equal(STRATEGY_REGISTRY.aroon.category, "trend");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.aroon.params), "aroon.params 应为数组");
+  const signals = STRATEGY_REGISTRY.aroon.run(V_CANDLES, { period: 25 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 Aroon Up 上穿 Down 应产生买入信号");
+});
+
+test("obv 策略: 注册、trend 类、params 合法、V 形先跌后涨产生 OBV 上穿均线买入", () => {
+  assert.ok(STRATEGY_REGISTRY.obv, "缺少 obv 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.obv.run, "function");
+  assert.equal(STRATEGY_REGISTRY.obv.category, "trend");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.obv.params), "obv.params 应为数组");
+  const signals = STRATEGY_REGISTRY.obv.run(V_CANDLES, { maPeriod: 20 });
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形底部 OBV 上穿其均线应产生买入信号");
+});
+
+test("adx 策略: 注册、trend 类、params 合法、平后涨产生 ADX 突破阈值且 +DI 领先买入", () => {
+  assert.ok(STRATEGY_REGISTRY.adx, "缺少 adx 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.adx.run, "function");
+  assert.equal(STRATEGY_REGISTRY.adx.category, "trend");
+  assert.ok(Array.isArray(STRATEGY_REGISTRY.adx.params), "adx.params 应为数组");
+  const signals = STRATEGY_REGISTRY.adx.run(FLAT_UP_CANDLES, { period: 14, threshold: 25 });
+  assert.ok(signals.some((s) => s.action === "buy"), "ADX 突破 25 且 +DI 领先应产生买入信号");
+});
