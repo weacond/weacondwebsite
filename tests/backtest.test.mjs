@@ -18,6 +18,9 @@ import {
   chandelier,
   stochRsi,
   adx,
+  parabolicSAR,
+  cci,
+  roc,
   signalConsensus,
   signalConsensusSeries,
   runBacktest,
@@ -418,6 +421,96 @@ test("adx: 等长，ADX/+DI/−DI ∈ [0,100]，预热期 null，单侧趋势 AD
   const climbAdx = adx(climb, p);
   assert.ok(climbAdx.adx[n - 1] > 40, "单边上涨 ADX 高");
   assert.ok(climbAdx.plusDI[n - 1] > climbAdx.minusDI[n - 1], "单边上涨 +DI > −DI");
+});
+
+test("parabolicSAR: 等长、方向 ∈ {up,down}、无预热 null、多头时 SAR 在价下方", () => {
+  const n = 120;
+  // 单边上涨 → SAR 持续在收盘价下方（多头）
+  const climb = Array.from({ length: n }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 99 + i,
+    close: 100 + i + 0.5,
+    open: 100 + i,
+    volume: 1000,
+  }));
+  const { sar, direction } = parabolicSAR(climb);
+  assert.equal(sar.length, n, "输出等长");
+  assert.equal(sar.filter((x) => x == null).length, 0, "无预热 null");
+  for (let i = 0; i < n; i++) {
+    assert.ok(direction[i] === "up" || direction[i] === "down", "方向合法");
+    assert.ok(Number.isFinite(sar[i]), "SAR 为有限数");
+  }
+  // 单边上涨末根：方向多头且 SAR 在收盘价下方
+  assert.equal(direction[n - 1], "up", "单边上涨末根方向 up");
+  assert.ok(sar[n - 1] < climb[n - 1].close, "多头 SAR 在价下方");
+  // 单边下跌 → 末根方向空头且 SAR 在价上方
+  const fall = Array.from({ length: n }, (_, i) => ({
+    high: 100 - i + 1,
+    low: 99 - i,
+    close: 100 - i + 0.5,
+    open: 100 - i,
+    volume: 1000,
+  }));
+  const fd = parabolicSAR(fall);
+  assert.equal(fd.direction[n - 1], "down", "单边下跌末根方向 down");
+  assert.ok(fd.sar[n - 1] > fall[n - 1].close, "空头 SAR 在价上方");
+  // 空输入
+  const empty = parabolicSAR([]);
+  assert.equal(empty.sar.length, 0, "空输入长度 0");
+  assert.equal(empty.direction.length, 0, "空输入方向长度 0");
+});
+
+test("cci: 等长、前 period 根 null、强趋势 |CCI|>100、涨跌对称", () => {
+  const n = 120;
+  const p = 20;
+  const climb = Array.from({ length: n }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 99 + i,
+    close: 100 + i + 0.5,
+    open: 100 + i,
+    volume: 1000,
+  }));
+  const c = cci(climb, p);
+  assert.equal(c.length, n, "输出等长");
+  for (let i = 0; i < p - 1; i++) assert.ok(c[i] === null, "前 period 根为 null");
+  assert.ok(c[p - 1] != null, "第 period 根起有效");
+  assert.ok(Math.abs(c[n - 1]) > 100, "单边上涨 |CCI| > 100");
+  assert.ok(c[n - 1] > 0, "上涨 CCI 为正");
+  // 下跌应对称（负值）
+  const fall = Array.from({ length: n }, (_, i) => ({
+    high: 100 - i + 1,
+    low: 99 - i,
+    close: 100 - i + 0.5,
+    open: 100 - i,
+    volume: 1000,
+  }));
+  assert.ok(cci(fall, p)[n - 1] < 0, "下跌 CCI 为负");
+});
+
+test("roc: 等长、前 period 根 null、上涨为正/下跌为负", () => {
+  const n = 120;
+  const p = 12;
+  const climb = Array.from({ length: n }, (_, i) => ({
+    high: 100 + i + 1,
+    low: 99 + i,
+    close: 100 + i + 0.5,
+    open: 100 + i,
+    volume: 1000,
+  }));
+  const r = roc(climb, p);
+  assert.equal(r.length, n, "输出等长");
+  for (let i = 0; i < p; i++) assert.ok(r[i] === null, "前 period 根为 null");
+  assert.ok(r[p] != null, "第 period 根起有效");
+  assert.ok(r[n - 1] > 0, "单边上涨 ROC 为正");
+  // 下跌序列须保持正价（否则 ROC 除号翻正，是数据穿越零的伪影）
+  const fall = Array.from({ length: n }, (_, i) => ({
+    high: 300 - i + 1,
+    low: 299 - i,
+    close: 300 - i,
+    open: 300 - i + 1,
+    volume: 1000,
+  }));
+  assert.ok(roc(fall, p)[n - 1] < 0, "单边下跌 ROC 为负");
 });
 
 // ---------- 回测引擎 ----------
