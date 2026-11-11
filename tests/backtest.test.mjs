@@ -249,6 +249,18 @@ test("chandelier 策略: 注册且 run 为函数、先跌后涨产生翻多买�
   assert.ok(signals.some((s) => s.action === "buy"), "V 形反转应有翻多买入信号");
 });
 
+test("parabolic_sar 策略: 注册且 run 为函数、先跌后涨产生翻多买入", () => {
+  assert.ok(STRATEGY_REGISTRY.parabolic_sar, "缺少 parabolic_sar 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.parabolic_sar.run, "function");
+  assert.equal(STRATEGY_REGISTRY.parabolic_sar.category, "trend");
+  const candles = [
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
+    ...Array.from({ length: 40 }, (_, i) => ({ high: 60 + i, low: 59 + i, close: 59.5 + i, open: 60 + i, volume: 1000 })),
+  ];
+  const signals = STRATEGY_REGISTRY.parabolic_sar.run(candles);
+  assert.ok(signals.some((s) => s.action === "buy"), "V 形反转应有 SAR 翻多买入信号");
+});
+
 test("macd_cross 策略: 先跌后涨产生金叉买入、随后死叉卖出", () => {
   const candles = [
     ...Array.from({ length: 40 }, (_, i) => ({ high: 100 - i, low: 99 - i, close: 99.5 - i, open: 100 - i, volume: 1000 })),
