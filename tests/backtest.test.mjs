@@ -274,6 +274,21 @@ test("macd_cross 策略: 先跌后涨产生金叉买入、随后死叉卖出", (
   assert.ok(signals.some((s) => s.action === "sell"), "应有 MACD 死叉卖出信号");
 });
 
+test("stoch_rsi 策略: 注册为均值回归类、震荡序列产生超卖上穿买入与超买下穿卖出", () => {
+  assert.ok(STRATEGY_REGISTRY.stoch_rsi, "缺少 stoch_rsi 策略");
+  assert.equal(typeof STRATEGY_REGISTRY.stoch_rsi.run, "function");
+  assert.equal(STRATEGY_REGISTRY.stoch_rsi.category, "mean_reversion");
+  // 正弦震荡序列（非单调）→ StochRSI 在 [0,100] 摆动，产生超卖/超买穿越；
+  // 单调 V 形会让 RSI 饱和、StochRSI 回退到 50 不穿越，故用震荡输入。
+  const candles = Array.from({ length: 120 }, (_, i) => {
+    const c = 100 + 12 * Math.sin((i * 2 * Math.PI) / 30);
+    return { high: c + 1, low: c - 1, close: c, open: c, volume: 1000 };
+  });
+  const signals = STRATEGY_REGISTRY.stoch_rsi.run(candles, { period: 14, oversold: 20, overbought: 80 });
+  assert.ok(signals.some((s) => s.action === "buy"), "震荡序列应有 StochRSI 超卖上穿买入信号");
+  assert.ok(signals.some((s) => s.action === "sell"), "震荡序列应有 StochRSI 超买下穿卖出信号");
+});
+
 // ---------- 多指标信号共识 ----------
 
 test("signalConsensus: 上升趋势 → 看多、共识强度为正", () => {
