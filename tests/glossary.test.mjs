@@ -30,7 +30,7 @@ test("id 唯一；分组覆盖全部概念且按 order 排序", () => {
 });
 
 test("相关 href 均指向已知工具页", () => {
-  const known = ["/risk", "/performance", "/correlation", "/portfolio", "/montecarlo", "/options", "/position-size", "/r-multiple", "/leverage", "/compound", "/backtest", "/stresstest", "/atr-stop", "/excursion", "/breakeven", "/risk-ruin", "/real-return", "/fair-value", "/levered-etf", "/rebalance", "/tax-loss", "/fx-pip", "/bond", "/tax-drag", "/margin", "/expectancy", "/options-payoff", "/ytm", "/loan", "/fx-cross", "/drip", "/staking", "/portfolio-beta", "/annuity", "/goal-solver", "/drawdown-sizing", "/r-position", "/real-after-tax", "/prob-return", "/fib-time", "/kelly"];
+  const known = ["/risk", "/performance", "/correlation", "/portfolio", "/montecarlo", "/options", "/position-size", "/r-multiple", "/leverage", "/compound", "/backtest", "/stresstest", "/atr-stop", "/excursion", "/breakeven", "/risk-ruin", "/real-return", "/fair-value", "/levered-etf", "/rebalance", "/tax-loss", "/fx-pip", "/bond", "/tax-drag", "/margin", "/expectancy", "/options-payoff", "/ytm", "/loan", "/fx-cross", "/drip", "/staking", "/portfolio-beta", "/annuity", "/goal-solver", "/drawdown-sizing", "/r-position", "/real-after-tax", "/prob-return", "/fib-time", "/kelly", "/npv"];
   for (const h of allRelatedHrefs()) {
     assert.ok(known.includes(h), `unknown href ${h}`);
   }
