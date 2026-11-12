@@ -196,6 +196,7 @@ const zh = {
   ],
   toolsTitle: "计算工具",
   tools: [
+    { icon: "🧭", title: "学习路径", desc: "入门→进阶→高级，串联全部工具的循序渐进课程", href: "/learning" },
     { icon: "🎯", title: "支点计算器", desc: "经典/伍迪/卡马拉拉/斐波那契日内支撑阻力位", href: "/pivots" },
     { icon: "📐", title: "斐波那契", desc: "回撤/扩展关键位，趋势反转与目标", href: "/fibonacci" },
     { icon: "📏", title: "头寸 & Kelly", desc: "风险预算、R:R 盈亏比与最优仓位比例", href: "/position-size" },
@@ -247,6 +248,7 @@ const en = {
   ],
   toolsTitle: "Calculators",
   tools: [
+    { icon: "🧭", title: "Learning Path", desc: "Beginner→advanced: a guided course chaining every tool", href: "/learning" },
     { icon: "🎯", title: "Pivot Points", desc: "Classic / Woodie / Camarilla / Fibonacci intraday levels", href: "/pivots" },
     { icon: "📐", title: "Fibonacci", desc: "Retracement & extension — reversal zones & trend targets", href: "/fibonacci" },
     { icon: "📏", title: "Position & Kelly", desc: "Risk budget, R:R ratio, and optimal bet sizing", href: "/position-size" },
