@@ -81,6 +81,7 @@ const labels = {
     openMenu: "打开菜单",
     closeMenu: "关闭菜单",
     language: "语言",
+    more: "更多",
   },
   en: {
     home: "Home",
@@ -122,6 +123,7 @@ const labels = {
     openMenu: "Open menu",
     closeMenu: "Close menu",
     language: "Language",
+    more: "More",
   },
 };
 
@@ -129,6 +131,15 @@ export default function Navbar() {
   const { lang, setLang } = useLanguage();
   const t = labels[lang] || labels.zh;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // 桌面端：核心页内联展示，其余深度链接收进「更多 ▾」下拉，避免导航随工具增长溢出。
+  const PRIMARY_KEYS = new Set([
+    "home", "signals", "watchlist", "backtest", "paper", "options", "risk",
+    "calculators", "ai", "strategies", "pricing", "about",
+  ]);
+  const primaryItems = navItems.filter((i) => PRIMARY_KEYS.has(i.key));
+  const moreItems = navItems.filter((i) => !PRIMARY_KEYS.has(i.key));
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -149,12 +160,40 @@ export default function Navbar() {
           Weacond
         </Link>
         <nav aria-label="Primary" className="hidden lg:flex items-center gap-3 text-sm">
-          {navItems.map((item) => (
+          {primaryItems.map((item) => (
             <Link key={item.href} href={item.href}
               className="hover:text-indigo-600 transition-colors font-medium text-slate-700">
               {t[item.key]}
             </Link>
           ))}
+          {moreItems.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-expanded={moreOpen}
+                aria-controls="more-menu"
+                className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors font-medium text-slate-700">
+                {t.more}
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d={moreOpen ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+                </svg>
+              </button>
+              {moreOpen && (
+                <div id="more-menu"
+                  className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 shadow-lg rounded-xl p-1 grid grid-cols-1 gap-0.5 max-h-96 overflow-y-auto z-50">
+                  {moreItems.map((item) => (
+                    <Link key={item.href} href={item.href}
+                      onClick={() => setMoreOpen(false)}
+                      className="px-3 py-2 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors text-slate-700">
+                      {t[item.key]}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
         <div className="flex items-center gap-3">
           <Link href="/login"
