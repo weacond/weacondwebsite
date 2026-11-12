@@ -6,6 +6,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 
 const navItems = [
   { href: "/", key: "home" },
+  { href: "/search", key: "search" },
   { href: "/signals", key: "signals" },
   { href: "/watchlist", key: "watchlist" },
   { href: "/ebooks", key: "ebooks" },
@@ -43,6 +44,7 @@ const navItems = [
 const labels = {
   zh: {
     home: "主页",
+    search: "搜索",
     signals: "信号",
     watchlist: "收藏",
     ebooks: "书房",
@@ -85,6 +87,7 @@ const labels = {
   },
   en: {
     home: "Home",
+    search: "Search",
     signals: "Signals",
     watchlist: "Watchlist",
     ebooks: "Ebooks",
@@ -136,7 +139,7 @@ export default function Navbar() {
   // 桌面端：核心页内联展示，其余深度链接收进「更多 ▾」下拉，避免导航随工具增长溢出。
   const PRIMARY_KEYS = new Set([
     "home", "signals", "watchlist", "backtest", "paper", "options", "risk",
-    "calculators", "ai", "strategies", "pricing", "about",
+    "search", "calculators", "ai", "strategies", "pricing", "about",
   ]);
   const primaryItems = navItems.filter((i) => PRIMARY_KEYS.has(i.key));
   const moreItems = navItems.filter((i) => !PRIMARY_KEYS.has(i.key));
