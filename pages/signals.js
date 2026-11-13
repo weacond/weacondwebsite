@@ -5,6 +5,7 @@ import SignalHistory from "../components/SignalHistory";
 import { computeSignalScore } from "../lib/signals";
 import { signalConsensus } from "../lib/backtest";
 import { buildSignalHistory, summarizeHistory } from "../lib/signalHistory";
+import { rankByWinProbability } from "../lib/winProbability";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -119,6 +120,9 @@ export default function SignalsPage() {
           {/* 信号历史（带标的筛选的 client 组件） */}
           <SignalHistory history={HISTORY} />
 
+          {/* 胜率框架（独立模块）：把三引擎评分转成「盈利概率 + 置信区间 + 假设清单」，对齐手册「卖确定性的概率」 */}
+          <WinProbabilityPanel signals={signals} lang={lang} />
+
           {/* 升级提示 */}
           <div className="mt-8 bg-indigo-50 rounded-xl p-6 text-center border border-indigo-100">
             <p className="text-indigo-800 font-medium mb-4">{L.upgradePrompt}</p>
@@ -160,4 +164,101 @@ const en = {
   historyHitRate: "Hit Rate",
   historyAvgRet: "Avg Return",
   historyDisclaimer: "Returns are backtest approximations; demo data, not investment advice.",
+};
+
+// ── 胜率框架（独立模块）：把评分 → 盈利概率 + 置信区间 + 假设清单 ──
+const VERDICT_ZH = { high: "高胜率", mid: "中胜率", low: "低胜率", unknown: "—" };
+const VERDICT_EN = { high: "High", mid: "Mid", low: "Low", unknown: "—" };
+const VERDICT_COLOR = {
+  high: "bg-green-100 text-green-700",
+  mid: "bg-amber-100 text-amber-700",
+  low: "bg-slate-100 text-slate-600",
+  unknown: "bg-slate-100 text-slate-400",
+};
+
+function WinProbabilityPanel({ signals, lang }) {
+  const L = lang === "en" ? enWin : zhWin;
+  if (!Array.isArray(signals) || signals.length === 0) return null;
+  // 每个标的：单期波动用 IV Rank 代理（披露）；1 个月 ≈ 21 交易日
+  const ranked = rankByWinProbability(
+    signals.map((s) => ({
+      ticker: s.ticker,
+      name: s.name,
+      score: s.score,
+      ivRank: s.ivRank,
+      sigmaPer: 0.01 + ((Number(s.ivRank) || 50) / 100) * 0.03, // 1%~4%/日
+      horizon: 21,
+      gain: 1.5,
+      breakeven: 0,
+    }))
+  ).slice(0, 3);
+  if (ranked.length === 0) return null;
+  return (
+    <div className="mt-10 border-t pt-8">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-bold">{L.title}</h2>
+          <p className="text-slate-500 text-sm mt-1">{L.subtitle}</p>
+        </div>
+        <span className="text-[10px] px-2 py-1 rounded bg-amber-100 text-amber-700 border border-amber-200">
+          {L.independent}
+        </span>
+      </div>
+      <div className="grid md:grid-cols-3 gap-4">
+        {ranked.map((r, i) => {
+          const wp = r.winProbability;
+          return (
+            <div
+              key={r.ticker}
+              className="rounded-xl border p-4 bg-white"
+              style={i === 0 ? { borderColor: "#6366f1", borderWidth: 2 } : undefined}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold">{r.ticker}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded ${VERDICT_COLOR[wp.verdict] || VERDICT_COLOR.unknown}`}>
+                  {(lang === "en" ? VERDICT_EN : VERDICT_ZH)[wp.verdict] || "—"}
+                </span>
+              </div>
+              <div className="mt-2 text-3xl font-bold">{Math.round(wp.probOfProfit * 100)}%</div>
+              <div className="text-xs text-slate-500">{L.probLabel}</div>
+              <div className="mt-2 text-xs text-slate-400">
+                {L.confidence} {Math.round(wp.confidenceBand[0] * 100)}–{Math.round(wp.confidenceBand[1] * 100)}%
+              </div>
+              {i === 0 && (
+                <p className="mt-3 text-[11px] text-slate-500 leading-relaxed">{L.assumptions}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-xs text-amber-700 bg-amber-50 rounded-lg p-3">
+        ⚠️ {L.fatTail}
+        <Link href="/black-swan" className="ml-1 underline">{L.blackSwanLink}</Link>
+      </p>
+      <p className="mt-2 text-[11px] text-slate-400">{L.disclaimer}</p>
+    </div>
+  );
+}
+
+const zhWin = {
+  title: "胜率框架（独立模块）",
+  subtitle: "把三引擎评分转成「盈利概率 + 置信区间」—— 卖的是确定性的概率",
+  independent: "独立框架 · 概率化",
+  probLabel: "盈利概率（正态近似）",
+  confidence: "95% 置信区间：",
+  assumptions: "假设：终端收益近似正态 N(μ_total, σ_total²)；μ_total=(评分−0.5)×1.5×σ×期数；σ_total=σ×√期数（σ 由 IV Rank 代理，1%~4%/日，21 交易日）。",
+  fatTail: "正态近似会高估胜率，真实行情肥尾、极端下实际胜率更低：",
+  blackSwanLink: "看黑天鹅防御 →",
+  disclaimer: "教育性参考，非投资建议；结果因人而异。",
+};
+const enWin = {
+  title: "Win-Probability Framework (standalone)",
+  subtitle: "Turns the 3-engine score into a probability of profit + confidence — we sell certainty as probability",
+  independent: "Standalone · probabilistic",
+  probLabel: "Probability of profit (normal approx.)",
+  confidence: "95% CI: ",
+  assumptions: "Assumptions: terminal return ~ Normal(μ_total, σ_total²); μ_total=(score−0.5)×1.5×σ×periods; σ_total=σ×√periods (σ proxied by IV Rank, 1%–4%/day, 21 sessions).",
+  fatTail: "Normal approximation overstates win rate; real returns are fat-tailed, so actual odds are lower in extremes:",
+  blackSwanLink: "See Black-Swan defense →",
+  disclaimer: "Educational reference, not investment advice; results vary.",
 };
