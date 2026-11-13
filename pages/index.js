@@ -1,6 +1,8 @@
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import Link from "next/link";
+import StructuredData from "../components/StructuredData";
+import { organizationLd, webApplicationLd, faqLd } from "../lib/jsonLd";
 
 export const metadata = {
   title: "Weacond — 让投资变得轻松、便捷、稳健",
@@ -24,12 +26,33 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
+// 首页 FAQ（诚实、教育性，供 JSON-LD；反幻觉：不编造收益/评分）
+const HOME_FAQ = [
+  {
+    q: "Weacond 是什么？",
+    a: "Weacond 是 AI + 量化 + 教育三位一体的金融决策平台，提供三引擎信号（基本面公允价值 + 技术面突破 + 波动率）、回测、本地 AI 与 67 个金融计算工具。",
+  },
+  {
+    q: "Weacond 的信号是投资建议吗？",
+    a: "不是。平台提供教育与分析参考，不构成投资建议；据此操作，风险自担。",
+  },
+  {
+    q: "本地 AI 会泄露我的数据吗？",
+    a: "本地 AI 在你的浏览器（WebGPU）上运行，策略与数据不出设备；隐私优先。",
+  },
+  {
+    q: "免费版包含哪些功能？",
+    a: "免费层含每日信号示例、公允价值与 67 个金融计算工具；进阶功能见定价页。",
+  },
+];
+
 export default function Home() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Navbar />
+      <StructuredData data={[organizationLd(), webApplicationLd(), faqLd(HOME_FAQ)]} />
       {/* Hero */}
       <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white py-28 px-4">
         <div className="max-w-5xl mx-auto text-center">
