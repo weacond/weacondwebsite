@@ -89,3 +89,25 @@ test("appendSources：有来源追加，无来源原样返回", () => {
   const outZh = appendSources("答案", ["ivrank"], "zh");
   assert.match(outZh, /— 参考来源: \[ivrank\]/);
 });
+
+test("KNOWLEDGE：新增 三引擎/公允价值/黑天鹅/止损 条目", () => {
+  const ids = new Set(KNOWLEDGE.map((e) => e.id));
+  for (const id of ["three-engine", "fair-value", "black-swan", "stops"]) {
+    assert.ok(ids.has(id), `missing new entry ${id}`);
+  }
+  assert.ok(KNOWLEDGE.length >= 12, `KNOWLEDGE should grow to >=12, got ${KNOWLEDGE.length}`);
+});
+
+test("retrieveContext：新主题可被检索命中", () => {
+  const assertHit = (q, id) => {
+    const hits = retrieveContext(q, KNOWLEDGE, 4);
+    assert.ok(
+      hits.some((h) => h.id === id),
+      `query "${q}" should surface ${id}, got ${hits.map((h) => h.id).join(",")}`
+    );
+  };
+  assertHit("三引擎 决策引擎 weacond", "three-engine");
+  assertHit("公允价值 估值 dcf", "fair-value");
+  assertHit("黑天鹅 肥尾 尾部风险", "black-swan");
+  assertHit("止损 移动止损 缺口", "stops");
+});
