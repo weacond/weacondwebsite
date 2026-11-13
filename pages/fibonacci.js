@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { retracementLevels, extensionLevels } from "../lib/fibonacci";
 
 export const metadata = {
@@ -57,6 +58,7 @@ export default function FibonacciPage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="fibonacci" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-4xl mx-auto">

@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import StructuredData from "../components/StructuredData";
 import { softwareLd } from "../lib/jsonLd";
 import { assessWinRate } from "../lib/winRateStats";
@@ -44,6 +45,7 @@ export default function WinRatePage() {
         <meta name="description" content={L.subtitle} />
         <SeoHead title={L.title} description={L.subtitle} path="/winrate" />
       </Head>
+      <CalcLd slug="winrate" />
       <StructuredData data={[softwareLd(TOOL)]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">

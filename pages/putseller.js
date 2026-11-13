@@ -4,6 +4,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { buildPutScreener, DEFAULT_PUT_UNIVERSE } from "../lib/putseller";
 
 // 卖 Put 筛选结果（纯函数、确定性、无网络）。B-S 模型估算，非实时报价。
@@ -119,6 +120,7 @@ export default function PutSellingPage() {
           }}
         />
       </Head>
+      <CalcLd slug="putseller" />
       <Navbar />
       <main className="pt-20 min-h-screen">
         <section className="max-w-6xl mx-auto px-6 py-12">

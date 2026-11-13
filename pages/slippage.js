@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { slippageSummary, SLIPPAGE_PRESETS } from "../lib/slippage";
 export const metadata = {
   title: "滑点 / 价差成本 — Weacond",
@@ -65,6 +66,7 @@ export default function SlippagePage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
+      <CalcLd slug="slippage" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

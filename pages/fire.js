@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { fireSummary, FIRE_PRESETS } from "../lib/fire";
 export const metadata = {
   title: "FIRE 财务自由计算器 — Weacond",
@@ -70,6 +71,7 @@ export default function FirePage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
+      <CalcLd slug="fire" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import Link from "next/link";
 import {
   fairValueSummary, FAIRVALUE_PRESETS,
@@ -58,6 +59,7 @@ export default function FairValuePage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="fair-value" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

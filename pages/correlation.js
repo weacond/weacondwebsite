@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { CORR_PRESETS, diversifyPlan } from "../lib/correlationLab";
 
 export const metadata = {
@@ -41,6 +42,7 @@ export default function CorrelationPage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="correlation" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">

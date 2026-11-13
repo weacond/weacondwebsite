@@ -6,6 +6,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, volSmile, impliedMove } from "../lib/options.js";
 import { analyzeStrategy, strategyTemplates, probOfProfit, strategyGreeks, deltaHedge, probInRange } from "../lib/optionsStrategies.js";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { useState, useEffect, useMemo } from "react";
 
 // 预置标的 + 默认现货（数据拉取失败时回退，诚实标注 demo）
@@ -75,6 +76,7 @@ export default function OptionsPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title} — Weacond</title></Head>
+      <CalcLd slug="options" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-6xl mx-auto">

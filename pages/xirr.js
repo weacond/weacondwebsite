@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import Link from "next/link";
 import { irr, annualize, validCashflows, cashflowInsight } from "../lib/xirr";
 
@@ -43,6 +44,7 @@ export default function XirrPage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="xirr" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

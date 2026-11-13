@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { pivotLevels, classicPivots, pivotTrend } from "../lib/pivots";
 
 export const metadata = {
@@ -62,6 +63,7 @@ export default function PivotsPage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="pivots" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-4xl mx-auto">

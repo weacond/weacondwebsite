@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import Link from "next/link";
 import { hedgeRatio, validHedge, hedgeInsight, HEDGE_PRESETS } from "../lib/hedge";
 
@@ -39,6 +40,7 @@ export default function HedgePage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="hedge" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

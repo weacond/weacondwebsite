@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { earSummary, EAR_PRESETS } from "../lib/ear";
 export const metadata = {
   title: "有效年利率 EAR / APY — Weacond",
@@ -58,6 +59,7 @@ export default function EarPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
+      <CalcLd slug="ear" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { fundingSummary, FUNDING_PRESETS } from "../lib/fundingRate";
 export const metadata = {
   title: "永续资金费率成本计算器 — Weacond",
@@ -67,6 +68,7 @@ export default function FundingPage() {
         <title>{L.title} — Weacond</title>
         <meta name="description" content={L.subtitle} />
       </Head>
+      <CalcLd slug="funding" />
       <Navbar />
       <section className="max-w-2xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">{L.title}</h1>

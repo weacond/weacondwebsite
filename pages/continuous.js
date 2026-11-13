@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { continuousSummary, CONTINUOUS_PRESETS } from "../lib/continuousCompound";
 export const metadata = {
   title: "连续复利计算器 — Weacond",
@@ -67,6 +68,7 @@ export default function ContinuousPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
+      <CalcLd slug="continuous" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

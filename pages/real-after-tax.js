@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import Link from "next/link";
 import { realAfterTaxSummary, REAL_AFTER_TAX_PRESETS } from "../lib/realAfterTax";
 export const metadata = {
@@ -47,6 +48,7 @@ export default function RealAfterTaxPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
+      <CalcLd slug="real-after-tax" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

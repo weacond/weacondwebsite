@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { TRADE_PRESETS, tradeScorecard, gradePerformance } from "../lib/performance";
 
 export const metadata = {
@@ -49,6 +50,7 @@ export default function PerformancePage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="performance" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
