@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { CURVE_PRESETS, getCurvePreset, buildRiskDashboard, riskTier } from "../lib/riskDashboard";
 
 export const metadata = {
@@ -62,6 +63,7 @@ export default function RiskPage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="risk" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">

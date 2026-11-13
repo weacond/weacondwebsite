@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
+import CalcLd from "../components/CalcLd";
 import { positionSize, assessPosition } from "../lib/positionSize";
 import { riskReward, requiredReward } from "../lib/riskReward";
 import { kellyFraction } from "../lib/kelly";
@@ -53,6 +54,7 @@ export default function PositionSizePage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <CalcLd slug="position-size" />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">

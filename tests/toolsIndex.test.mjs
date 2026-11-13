@@ -7,6 +7,7 @@ import {
   groupedTools,
   allToolHrefs,
   getTool,
+  getToolBySlug,
 } from "../lib/toolsIndex.js";
 
 test("每个工具字段完整且 href 合法", () => {
@@ -43,4 +44,14 @@ test("已知 5 个核心分类均存在", () => {
   for (const c of ["technical", "position", "portfolio", "risk", "options"]) {
     assert.ok(CATEGORIES[c], `category ${c}`);
   }
+});
+
+test("getToolBySlug：已知 slug 返回工具，未知返回 null", () => {
+  const t = getToolBySlug("pivots");
+  assert.ok(t, "pivots 存在");
+  assert.equal(t.href, "/pivots");
+  assert.equal(getToolBySlug("nope"), null);
+  assert.equal(getToolBySlug(""), null);
+  // 容错前导斜杠
+  assert.equal(getToolBySlug("/montecarlo").href, "/montecarlo");
 });
