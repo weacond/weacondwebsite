@@ -203,7 +203,7 @@ function WinProbabilityPanel({ signals, lang }) {
     signals.map((s) => ({
       ticker: s.ticker,
       name: s.name,
-      score: s.score,
+      score: s.score / 100, // 综合分 0-100 → winProbability 的 edge 0-1 代理
       ivRank: s.ivRank,
       sigmaPer: 0.01 + ((Number(s.ivRank) || 50) / 100) * 0.03, // 1%~4%/日
       horizon: 21,
