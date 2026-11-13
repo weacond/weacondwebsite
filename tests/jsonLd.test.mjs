@@ -6,6 +6,7 @@ import {
   softwareLd,
   faqLd,
   breadcrumbLd,
+  itemLd,
   toLdString,
   toScript,
 } from "../lib/jsonLd.js";
@@ -75,6 +76,19 @@ t("所有构造器产物都是合法 JSON（round-trip）", () => {
   [organizationLd(), webApplicationLd(), softwareLd({ href: "/x" }), faqLd([{ q: 1, a: 2 }]), breadcrumbLd([{ name: "a" }])].forEach((o) => {
     assert.doesNotThrow(() => JSON.parse(JSON.stringify(o)));
   });
+});
+t("itemLd 列出全部工具，位置 1..n，url 正确", () => {
+  const items = [
+    { title: "枢轴点", titleEn: "Pivot Points", href: "/pivots" },
+    { title: "凯利", titleEn: "Kelly", href: "/kelly" },
+  ];
+  const o = itemLd(items, "https://weacond.com/");
+  assert.equal(o["@type"], "ItemList");
+  assert.equal(o.numberOfItems, 2);
+  assert.equal(o.itemListElement[0].position, 1);
+  assert.equal(o.itemListElement[0].name, "Pivot Points", "优先用英文标题");
+  assert.equal(o.itemListElement[0].url, "https://weacond.com/pivots", "尾斜杠被规整");
+  assert.deepEqual(itemLd(null).itemListElement, [], "null → 空清单");
 });
 
 console.log(`\n✅ jsonLd: ${passed}/${passed} 通过`);

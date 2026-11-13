@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
 import { groupedTools, TOOLS } from "../lib/toolsIndex";
+import StructuredData from "../components/StructuredData";
+import { itemLd } from "../lib/jsonLd";
 
 export const metadata = {
   title: "计算工具集 — Weacond",
@@ -23,6 +25,7 @@ export default function CalculatorsPage() {
       <Head>
         <title>{L.title}</title>
       </Head>
+      <StructuredData data={[itemLd(TOOLS)]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
