@@ -49,6 +49,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://weacond.com/digest</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://weacond.com/calculators</loc>
     <lastmod>2026-11-13</lastmod>
     <changefreq>monthly</changefreq>
