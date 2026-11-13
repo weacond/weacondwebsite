@@ -10,6 +10,7 @@ import StructuredData from "../components/StructuredData";
 import { softwareLd } from "../lib/jsonLd";
 import { buildDailyDigest, formatDigestText } from "../lib/digest.js";
 import { buildDigestEmail } from "../lib/email.js";
+import SeoHead from "../components/SeoHead";
 
 export default function DigestPage() {
   const { lang } = useLanguage();
@@ -68,6 +69,7 @@ export default function DigestPage() {
       <Head>
         <title>{L.title} — Weacond</title>
         <meta name="description" content={L.subtitle} />
+        <SeoHead title={L.title} description={L.subtitle} path="/digest" />
       </Head>
       <StructuredData
         data={[

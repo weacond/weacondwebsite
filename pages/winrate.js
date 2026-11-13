@@ -8,6 +8,7 @@ import Head from "next/head";
 import StructuredData from "../components/StructuredData";
 import { softwareLd } from "../lib/jsonLd";
 import { assessWinRate } from "../lib/winRateStats";
+import SeoHead from "../components/SeoHead";
 
 const TOOL = {
   id: "winrate",
@@ -41,6 +42,7 @@ export default function WinRatePage() {
       <Head>
         <title>{L.title} — Weacond</title>
         <meta name="description" content={L.subtitle} />
+        <SeoHead title={L.title} description={L.subtitle} path="/winrate" />
       </Head>
       <StructuredData data={[softwareLd(TOOL)]} />
       <Navbar />

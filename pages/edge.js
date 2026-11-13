@@ -7,6 +7,7 @@ import Head from "next/head";
 import Link from "next/link";
 import StructuredData from "../components/StructuredData";
 import { softwareLd, faqLd } from "../lib/jsonLd.js";
+import SeoHead from "../components/SeoHead";
 
 // /edge — 方法论页：把「卖确定性的概率」讲清楚（三引擎 + 肥尾风险 + 置信区间）。
 // 诚实教育页：不承诺收益、不编造数字；概率都披露假设与肥尾限制。
@@ -26,6 +27,7 @@ export default function EdgePage() {
       <Head>
         <title>{L.title} — Weacond</title>
         <meta name="description" content={L.subtitle} />
+        <SeoHead title={L.title} description={L.subtitle} path="/edge" />
       </Head>
       <StructuredData
         data={[
