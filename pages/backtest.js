@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import { STRATEGY_REGISTRY, histogram, rsi, macd, stochastic, supertrend, cci, roc, adx, mfi, cmf, signalConsensus, optimizeStrategy } from "../lib/backtest";
 import { PRESET_MARKETS, generateMockCandles, runFullBacktest } from "../lib/marketdata";
 import { riskProfileFromEquity, kellyFraction, fractionalKelly, riskBudget, probabilityOfRuin, maxDrawdownStats } from "../lib/risk.js";
+import { assessWinRate } from "../lib/winRateStats.js";
 
 export const metadata = {
   title: "策略回测 — Weacond",
@@ -323,6 +324,63 @@ export default function BacktestPage() {
               ) : (<p className="text-slate-400 text-sm">{L.noResult}</p>)}
             </div>
           </div>
+
+          {/* 胜率显著性：把裸胜率升级为统计结论 */}
+          {result && result.metrics && result.metrics.trades > 10 && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-8">
+              <h3 className="font-semibold mb-3">
+                {lang === "en"
+                  ? "Win-rate significance (Wilson 95% CI + binomial test)"
+                  : "胜率显著性（Wilson 95% 置信区间 + 二项检验）"}
+              </h3>
+              {(() => {
+                const total = result.metrics.trades;
+                const wins = Math.round((result.metrics.winRate / 100) * total);
+                const s = assessWinRate(wins, total, {
+                  avgWin: result.metrics.avgWin,
+                  avgLoss: result.metrics.avgLoss,
+                });
+                if (!s) return <p className="text-slate-400 text-sm">—</p>;
+                return (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1">
+                      <span>
+                        {lang === "en" ? "95% CI" : "95% 区间"}:{" "}
+                        <b>
+                          {(s.confidenceBand[0] * 100).toFixed(1)}%–
+                          {(s.confidenceBand[1] * 100).toFixed(1)}%
+                        </b>
+                      </span>
+                      <span>
+                        z = {s.z.toFixed(2)} · p ={" "}
+                        {s.pValue < 0.001 ? "<0.001" : s.pValue.toFixed(3)}
+                      </span>
+                    </div>
+                    <div
+                      className={
+                        s.significant
+                          ? "text-green-600 font-medium"
+                          : "text-amber-600 font-medium"
+                      }
+                    >
+                      {s.significant
+                        ? lang === "en"
+                          ? "✅ Win rate significantly > 50% at the 5% level (in-sample edge)."
+                          : "✅ 5% 水平下胜率显著高于 50%（样本内存在 edge）。"
+                        : lang === "en"
+                        ? "⚠️ Cannot reject 50% — sample too small to prove an edge."
+                        : "⚠️ 无法拒绝 50% 零假设——样本不足以证明 edge。"}
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {lang === "en"
+                        ? "In-sample statistical significance only; not future-proof. Small samples overfit — pair with out-of-sample checks and stops."
+                        : "仅样本内统计显著性，不保证未来；小样本易过拟合，请配合样本外验证与止损。"}
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {/* 权益曲线 */}
           {result && result.equityCurve.length > 1 && (
