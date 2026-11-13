@@ -14,6 +14,35 @@
 
 ---
 
+## 0b. 2026-11-13 更新（已落地：AI 接地 + 法律加固；剩余待办=你的操作，非代码）
+
+**状态修正**：`lib/ai.js` 早已是「真跑」（`@mlc-ai/web-llm` + WebGPU 流式），§3「本地 AI 真跑」已完成；本次补的是**信任层**与**法律层**。
+
+### ✅ 本次已落地（构建 EXIT=0，1147 测试全过）
+- **幻觉控制 + RAG 接地（手册 §3 信任核心 / §4 数据壁垒）**
+  - 新增 `lib/aiRag.js`：严格双语系统提示（仅依上下文作答 / 查不到说「不知道」/ 严禁编造数字价格 / 必须标注来源 / 不给个性化建议）+ 内置金融知识库 + 朴素检索 + 溯源/不确定检测。
+  - 已接入 `lib/ai.js`（本地 + 云端推理默认接地）与 `pages/ai.js`（展示「参考来源」+「⚠️ 不确定」警示）。
+  - 新增 `tests/aiRag.test.mjs`（10 测试）。
+- **法律加固（手册 §4 / 你的「怎么处理法律」）**
+  - `lib/legalContent.js` 新增 6 条双语条款：适用法律与争议解决、条款变更与通知、终止、数据源与二次分发、跨境传输与 GDPR、数据删除程序。
+  - 新增可配置 `PLATFORM_JURISDICTION`（governingLaw / jurisdiction / contactEmail）；**未填时显示中性占位，不给虚假管辖声明**。
+  - 新增 `tests/legalContent.test.mjs`（4 测试）。
+
+### ⏳ 剩余待办 = **你的操作**（不是代码，代码侧已就绪）
+| 待办 | 在哪做 | 说明 |
+|---|---|---|
+| 真实行情 | GitHub Settings → Secrets：`ALPHA_VANTAGE_API_KEY`（免费 5 次/分）+ `FREDSERIESKEY`（FRED 宏观） | `lib/marketdata_real.js` 已就绪；不配则 `/signals`·`/backtest`·`/macro` 自动用演示数据并诚实标注 |
+| 商用行情/期权链（PutSeller 核心） | 注册 Polygon.io Basic（$29/月）→ 填 key | 免费源无稳定期权链/IV Rank |
+| 支付 | GitHub Secrets：`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`；Stripe 后台建 Webhook | 价格在 `lib/stripe.js`，无需后台建产品 |
+| 用户/订阅 | Supabase 建项目跑 `supabase/schema.sql` → 填 3 个 key | 见 `DEPLOY.md §3` |
+| 电子书 | Cloudflare 建双桶 `weacond-public`/`weacond-private` → `npm run enable:r2` | 见 `DEPLOY.md §2` |
+| 适用法律 | 编辑 `lib/legalContent.js` 的 `PLATFORM_JURISDICTION.governingLaw` / `jurisdiction` | 上线前必填；建议新加坡/美国/马来西亚 |
+| 注册法律主体 | 线下：注册公司（路线 A：SaaS+数据+教育，不碰代客理财/代下单/托管） | 见 §4.2 |
+
+> 一句话：代码侧的信任层与法律层已就绪；剩下的「填 key / 建桶 / 注册主体」是你在 GitHub Secrets、Cloudflare Dashboard、Stripe 后台与线下的操作。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |

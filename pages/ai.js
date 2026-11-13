@@ -14,6 +14,7 @@ import {
   MODEL_METADATA,
   DEFAULT_MODEL,
 } from "../lib/ai";
+import { buildGroundedSystemPrompt, appendSources, looksUncertain } from "../lib/aiRag";
 
 export const metadata = {
   title: "本地 AI 助手 — Weacond",
@@ -121,18 +122,22 @@ export default function AIPage() {
       });
 
     try {
+      // 幻觉控制 + RAG 接地：检索站点知识库，构造严格系统提示（仅依上下文/查不到说不知道/不编造）
+      const grounding = buildGroundedSystemPrompt(text, { lang });
       if (engine) {
         const msgs = history.map((h) => ({ role: h.role, content: h.content }));
         let acc = "";
-        for await (const token of localInferenceStream(engine, msgs, { maxTokens: 512, temperature: 0.7 })) {
+        for await (const token of localInferenceStream(engine, msgs, { maxTokens: 512, temperature: 0.7, query: text, lang })) {
           acc += token;
           updateLast({ content: acc });
         }
-        updateLast({ content: acc || L.noOutput, streaming: false, model: "local" });
+        const finalText = appendSources(acc || L.noOutput, grounding.sources, lang);
+        updateLast({ content: finalText, streaming: false, model: "local", sources: grounding.sources, uncertain: looksUncertain(finalText) });
       } else {
         updateLast({ content: L.thinking });
-        const resp = await cloudFallback(text, "You are a helpful financial assistant.");
-        updateLast({ content: resp, streaming: false, model: "cloud" });
+        const resp = await cloudFallback(text, grounding.prompt);
+        const finalText = appendSources(resp, grounding.sources, lang);
+        updateLast({ content: finalText, streaming: false, model: "cloud", sources: grounding.sources, uncertain: looksUncertain(finalText) });
       }
     } catch (e) {
       updateLast({ content: L.error + " " + ((e && e.message) || ""), streaming: false });
@@ -230,6 +235,8 @@ export default function AIPage() {
                       {m.content}
                       {m.model === "local" && <div className="text-xs text-slate-400 mt-2">🔒 {L.processedLocally}</div>}
                       {m.model === "cloud" && <div className="text-xs text-amber-500 mt-2">☁️ {L.processedCloud}</div>}
+                      {m.uncertain && <div className="text-xs text-amber-600 mt-2">⚠️ {L.uncertain}</div>}
+                      {m.sources && m.sources.length > 0 && <div className="text-xs text-indigo-500 mt-1">📎 {L.sourcesLabel} {m.sources.map((s) => `[${s}]`).join(", ")}</div>}
                     </div>
                   </div>
                 ))}
@@ -281,6 +288,8 @@ const zh = {
   processedCloud: "云端处理（降级）",
   error: "推理出错：",
   privacyNote: "所有推理在本地完成，交易数据和策略参数不会上传到服务器",
+  uncertain: "模型表示不确定或信息不足，请自行核实",
+  sourcesLabel: "参考来源",
 };
 const en = {
   title: "Local AI Assistant",
@@ -305,4 +314,6 @@ const en = {
   processedCloud: "Processed in cloud (fallback)",
   error: "Inference error: ",
   privacyNote: "All inference runs locally. Trading data and strategy params never leave your device.",
+  uncertain: "The model is unsure or data is insufficient — please verify",
+  sourcesLabel: "Sources",
 };
