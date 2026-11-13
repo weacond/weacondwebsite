@@ -9,16 +9,19 @@ import Link from "next/link";
 import StructuredData from "../components/StructuredData";
 import { softwareLd } from "../lib/jsonLd";
 import { buildDailyDigest, formatDigestText } from "../lib/digest.js";
+import { buildDigestEmail } from "../lib/email.js";
 
 export default function DigestPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
   const [copied, setCopied] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
   const d = useMemo(
     () => buildDailyDigest({ date: today(), generatedAt: new Date().toISOString() }),
     []
   );
+  const email = useMemo(() => buildDigestEmail(d, { lang }), [d, lang]);
 
   const copyText = () => {
     const txt = formatDigestText(d, lang);
@@ -58,6 +61,12 @@ export default function DigestPage() {
             >
               {copied ? "✓ " + L.copied : L.copy}
             </button>
+            <button
+              onClick={() => setShowEmail(!showEmail)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 ml-2"
+            >
+              {showEmail ? "✕ " + L.hideEmail : L.previewEmail}
+            </button>
           </div>
           <p className="text-slate-500 mb-1">{L.subtitle}</p>
           <p className="text-xs text-slate-400 mb-6">
@@ -82,6 +91,17 @@ export default function DigestPage() {
               </div>
             ))}
           </div>
+
+          {showEmail && (
+            <div className="mt-6 rounded-xl p-4 border border-slate-200 bg-white">
+              <div className="text-xs text-slate-400 mb-1">{L.emailSubject}</div>
+              <div className="text-sm font-semibold mb-2">{email.subject}</div>
+              <pre className="text-xs text-slate-600 whitespace-pre-wrap font-sans max-h-64 overflow-auto bg-slate-50 rounded p-3">
+                {email.text}
+              </pre>
+              <p className="text-xs text-slate-400 mt-2">{L.emailHint}</p>
+            </div>
+          )}
 
           {d.riskOfTheDay && (
             <div className="mt-6 rounded-xl p-4 border border-amber-200 bg-amber-50">
@@ -118,6 +138,10 @@ const zh = {
   probability: "概率区间",
   riskOfDay: "今日波动焦点",
   cta: "查看完整信号与假设 →",
+  previewEmail: "邮件预览",
+  hideEmail: "隐藏",
+  emailSubject: "邮件主题",
+  emailHint: "配 EMAIL_SEND_URL/EMAIL_SEND_TOKEN 后即可一键发送；当前为预览。",
 };
 const en = {
   title: "Daily Signal Brief",
@@ -131,5 +155,9 @@ const en = {
   probability: "Probability",
   riskOfDay: "Volatility focus",
   cta: "See full signals & assumptions →",
+  previewEmail: "Email preview",
+  hideEmail: "Hide",
+  emailSubject: "Subject",
+  emailHint: "Set EMAIL_SEND_URL / EMAIL_SEND_TOKEN to enable one-click send; currently a preview.",
 };
 
