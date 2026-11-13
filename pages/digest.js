@@ -16,6 +16,8 @@ export default function DigestPage() {
   const L = lang === "en" ? en : zh;
   const [copied, setCopied] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+  const [subEmail, setSubEmail] = useState("");
+  const [subStatus, setSubStatus] = useState(null); // null | { ok, msg }
 
   const d = useMemo(
     () => buildDailyDigest({ date: today(), generatedAt: new Date().toISOString() }),
@@ -28,6 +30,37 @@ export default function DigestPage() {
     if (navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  // 订阅每日简报：调用 /api/send-digest（配 key 才真发，否则返回预览，graceful）
+  const subscribe = async (e) => {
+    e.preventDefault();
+    const to = subEmail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+      setSubStatus({ ok: false, msg: L.invalidEmail });
+      return;
+    }
+    setSubStatus(null);
+    try {
+      const r = await fetch("/api/send-digest", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ to, template: "digest", lang }),
+      });
+      const j = await r.json();
+      setSubStatus({
+        ok: !!j.ok,
+        msg:
+          j.ok && j.delivery && j.delivery.sent
+            ? L.subSent
+            : j.ok
+            ? L.subPreview
+            : L.subError,
+      });
+      if (j.ok) setSubEmail("");
+    } catch (_err) {
+      setSubStatus({ ok: false, msg: L.subError });
+    }
   };
 
   return (
@@ -116,6 +149,36 @@ export default function DigestPage() {
           <Link href="/signals" className="text-sm text-indigo-600 hover:underline mt-4 inline-block">
             {L.cta}
           </Link>
+
+          <div className="mt-8 rounded-xl p-5 border border-indigo-100 bg-indigo-50/40">
+            <h3 className="font-semibold mb-1">{L.subscribeTitle}</h3>
+            <p className="text-xs text-slate-500 mb-3">{L.subscribeDesc}</p>
+            <form onSubmit={subscribe} className="flex gap-2">
+              <input
+                type="email"
+                value={subEmail}
+                onChange={(e) => setSubEmail(e.target.value)}
+                placeholder="you@example.com"
+                aria-label="email"
+                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              >
+                {L.subscribeBtn}
+              </button>
+            </form>
+            {subStatus && (
+              <p
+                className={
+                  "text-xs mt-2 " + (subStatus.ok ? "text-emerald-600" : "text-rose-600")
+                }
+              >
+                {subStatus.msg}
+              </p>
+            )}
+          </div>
         </div>
       </section>
       <Footer />
@@ -142,6 +205,13 @@ const zh = {
   hideEmail: "隐藏",
   emailSubject: "邮件主题",
   emailHint: "配 EMAIL_SEND_URL/EMAIL_SEND_TOKEN 后即可一键发送；当前为预览。",
+  subscribeTitle: "订阅每日简报",
+  subscribeDesc: "每个交易日收盘后，把今日信号 + 风险预警发到你的邮箱。",
+  subscribeBtn: "订阅",
+  invalidEmail: "请输入有效的邮箱地址",
+  subSent: "✓ 已发送，请查收邮箱。",
+  subPreview: "✓ 已生成预览（尚未配置发送服务）。",
+  subError: "发送失败，请稍后再试。",
 };
 const en = {
   title: "Daily Signal Brief",
@@ -159,5 +229,12 @@ const en = {
   hideEmail: "Hide",
   emailSubject: "Subject",
   emailHint: "Set EMAIL_SEND_URL / EMAIL_SEND_TOKEN to enable one-click send; currently a preview.",
+  subscribeTitle: "Subscribe to the daily brief",
+  subscribeDesc: "Each trading day after close, we'll email today's signals and risk warning.",
+  subscribeBtn: "Subscribe",
+  invalidEmail: "Please enter a valid email address",
+  subSent: "✓ Sent — check your inbox.",
+  subPreview: "✓ Preview generated (no send service configured yet).",
+  subError: "Send failed, please try again.",
 };
 
