@@ -15,6 +15,24 @@ import {
   DEFAULT_MODEL,
 } from "../lib/ai";
 import { buildGroundedSystemPrompt, appendSources, looksUncertain } from "../lib/aiRag";
+import StructuredData from "../components/StructuredData";
+import { webApplicationLd, faqLd } from "../lib/jsonLd";
+
+// /ai 结构化数据 FAQ（本地 AI 隐私卖点；反幻觉：不夸大、不给投资建议保证）
+const AI_FAQ = [
+  {
+    q: "本地 AI 会上传我的数据吗？",
+    a: "不会。Weacond 的 AI 在浏览器 WebGPU 上本地推理，策略与数据不出设备，零云端推理成本；无 WebGPU 时才回退云端。",
+  },
+  {
+    q: "本地 AI 需要什么硬件？",
+    a: "支持 WebGPU 的浏览器 + 带 GPU 的电脑（如 Mac/Windows）；7B–14B 模型可在消费级显卡运行。",
+  },
+  {
+    q: "本地 AI 的回答可靠吗？",
+    a: "回答基于接地知识库，附参考来源与不确定警示；查不到会说「不知道」，严禁编造。仅供教育与参考，非投资建议。",
+  },
+];
 
 export const metadata = {
   title: "本地 AI 助手 — Weacond",
@@ -149,6 +167,7 @@ export default function AIPage() {
   return (    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <Navbar />
+      <StructuredData data={[webApplicationLd(), faqLd(AI_FAQ)]} />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">{L.title}</h1>

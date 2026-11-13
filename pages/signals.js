@@ -6,6 +6,8 @@ import { computeSignalScore } from "../lib/signals";
 import { signalConsensus } from "../lib/backtest";
 import { buildSignalHistory, summarizeHistory } from "../lib/signalHistory";
 import { rankByWinProbability } from "../lib/winProbability";
+import StructuredData from "../components/StructuredData";
+import { webApplicationLd, faqLd } from "../lib/jsonLd";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import Link from "next/link";
@@ -42,6 +44,22 @@ const SIGNALS = UNIVERSE.map((u) => ({
 // 信号历史（确定性 mock，最近 30 日）+ 命中统计
 const HISTORY = buildSignalHistory(30);
 const HISTORY_SUMMARY = summarizeHistory(HISTORY);
+
+// /signals 结构化数据 FAQ（诚实、教育性；反幻觉：不编造收益/胜率保证）
+const SIGNALS_FAQ = [
+  {
+    q: "Weacond 的信号是怎么算出来的？",
+    a: "三引擎合成：基本面（公允价值）、技术面（突破/支撑）、波动面（IV Rank / Theta），加权得到可解释评分与方向。",
+  },
+  {
+    q: "信号能保证盈利吗？",
+    a: "不能。任何系统都不能保证盈利。Weacond 提供可解释的评分与「盈利概率（正态近似 + 置信区间）」，并附肥尾警示，供教育与参考，不构成投资建议。",
+  },
+  {
+    q: "数据是实时的吗？",
+    a: "技术面用行情源实时重算；未配置数据源时回退到演示数据并诚实标注。基本面与期权为估算，待期权链数据接入。",
+  },
+];
 
 export default function SignalsPage() {
   const { lang } = useLanguage();
@@ -98,6 +116,7 @@ export default function SignalsPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <Navbar />
+      <StructuredData data={[webApplicationLd(), faqLd(SIGNALS_FAQ)]} />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
