@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { DEFAULT_PORTFOLIO, stressAll, STRESS_SCENARIOS, totalWeight } from "../lib/stressTest";
 
@@ -29,6 +31,10 @@ export default function StressTestPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="stresstest" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/stresstest"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Portfolio Stress Test", href: "/stresstest" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
@@ -122,6 +128,12 @@ export default function StressTestPage() {
 const zh = {
   title: "组合压力测试",
   subtitle: "把组合放进 2008 金融危机、2020 新冠、2022 加息、2018 Q4 波动等情景，看总损失与每只资产的贡献。",
+  howToTitle: "如何使用组合压力测试计算器",
+  howTo: [
+    "选择或输入组合中各资产的权重。",
+    "计算器把组合放入 2008 / 2020 / 2022 / 2018 Q4 等历史情景。",
+    "查看总损失与每只资产的贡献。",
+  ],
   portfolio: "组合构成",
   weightNote: (w) => `权重合计 ${Math.round(w * 100)}%（理想 100%）`,
   worstTag: "最痛",
@@ -135,6 +147,12 @@ const zh = {
 const en = {
   title: "Portfolio Stress Test",
   subtitle: "Run your portfolio through 2008 GFC, 2020 COVID, 2022 rates, 2018 Q4 vol — see total loss and each asset's contribution.",
+  howToTitle: "How to use the portfolio stress-test calculator",
+  howTo: [
+    "Select or enter each asset's weight in the portfolio.",
+    "The calculator runs the portfolio through 2008 / 2020 / 2022 / 2018 Q4 scenarios.",
+    "See total loss and each asset's contribution.",
+  ],
   portfolio: "Portfolio mix",
   weightNote: (w) => `Weights sum to ${Math.round(w * 100)}% (ideal 100%)`,
   worstTag: "worst",

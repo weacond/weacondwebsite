@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   excursionSummary, captureBand, EXCURSION_PRESETS,
@@ -53,6 +55,10 @@ export default function ExcursionPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="excursion" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/excursion"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Max Excursion (MFE/MAE)", href: "/excursion" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -143,6 +149,12 @@ export default function ExcursionPage() {
 const zh = {
   title: "最大偏移（MFE/MAE）计算器",
   subtitle: "评估单笔交易的入场/出场质量：MFE 最大浮盈、MAE 最大浮亏、捕获率 = 实际盈亏 / MFE。",
+  howToTitle: "如何使用最大偏移（MFE/MAE）计算器",
+  howTo: [
+    "输入单笔交易的路径价格序列（或入场/最高/最低/出场）。",
+    "计算器算 MFE 最大浮盈、MAE 最大浮亏。",
+    "查看捕获率 = 实际盈亏 / MFE，评估进出场质量。",
+  ],
   sideLabel: "方向",
   entryLabel: "入场价",
   highLabel: "过程最高价",
@@ -163,6 +175,12 @@ const zh = {
 const en = {
   title: "Max Excursion (MFE/MAE)",
   subtitle: "Grade a trade's entry & exit quality: MFE max favorable excursion, MAE max adverse, capture = P&L / MFE.",
+  howToTitle: "How to use the max-excursion (MFE/MAE) calculator",
+  howTo: [
+    "Enter a trade's path prices (or entry / high / low / exit).",
+    "The calculator computes MFE (max favorable) and MAE (max adverse).",
+    "Read capture = P&L / MFE to grade entry/exit quality.",
+  ],
   sideLabel: "Side",
   entryLabel: "Entry",
   highLabel: "Intra-trade high",

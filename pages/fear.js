@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { fearGauge, FEAR_PRESETS } from "../lib/fearIndex";
 
@@ -49,6 +51,10 @@ export default function FearPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="fear" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/fear"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Market Fear Index", href: "/fear" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -90,6 +96,12 @@ export default function FearPage() {
 const zh = {
   title: "市场恐惧指数",
   subtitle: "VIX 风格恐惧仪表：确定性合成序列 + 0~100 恐惧分 + 情绪标签。",
+  howToTitle: "如何使用市场恐惧指数",
+  howTo: [
+    "查看确定性合成的 VIX 风格序列。",
+    "计算器映射出 0~100 的恐惧分与情绪标签。",
+    "用于判断当前市场情绪偏向。",
+  ],
   gaugeLabel: "恐惧分（0~100）",
   disclaimer: "本指数由确定性合成序列演示，非实时 VIX 行情，仅作教学参考，不构成投资建议。",
   linkRegime: "市场状态",
@@ -99,6 +111,12 @@ const zh = {
 const en = {
   title: "Market Fear Index",
   subtitle: "A VIX-style fear gauge: a deterministic synthetic series mapped to a 0–100 score and mood label.",
+  howToTitle: "How to use the market fear index",
+  howTo: [
+    "View the deterministic VIX-style synthetic series.",
+    "The calculator maps it to a 0–100 fear score and mood label.",
+    "Use it to gauge the market's sentiment tilt.",
+  ],
   gaugeLabel: "Fear score (0–100)",
   disclaimer: "This index is a deterministic synthetic illustration, not live VIX data. Educational only — not investment advice.",
   linkRegime: "Market regime",

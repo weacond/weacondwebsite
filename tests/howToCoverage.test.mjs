@@ -10,7 +10,8 @@
 //   + 组合/风险 6 个（portfolio / portfolio-beta / correlation / rebalance / voltarget / vol-drag）
 //   + 期权 5 个（options / options-payoff / hedge / fair-value / putseller，putseller 用 meta.zh/en + t 结构，已适配）
 //   + 成本/税 5 个（slippage / tax-drag / tax-loss / funding / continuous）
-//   + 定投/目标 5 个（drip / goal-solver / fire / inflation-goal / staking）。
+//   + 定投/目标 5 个（drip / goal-solver / fire / inflation-goal / staking）
+//   + 统计/压力 7 个（performance / stresstest / regime / z-score / fear / excursion / montecarlo）。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -32,6 +33,7 @@ const COVERED = [
   "options", "options-payoff", "hedge", "fair-value", "putseller",
   "slippage", "tax-drag", "tax-loss", "funding", "continuous",
   "drip", "goal-solver", "fire", "inflation-goal", "staking",
+  "performance", "stresstest", "regime", "z-score", "fear", "excursion", "montecarlo",
 ];
 
 // 三处都齐才算“已铺开”：HowTo JSON-LD 注入、BreadcrumbList 注入、且面包屑首项为 Home；

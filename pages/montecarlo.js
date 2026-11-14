@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { MC_PRESETS, runSimulation } from "../lib/monteCarlo";
 
 export const metadata = {
@@ -32,6 +34,10 @@ export default function MonteCarloPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="montecarlo" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/montecarlo"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Monte Carlo Risk Simulator", href: "/montecarlo" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -214,6 +220,12 @@ function FanChart({ sim, L }) {
 const zh = {
   title: "蒙特卡洛风险模拟器",
   subtitle: "给定资产日度 μ/σ，模拟 N 条财富路径，读出终端财富分布、腰斩/归零概率、回撤分位与扇形图。教育性工具，非投资建议。",
+  howToTitle: "如何使用蒙特卡洛风险模拟器",
+  howTo: [
+    "输入资产日度 μ（期望）与 σ（波动）、模拟路径数 N 与期限。",
+    "计算器模拟 N 条财富路径。",
+    "查看终端财富分布、腰斩/归零概率、回撤分位与扇形图。",
+  ],
   preset: "选择资产",
   horizon: "投资年限",
   paths: "路径数 N",
@@ -239,6 +251,12 @@ const zh = {
 const en = {
   title: "Monte Carlo Risk Simulator",
   subtitle: "Given an asset's daily μ/σ, simulate N wealth paths to read terminal-wealth distribution, halving/ruin probabilities, drawdown percentiles, and a fan chart. Educational tool, not investment advice.",
+  howToTitle: "How to use the Monte Carlo risk simulator",
+  howTo: [
+    "Enter the asset's daily μ (mean) and σ (vol), path count N and horizon.",
+    "The calculator simulates N wealth paths.",
+    "Read the terminal-wealth distribution, halving/ruin odds, drawdown percentiles and fan chart.",
+  ],
   preset: "Choose asset",
   horizon: "Horizon (yrs)",
   paths: "Paths N",

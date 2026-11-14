@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { evaluateRegime, REGIME_PRESETS } from "../lib/regime";
 
@@ -45,6 +47,10 @@ export default function RegimePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="regime" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/regime"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Market Regime Classifier", href: "/regime" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
@@ -156,6 +162,12 @@ function Field({ label, value, onChange, unit, min, max, step }) {
 const zh = {
   title: "市场状态分类器",
   subtitle: "综合 VIX、价格趋势、利率曲线、信用利差，判定当前市场偏向 Risk-On（风险偏好）还是 Risk-Off（风险规避）。",
+  howToTitle: "如何使用市场状态分类器",
+  howTo: [
+    "输入 VIX、价格趋势、利率曲线斜率与信用利差。",
+    "计算器综合这些信号判定市场偏向 Risk-On 还是 Risk-Off。",
+    "查看风险偏好/规避判定，辅助资产配置。",
+  ],
   fields: { vix: "VIX 隐含波动率", price: "价格 vs 200 日均线", yield: "10Y-2Y 利差", credit: "高收益信用利差 OAS" },
   score: "综合得分（−100 ~ +100）",
   components: "分项贡献（绿=偏 Risk-On，红=偏 Risk-Off）",
@@ -167,6 +179,12 @@ const zh = {
 const en = {
   title: "Market Regime Classifier",
   subtitle: "Combine VIX, price trend, the yield curve and credit spreads to judge whether the market is tilting Risk-On or Risk-Off.",
+  howToTitle: "How to use the market-regime classifier",
+  howTo: [
+    "Enter VIX, price trend, yield-curve slope and credit spreads.",
+    "The calculator combines these signals to judge Risk-On vs Risk-Off.",
+    "Read the risk-appetite / avoidance verdict to inform allocation.",
+  ],
   fields: { vix: "VIX (implied vol)", price: "Price vs 200-DMA", yield: "10Y-2Y spread", credit: "HY credit OAS" },
   score: "Composite score (−100 ~ +100)",
   components: "Component contributions (green = Risk-On, red = Risk-Off)",

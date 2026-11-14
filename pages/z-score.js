@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   zView, ZSCORE_PRESETS,
@@ -45,6 +47,10 @@ export default function ZScorePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="z-score" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/z-score"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Z-Score / Standardization", href: "/z-score" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -125,6 +131,12 @@ export default function ZScorePage() {
 const zh = {
   title: "Z 分数 / 标准化计算器",
   subtitle: "输入数值、均值与标准差，算 Z 分数、正态百分位与分级。用于均值回归信号与异常值检测。",
+  howToTitle: "如何使用 Z 分数/标准化计算器",
+  howTo: [
+    "输入数值、均值与标准差。",
+    "计算器算 Z 分数、正态百分位与分级。",
+    "用于均值回归信号与异常值检测。",
+  ],
   xLabel: "数值 x",
   meanLabel: "均值 μ",
   stdLabel: "标准差 σ",
@@ -143,6 +155,12 @@ const zh = {
 const en = {
   title: "Z-Score / Standardization",
   subtitle: "Enter a value, mean and standard deviation to get the Z-score, normal percentile and band. Used for mean-reversion signals & outlier detection.",
+  howToTitle: "How to use the Z-score / standardization calculator",
+  howTo: [
+    "Enter a value, the mean and the standard deviation.",
+    "The calculator computes the Z-score, normal percentile and band.",
+    "Use it for mean-reversion signals and outlier detection.",
+  ],
   xLabel: "Value x",
   meanLabel: "Mean μ",
   stdLabel: "Std σ",

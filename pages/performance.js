@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { TRADE_PRESETS, tradeScorecard, gradePerformance } from "../lib/performance";
 
 export const metadata = {
@@ -51,6 +53,10 @@ export default function PerformancePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="performance" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/performance"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Trade Journal / Performance", href: "/performance" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -135,6 +141,12 @@ function Metric({ label, value, accent }) {
 const zh = {
   title: "交易日志 / 业绩报告",
   subtitle: "输入一串每笔交易收益率（小数，如 0.05 = +5%），读出胜率、盈利因子、盈亏比、期望、连亏、夏普/索提诺与破产概率，并评级。教育性工具，非投资建议。",
+  howToTitle: "如何使用交易日志/业绩报告计算器",
+  howTo: [
+    "输入一串每笔交易收益率（小数，如 0.05 = +5%，逗号/空格分隔）。",
+    "计算器读出胜率、盈利因子、盈亏比、期望与连亏。",
+    "查看夏普/索提诺、破产概率与综合评级。",
+  ],
   preset: "选择示例",
   custom: "自定义交易日志",
   customHint: "每笔收益率以逗号/空格/换行分隔，至少 2 笔；留空则用上方示例。",
@@ -157,6 +169,12 @@ const zh = {
 const en = {
   title: "Trade Journal / Performance",
   subtitle: "Enter a list of per-trade returns (decimals, e.g. 0.05 = +5%) to read win rate, profit factor, payoff, expectancy, losing streaks, Sharpe/Sortino & ruin odds, plus a grade. Educational tool, not investment advice.",
+  howToTitle: "How to use the trade journal / performance calculator",
+  howTo: [
+    "Enter a list of per-trade returns (decimals, e.g. 0.05 = +5%, comma/space-separated).",
+    "The calculator reads win rate, profit factor, payoff, expectancy and losing streaks.",
+    "See Sharpe/Sortino, ruin odds and the overall grade.",
+  ],
   preset: "Choose example",
   custom: "Custom trade log",
   customHint: "Per-trade returns separated by comma/space/line, at least 2; leave blank to use an example above.",
