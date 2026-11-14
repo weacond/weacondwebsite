@@ -8,18 +8,19 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 18 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 18);
+test("注册 20 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 20);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
     "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
     "slippage", "take_profit", "trailing_stop", "annuity", "yield_to_maturity", "option_payoff",
+    "fire", "time_weighted_return",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 18);
+  assert.equal(defs.length, 20);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -182,4 +183,22 @@ test("callTool option_payoff 多头 call 盈亏 / 盈亏平衡 / 最大亏损", 
   assert.equal(r.structuredContent.breakEven, 103); // K + P
   assert.equal(r.structuredContent.maxLoss, -3); // 多头 = −权利金
   assert.equal(r.structuredContent.currentPayoff, 2); // 内在价值 − 权利金
+});
+
+test("callTool fire 计算 FIRE 目标与年数", () => {
+  const r = callTool("fire", {
+    annualExpense: 60000, safeWithdrawalRate: 0.04, currentSavings: 100000, savingsRate: 0.25, realGrowth: 0.05,
+  });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Number.isFinite(r.structuredContent.fireTarget) && r.structuredContent.fireTarget > 0);
+  assert.ok(Number.isFinite(r.structuredContent.years));
+});
+
+test("callTool time_weighted_return 计算序列 TWRR", () => {
+  const r = callTool("time_weighted_return", { returns: "0.01,0.01,0.01", periodsPerYear: 12 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.count, 3);
+  assert.ok(r.structuredContent.growthMultiple > 1); // 连续正收益 → 增长倍数 >1
 });
