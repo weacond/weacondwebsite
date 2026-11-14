@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { riskBudgetSummary, RISK_BUDGET_PRESETS } from "../lib/riskBudget";
 export const metadata = {
@@ -37,6 +39,13 @@ const zh = {
   },
   learnTitle: "学习",
   learn: "风险预算法将每笔交易的风险限制在账户的一定比例（如 1%）。最大仓位 = 风险金额 ÷ 每单位风险（VaR 或止损距离）。多策略时总风险预算均分给每个策略。",
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "风险预算法怎么定头寸？", a: "风险金额 = 账户 × 单笔风险%；最大仓位 = 风险金额 ÷ 每单位风险（VaR 或止损距离），把每笔损失限制在账户固定比例。" },
+    { q: "单笔风险比例取多少合适？", a: "常见 0.5–2%：越小越稳健但增长慢，越大越快但波动与回撤更剧烈；多数稳健策略用 1%。" },
+    { q: "多策略如何分配风险？", a: "总风险预算均分给每个策略；若策略间相关，需降低每个策略的风险以避免叠加回撤。" },
+    { q: "VaR 作每单位风险准吗？", a: "VaR 是常用近似，但低估尾部风险；更稳健做法用 CVaR 或历史止损距离，并预留相关性冲击。" },
+  ],
 };
 const en = {
   title: "Risk Budget Position Sizing",
@@ -63,6 +72,13 @@ const en = {
   },
   learnTitle: "Learn",
   learn: "Risk budget sizing caps each trade's risk at a fixed % of account (e.g. 1%). Max position = risk amount ÷ per-unit risk (VaR or stop distance). Multi-strategy splits total risk budget evenly.",
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How does risk-budget sizing set a position?", a: "Risk amount = account × per-trade risk %; max position = risk amount ÷ per-unit risk (VaR or stop distance), capping each loss at a fixed account share." },
+    { q: "What per-trade risk % is appropriate?", a: "Commonly 0.5–2%: smaller is steadier but slower, larger is faster but far more volatile; most steady strategies use 1%." },
+    { q: "How to split risk across strategies?", a: "The total risk budget is split evenly among strategies; if they are correlated, lower each one's risk to avoid stacking drawdowns." },
+    { q: "Is VaR a good per-unit risk?", a: "VaR is a common approximation but understates tail risk; a more robust approach uses CVaR or historical stop distance, with a buffer for correlation." },
+  ],
 };
 function fmtNum(x) {
   if (!Number.isFinite(x)) return "—";
@@ -100,6 +116,7 @@ export default function RiskBudgetPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="risk-budget" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -167,6 +184,7 @@ export default function RiskBudgetPage() {
             <h2 className="text-sm font-semibold text-indigo-900 mb-2">{L.learnTitle}</h2>
             <p className="text-sm text-indigo-800 leading-relaxed">{L.learn}</p>
           </div>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />
