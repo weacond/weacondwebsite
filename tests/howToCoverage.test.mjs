@@ -12,7 +12,8 @@
 //   + 成本/税 5 个（slippage / tax-drag / tax-loss / funding / continuous）
 //   + 定投/目标 5 个（drip / goal-solver / fire / inflation-goal / staking）
 //   + 统计/压力 7 个（performance / stresstest / regime / z-score / fear / excursion / montecarlo）
-//   + 技术/系统 6 个（fibonacci / fib-time / pivots / r-position / levered-etf / system）。
+//   + 技术/系统 6 个（fibonacci / fib-time / pivots / r-position / levered-etf / system）
+//   + 风险度量 1 个（var：参数法+历史法 VaR/ES 独立计算器）。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -36,6 +37,7 @@ const COVERED = [
   "drip", "goal-solver", "fire", "inflation-goal", "staking",
   "performance", "stresstest", "regime", "z-score", "fear", "excursion", "montecarlo",
   "fibonacci", "fib-time", "pivots", "r-position", "levered-etf", "system",
+  "var",
 ];
 
 // 三处都齐才算“已铺开”：HowTo JSON-LD 注入、BreadcrumbList 注入、且面包屑首项为 Home；
