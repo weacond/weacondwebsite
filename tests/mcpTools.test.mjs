@@ -8,18 +8,18 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 15 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 15);
+test("注册 18 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 18);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
     "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
-    "slippage", "take_profit", "trailing_stop",
+    "slippage", "take_profit", "trailing_stop", "annuity", "yield_to_maturity", "option_payoff",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 15);
+  assert.equal(defs.length, 18);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -156,4 +156,30 @@ test("callTool trailing_stop 移动止损位 / 已实现 R / 保本触发", () =
   assert.ok(Math.abs(r.structuredContent.rAchieved - 1.2) < 1e-9); // (112−100)/10
   assert.equal(r.structuredContent.breakEvenTriggered, true); // 1.2 ≥ 1
   assert.ok(Math.abs(r.structuredContent.lockInR - 0.2) < 1e-9); // (102−100)/10
+});
+
+test("callTool annuity 年金付款与充足率", () => {
+  const r = callTool("annuity", { presentValue: 100000, rate: 0.04, years: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.sufficiencyRatio, 1); // 构造即完全摊销
+  assert.ok(r.structuredContent.annualPayment > 0 && Number.isFinite(r.structuredContent.annualPayment));
+});
+
+test("callTool yield_to_maturity 平价债 YTM≈票息且 fair", () => {
+  const r = callTool("yield_to_maturity", { face: 100, couponRate: 0.05, price: 100, years: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.fair, true); // 价格=面值
+  assert.ok(Math.abs(r.structuredContent.ytm - 0.05) < 1e-6); // 平价 → YTM≈票息
+});
+
+test("callTool option_payoff 多头 call 盈亏 / 盈亏平衡 / 最大亏损", () => {
+  const r = callTool("option_payoff", { type: "call", side: "long", spot: 105, strike: 100, premium: 3 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.intrinsic, 5); // max(105−100, 0)
+  assert.equal(r.structuredContent.breakEven, 103); // K + P
+  assert.equal(r.structuredContent.maxLoss, -3); // 多头 = −权利金
+  assert.equal(r.structuredContent.currentPayoff, 2); // 内在价值 − 权利金
 });
