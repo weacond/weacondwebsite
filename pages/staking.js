@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   stakeSummary, STAKING_PRESETS,
@@ -47,6 +49,10 @@ export default function StakingPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="staking" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/staking"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Crypto Staking / Inflation Erosion", href: "/staking" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -134,6 +140,12 @@ export default function StakingPage() {
 const zh = {
   title: "加密质押收益 / 通胀侵蚀",
   subtitle: "总奖励=P·((1+apy)^n−1)；净收益率=apy−通胀；通胀侵蚀后终值。教育性参考。",
+  howToTitle: "如何使用加密质押收益/通胀侵蚀计算器",
+  howTo: [
+    "输入本金 P、年化质押收益 APY%、通胀率%与期数 n。",
+    "计算器算总奖励 = P·((1+apy)^n − 1)。",
+    "查看净收益率 = apy − 通胀与通胀侵蚀后终值。",
+  ],
   principalLabel: "持有数量",
   apyLabel: "质押年化 %",
   inflLabel: "代币通胀 %",
@@ -154,6 +166,12 @@ const zh = {
 const en = {
   title: "Crypto Staking / Inflation Erosion",
   subtitle: "Total reward = P·((1+apy)^n−1); net yield = apy−inflation; inflation-eroded value. Educational.",
+  howToTitle: "How to use the crypto-staking / inflation-erosion calculator",
+  howTo: [
+    "Enter principal P, APY %, inflation rate % and periods n.",
+    "The calculator computes total reward = P·((1+apy)^n − 1).",
+    "Read the net yield = apy − inflation and the inflation-eroded value.",
+  ],
   principalLabel: "Amount held",
   apyLabel: "Staking APY %",
   inflLabel: "Token inflation %",

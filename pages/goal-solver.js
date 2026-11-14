@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { goalSolverSummary, GOAL_PRESETS } from "../lib/goalSolver";
 export const metadata = {
@@ -49,6 +51,10 @@ export default function GoalSolverPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="goal-solver" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/goal-solver"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Goal Solver / Compound Inverse", href: "/goal-solver" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -142,6 +148,12 @@ export default function GoalSolverPage() {
 const zh = {
   title: "目标储蓄 / 复利逆解器",
   subtitle: "所需利率=(FV/PV)^(1/n)−1；所需年数；所需定投额。教育性参考。",
+  howToTitle: "如何使用目标储蓄/复利逆解器",
+  howTo: [
+    "输入现值 PV、目标终值 FV 与已知量（利率或年数）。",
+    "计算器反解所需利率 = (FV/PV)^(1/n) − 1。",
+    "查看达成目标所需年数与所需定投额。",
+  ],
   pvLabel: "现有本金",
   fvLabel: "目标金额",
   yearsLabel: "年数",
@@ -162,6 +174,12 @@ const zh = {
 const en = {
   title: "Goal Solver / Compound Inverse",
   subtitle: "Required rate=(FV/PV)^(1/n)−1; required years; required contribution. Educational.",
+  howToTitle: "How to use the goal-solver / compound-inverse calculator",
+  howTo: [
+    "Enter present value PV, target FV and one known (rate or years).",
+    "The calculator inverts for the required rate = (FV/PV)^(1/n) − 1.",
+    "Read the years and contribution needed to reach the goal.",
+  ],
   pvLabel: "Present value",
   fvLabel: "Target amount",
   yearsLabel: "Years",

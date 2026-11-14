@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { inflationGoalSummary, INFLATION_GOAL_PRESETS } from "../lib/inflationGoal";
 export const metadata = {
   title: "含通胀定投目标 — Weacond",
@@ -14,6 +16,12 @@ export const metadata = {
 const zh = {
   title: "含通胀的定投目标计算器",
   subtitle: "名义终值复利后除以(1+通胀)^n得实际终值；反推达成实际目标所需月投。教育性参考，非投资建议。",
+  howToTitle: "如何使用含通胀定投目标计算器",
+  howTo: [
+    "输入实际目标金额、年化收益、通胀率与年数 n。",
+    "计算器把名义终值除以 (1+通胀)^n 得实际终值。",
+    "反推达成实际目标所需每月定投额。",
+  ],
   principalLabel: "本金",
   monthlyLabel: "月投",
   rateLabel: "名义年化 %",
@@ -34,6 +42,12 @@ const zh = {
 const en = {
   title: "Inflation-Adjusted DCA Goal",
   subtitle: "Nominal FV ÷ (1+inflation)^n = real FV; solve monthly contribution to hit a real goal. Educational, not investment advice.",
+  howToTitle: "How to use the inflation-adjusted DCA-goal calculator",
+  howTo: [
+    "Enter the real goal amount, annual return, inflation rate and years n.",
+    "The calculator divides nominal FV by (1+inflation)^n to get real FV.",
+    "It inverts the monthly contribution needed to hit the real goal.",
+  ],
   principalLabel: "Principal",
   monthlyLabel: "Monthly",
   rateLabel: "Nominal Rate %",
@@ -84,6 +98,10 @@ export default function InflationGoalPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="inflation-goal" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/inflation-goal"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Inflation-Adjusted DCA Goal", href: "/inflation-goal" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

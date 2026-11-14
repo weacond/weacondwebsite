@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { fireSummary, FIRE_PRESETS } from "../lib/fire";
 export const metadata = {
   title: "FIRE 财务自由计算器 — Weacond",
@@ -14,6 +16,12 @@ export const metadata = {
 const zh = {
   title: "FIRE 财务自由计算器",
   subtitle: "FIRE 目标=年支出/安全提取率；由储蓄率与实际增长求达标年数。教育性参考，非投资建议。",
+  howToTitle: "如何使用 FIRE 财务自由计算器",
+  howTo: [
+    "输入年支出、安全提取率（如 4%）与储蓄率、实际增长率。",
+    "计算器算 FIRE 目标 = 年支出 / 安全提取率。",
+    "由储蓄率与实际增长反解达标年数。",
+  ],
   expenseLabel: "年支出", swrLabel: "安全提取率 %", savingsLabel: "当前储蓄",
   savingsRateLabel: "储蓄率 %", growthLabel: "实际增长 %",
   presetLabels: { fast: "快速 FIRE", typical: "典型", slow: "缓慢 3%提取", aggressive: "激进 50%储蓄", coast: "Coast 0 当前" },
@@ -26,6 +34,12 @@ const zh = {
 const en = {
   title: "FIRE / Financial Freedom",
   subtitle: "FIRE target = expense / safe-withdrawal; solve years from savings rate + real growth. Educational, not investment advice.",
+  howToTitle: "How to use the FIRE / financial-freedom calculator",
+  howTo: [
+    "Enter annual expense, safe-withdrawal rate (e.g. 4%) and savings rate + real growth.",
+    "The calculator computes FIRE target = expense / safe-withdrawal.",
+    "It inverts the years to reach it from the savings rate + real growth.",
+  ],
   expenseLabel: "Annual Expense", swrLabel: "Safe Withdrawal %", savingsLabel: "Current Savings",
   savingsRateLabel: "Savings Rate %", growthLabel: "Real Growth %",
   presetLabels: { fast: "Fast FIRE", typical: "Typical", slow: "Slow 3% SW", aggressive: "Aggressive 50%", coast: "Coast 0 now" },
@@ -72,6 +86,10 @@ export default function FirePage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="fire" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/fire"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "FIRE / Financial Freedom", href: "/fire" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

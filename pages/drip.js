@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   dripSummary, DRIP_PRESETS,
@@ -47,6 +49,10 @@ export default function DripPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="drip" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/drip"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Dividend Reinvestment / Total Income", href: "/drip" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -134,6 +140,12 @@ export default function DripPage() {
 const zh = {
   title: "红利再投资 / 总收入",
   subtitle: "第 t 年红利 = P·y·(1+g)^(t−1)；累计红利；收入倍数。教育性参考。",
+  howToTitle: "如何使用红利再投资/总收入计算器",
+  howTo: [
+    "输入本金 P、股息率 y% 与增长率 g%。",
+    "计算器按 第 t 年红利 = P·y·(1+g)^(t−1) 逐年算红利。",
+    "查看累计红利与收入倍数。",
+  ],
   principalLabel: "本金",
   yieldLabel: "年化红利 %",
   growthLabel: "红利增长 %",
@@ -154,6 +166,12 @@ const zh = {
 const en = {
   title: "Dividend Reinvestment / Total Income",
   subtitle: "Year-t dividend = P·y·(1+g)^(t−1); cumulative dividends; income multiplier. Educational.",
+  howToTitle: "How to use the dividend-reinvestment / total-income calculator",
+  howTo: [
+    "Enter principal P, dividend yield y% and growth rate g%.",
+    "The calculator computes year-t dividend = P·y·(1+g)^(t−1) per year.",
+    "Read the cumulative dividends and income multiplier.",
+  ],
   principalLabel: "Principal",
   yieldLabel: "Annual yield %",
   growthLabel: "Dividend growth %",
