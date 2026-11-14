@@ -8,20 +8,20 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 26 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 26);
+test("注册 29 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 29);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
     "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
     "slippage", "take_profit", "trailing_stop", "annuity", "yield_to_maturity", "option_payoff",
     "fire", "time_weighted_return", "fx_pip", "fx_cross", "interest_parity",
-    "rebalance", "beta", "real_after_tax",
+    "rebalance", "beta", "real_after_tax", "real_return", "tax_drag", "prob_return",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 26);
+  assert.equal(defs.length, 29);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -259,4 +259,40 @@ test("callTool real_after_tax 税后实际终值与总损耗", () => {
   assert.ok(Math.abs(r.structuredContent.afterTaxFV - r.structuredContent.nominalFV * 0.85) < 1e-6);
   assert.ok(r.structuredContent.totalDrag > 0); // 有税 + 通胀 → 损耗为正
   assert.ok(r.structuredContent.realFV < r.structuredContent.nominalFV); // 实际 < 名义
+});
+
+test("callTool real_return 实际年化与购买力（Fisher）", () => {
+  const r = callTool("real_return", { nominal: 0.08, inflation: 0.03, years: 10, principal: 10000 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 实际年化 = (1+名义)/(1+通胀) − 1
+  assert.ok(Math.abs(r.structuredContent.real - (1.08 / 1.03 - 1)) < 1e-9);
+  // 未来实际 = 未来名义 × 购买力（公式无关不变式）
+  assert.ok(
+    Math.abs(r.structuredContent.futureReal - r.structuredContent.futureNominal * r.structuredContent.purchasingPower) < 1e-6,
+  );
+  assert.equal(r.structuredContent.band, "good");
+});
+
+test("callTool tax_drag 税后终值与拖累", () => {
+  const r = callTool("tax_drag", { principal: 10000, rate: 0.1, taxRate: 0.15, years: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 税后年化 = 名义 × (1 − 税率) = 0.1 × 0.85 = 0.085
+  assert.ok(Math.abs(r.structuredContent.afterTaxRate - 0.085) < 1e-9);
+  // 拖累 = (名义终值 − 税后终值) / 名义终值（公式无关不变式）
+  const { nominalFuture, afterTaxFuture, taxDrag } = r.structuredContent;
+  assert.ok(Math.abs(taxDrag - (nominalFuture - afterTaxFuture) / nominalFuture) < 1e-9);
+  assert.ok(taxDrag > 0);
+});
+
+test("callTool prob_return 概率加权期望与方差", () => {
+  const r = callTool("prob_return", { probs: [0.6, 0.4], outcomes: [1, -1] });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 期望 = 0.6×1 + 0.4×(−1) ≈ 0.2
+  assert.ok(Math.abs(r.structuredContent.expected - 0.2) < 1e-9);
+  // σ² = 方差（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.stdDev * r.structuredContent.stdDev - r.structuredContent.variance) < 1e-9);
+  assert.equal(r.structuredContent.band, "excellent");
 });
