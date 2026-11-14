@@ -7,7 +7,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
 import StructuredData from "../components/StructuredData";
-import { softwareLd } from "../lib/jsonLd";
+import { howToLd, breadcrumbLd, softwareLd } from "../lib/jsonLd";
 import { assessWinRate } from "../lib/winRateStats";
 import SeoHead from "../components/SeoHead";
 
@@ -46,6 +46,10 @@ export default function WinRatePage() {
         <SeoHead title={L.title} description={L.subtitle} path="/winrate" />
       </Head>
       <CalcLd slug="winrate" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/winrate"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Win-Rate Significance", href: "/winrate" }]),
+      ]} />
       <StructuredData data={[softwareLd(TOOL)]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -143,6 +147,13 @@ const zh = {
   title: "胜率显著性检验",
   subtitle:
     "把裸胜率升级为统计结论：Wilson 95% 置信区间 + 二项检验（是否显著优于 50% 抛硬币），并给出期望与盈亏比。",
+  howToTitle: "如何使用胜率显著性检验",
+  howTo: [
+    "输入盈利笔数与总笔数（如 60/100）。",
+    "填入平均盈利与平均亏损，得胜率与盈亏比。",
+    "计算器用 Wilson 95% 置信区间 + 二项检验判断是否显著优于 50%。",
+    "读取每笔期望与统计显著结论（留意过拟合/样本敏感）。",
+  ],
   wins: "盈利笔数",
   total: "总笔数",
   avgWin: "平均盈利",
@@ -165,6 +176,13 @@ const en = {
   title: "Win-Rate Significance",
   subtitle:
     "Upgrade a bare win rate into a statistical verdict: Wilson 95% CI + binomial test (is it significantly better than 50%?), plus expectancy and profit factor.",
+  howToTitle: "How to use the win-rate significance test",
+  howTo: [
+    "Enter winning trades and total trades (e.g. 60/100).",
+    "Fill in avg win and avg loss to get win rate and profit factor.",
+    "The calculator uses a Wilson 95% CI + binomial test to judge if it beats 50% significantly.",
+    "Read the per-trade expectancy and the statistical verdict (watch for overfit / sample sensitivity).",
+  ],
   wins: "Winning trades",
   total: "Total trades",
   avgWin: "Avg win",

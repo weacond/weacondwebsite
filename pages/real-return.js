@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   realReturnSummary, REAL_PRESETS,
@@ -60,6 +62,10 @@ export default function RealReturnPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="real-return" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/real-return"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Real Return (Inflation-Adjusted)", href: "/real-return" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -153,6 +159,12 @@ export default function RealReturnPage() {
 const zh = {
   title: "实际回报（剔除通胀）计算器",
   subtitle: "Fisher 方程：实际年化 =（1+名义）/（1+通胀）−1；Bogle 魔数；购买力衰减。",
+  howToTitle: "如何使用实际回报（剔除通胀）计算器",
+  howTo: [
+    "输入名义年化收益%与通胀率%。",
+    "计算器按 Fisher 方程算实际年化 =（1+名义）/（1+通胀）−1。",
+    "查看 Bogle 魔数与购买力衰减，评估真实购买力增长。",
+  ],
   nominalLabel: "名义年化 %",
   inflationLabel: "通胀率 %",
   yearsLabel: "年数",
@@ -173,6 +185,12 @@ const zh = {
 const en = {
   title: "Real Return (Inflation-Adjusted)",
   subtitle: "Fisher: real = (1+nominal)/(1+inflation) − 1; Bogle magic number; purchasing-power decay.",
+  howToTitle: "How to use the real (inflation-adjusted) return calculator",
+  howTo: [
+    "Enter the nominal annual return % and the inflation rate %.",
+    "The calculator applies Fisher: real = (1+nominal)/(1+inflation) − 1.",
+    "Read the Bogle magic number and purchasing-power decay to gauge real growth.",
+  ],
   nominalLabel: "Nominal annual %",
   inflationLabel: "Inflation %",
   yearsLabel: "Years",

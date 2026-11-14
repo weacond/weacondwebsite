@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { realAfterTaxSummary, REAL_AFTER_TAX_PRESETS } from "../lib/realAfterTax";
 export const metadata = {
@@ -49,6 +51,10 @@ export default function RealAfterTaxPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="real-after-tax" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/real-after-tax"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Real After-Tax Compound", href: "/real-after-tax" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -146,6 +152,13 @@ export default function RealAfterTaxPage() {
 const zh = {
   title: "税后实际复利",
   subtitle: "FV_real=PV×(1+r)^n×(1−tax)/(1+infl)^n；税后实际年化；总损耗。教育性参考。",
+  howToTitle: "如何使用税后实际复利计算器",
+  howTo: [
+    "输入本金 PV、名义年化%与持有年限 n。",
+    "填入税率%与通胀率%。",
+    "计算器按 FV_real=PV×(1+r)^n×(1−tax)/(1+infl)^n 算税后实际终值。",
+    "查看税后实际年化与税+通胀的总损耗。",
+  ],
   pvLabel: "本金",
   rateLabel: "名义年化 %",
   taxLabel: "税率 %",
@@ -167,6 +180,13 @@ const zh = {
 const en = {
   title: "Real After-Tax Compound",
   subtitle: "FV_real=PV×(1+r)^n×(1−tax)/(1+infl)^n; after-tax real rate; total drag. Educational.",
+  howToTitle: "How to use the real after-tax compound calculator",
+  howTo: [
+    "Enter principal PV, nominal annual return %, and holding years n.",
+    "Fill in the tax rate % and inflation rate %.",
+    "The calculator computes FV_real=PV×(1+r)^n×(1−tax)/(1+infl)^n.",
+    "Read the after-tax real rate and the total drag from tax + inflation.",
+  ],
   pvLabel: "Principal",
   rateLabel: "Nominal rate %",
   taxLabel: "Tax rate %",

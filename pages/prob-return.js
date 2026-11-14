@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { probReturnSummary, PROB_RETURN_PRESETS } from "../lib/probReturn";
 export const metadata = {
@@ -43,6 +45,10 @@ export default function ProbReturnPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="prob-return" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/prob-return"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Probability-Weighted Return", href: "/prob-return" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -124,6 +130,12 @@ export default function ProbReturnPage() {
 const zh = {
   title: "概率加权期望回报",
   subtitle: "E[X]=Σ(p_i×x_i)；方差；标准差；变异系数。教育性参考。",
+  howToTitle: "如何使用概率加权期望回报计算器",
+  howTo: [
+    "输入各结果 x_i 与其概率 p_i（概率和应为 1）。",
+    "计算器算期望 E[X]=Σ(p_i×x_i)、方差与标准差。",
+    "查看变异系数 CV，比较不同结果的离散程度。",
+  ],
   p1Label: "结果 1 概率 %",
   x1Label: "结果 1 回报",
   p2Label: "结果 2 概率 %",
@@ -143,6 +155,12 @@ const zh = {
 const en = {
   title: "Probability-Weighted Return",
   subtitle: "E[X]=Σ(p_i×x_i); variance; std dev; CV. Educational.",
+  howToTitle: "How to use the probability-weighted return calculator",
+  howTo: [
+    "Enter each outcome x_i with its probability p_i (probabilities should sum to 1).",
+    "The calculator computes E[X]=Σ(p_i×x_i), variance and standard deviation.",
+    "Read the coefficient of variation (CV) to compare dispersion across outcomes.",
+  ],
   p1Label: "Outcome 1 prob %",
   x1Label: "Outcome 1 return",
   p2Label: "Outcome 2 prob %",

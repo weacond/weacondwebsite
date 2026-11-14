@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   expectancySummary, EXPECTANCY_PRESETS,
@@ -55,6 +57,10 @@ export default function ExpectancyPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="expectancy" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/expectancy"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Trade Expectancy / Profit Factor", href: "/expectancy" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -148,6 +154,12 @@ export default function ExpectancyPage() {
 const zh = {
   title: "交易期望 / 盈亏因子",
   subtitle: "每笔期望=p·平均赢−(1−p)·平均输；盈亏因子=总盈/总亏；平衡胜率=输/(赢+输)。",
+  howToTitle: "如何使用交易期望/盈亏因子计算器",
+  howTo: [
+    "输入胜率%、平均盈利与平均亏损。",
+    "计算器算每笔期望 = p·平均赢 − (1−p)·平均输。",
+    "查看盈亏因子（总盈/总亏）与盈亏平衡胜率。",
+  ],
   winRateLabel: "胜率 %",
   avgWinLabel: "平均盈利",
   avgLossLabel: "平均亏损",
@@ -168,6 +180,12 @@ const zh = {
 const en = {
   title: "Trade Expectancy / Profit Factor",
   subtitle: "EV per trade = p·avgWin − (1−p)·avgLoss; profit factor = gross profit/gross loss; break-even win rate.",
+  howToTitle: "How to use the trade expectancy / profit factor calculator",
+  howTo: [
+    "Enter win rate %, average win and average loss.",
+    "The calculator computes expectancy = p·avgWin − (1−p)·avgLoss per trade.",
+    "Read the profit factor (gross profit/gross loss) and break-even win rate.",
+  ],
   winRateLabel: "Win rate %",
   avgWinLabel: "Avg win",
   avgLossLabel: "Avg loss",

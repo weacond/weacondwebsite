@@ -4,7 +4,8 @@
 // HowTo + BreadcrumbList 结构化数据」的成果，防未来某页漏注入导致 SEO 回退。
 // 已铺开页 = 既有 4 个旗舰页 + 利率/FX 6 个（loan / ear / bond / fx-pip / fx-cross / interest-parity）
 //   + 仓位/风险 6 个（position-size / risk / margin / leverage / lot-size / kelly）
-//   + 估值/收益 6 个（npv / xirr / twrr / compound / annuity / ytm）。
+//   + 估值/收益 6 个（npv / xirr / twrr / compound / annuity / ytm）
+//   + 绩效/概率 6 个（expectancy / winrate / r-multiple / prob-return / real-return / real-after-tax）。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -20,6 +21,7 @@ const COVERED = [
   "loan", "ear", "bond", "fx-pip", "fx-cross", "interest-parity",
   "position-size", "risk", "margin", "leverage", "lot-size", "kelly",
   "npv", "xirr", "twrr", "compound", "annuity", "ytm",
+  "expectancy", "winrate", "r-multiple", "prob-return", "real-return", "real-after-tax",
 ];
 
 // 三处都齐才算“已铺开”：HowTo JSON-LD 注入、BreadcrumbList 注入、且面包屑首项为 Home；

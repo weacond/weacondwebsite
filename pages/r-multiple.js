@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqLd from "../components/FaqLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
@@ -66,6 +68,10 @@ export default function RMultiplePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="r-multiple" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/r-multiple"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "R-Multiple Calculator", href: "/r-multiple" }]),
+      ]} />
       <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -184,6 +190,12 @@ export default function RMultiplePage() {
 const zh = {
   title: "R 倍数计算器",
   subtitle: "把每笔盈亏表达为 R（初始风险单位）。1R = 入场到止损距离。算实际 R、分级与 R 口径期望。",
+  howToTitle: "如何使用 R 倍数计算器",
+  howTo: [
+    "输入入场价、止损价与平仓价，1R = |入场 − 止损|。",
+    "计算器把每笔盈亏换算为实际 R 并分级。",
+    "查看 R 口径期望，评估策略的长期风险调整收益。",
+  ],
   entryLabel: "入场价",
   stopLabel: "止损价",
   priceLabel: "现价/出场",
@@ -214,6 +226,12 @@ const zh = {
 const en = {
   title: "R-Multiple Calculator",
   subtitle: "Express each P&L in R (initial risk units). 1R = entry-to-stop distance. Compute realized R, grade and expectancy-in-R.",
+  howToTitle: "How to use the R-multiple calculator",
+  howTo: [
+    "Enter entry, stop and exit prices; 1R = |entry − stop|.",
+    "The calculator converts each P&L to realized R and grades it.",
+    "Read the expectancy-in-R to assess the strategy's long-run risk-adjusted return.",
+  ],
   entryLabel: "Entry",
   stopLabel: "Stop",
   priceLabel: "Price / exit",
