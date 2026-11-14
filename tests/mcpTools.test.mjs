@@ -8,8 +8,8 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 29 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 29);
+test("注册 32 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 32);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -17,11 +17,12 @@ test("注册 29 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "slippage", "take_profit", "trailing_stop", "annuity", "yield_to_maturity", "option_payoff",
     "fire", "time_weighted_return", "fx_pip", "fx_cross", "interest_parity",
     "rebalance", "beta", "real_after_tax", "real_return", "tax_drag", "prob_return",
+    "loan", "ear", "drip",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 29);
+  assert.equal(defs.length, 32);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -295,4 +296,38 @@ test("callTool prob_return 概率加权期望与方差", () => {
   // σ² = 方差（公式无关不变式）
   assert.ok(Math.abs(r.structuredContent.stdDev * r.structuredContent.stdDev - r.structuredContent.variance) < 1e-9);
   assert.equal(r.structuredContent.band, "excellent");
+});
+
+test("callTool loan 等额本息月供与利息占比", () => {
+  const r = callTool("loan", { principal: 20000, annualRate: 0.05, years: 5 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(r.structuredContent.payment > 0);
+  // 利息占比 = 利息 / 总还款（公式无关不变式）
+  const { interest, totalPaid, interestRatio } = r.structuredContent;
+  assert.ok(Math.abs(interestRatio - interest / totalPaid) < 1e-12);
+  // 总利息 = 总还款 − 本金
+  assert.ok(Math.abs(interest - (totalPaid - 20000)) < 1e-6);
+});
+
+test("callTool ear 有效年利率与连续复利差", () => {
+  const r = callTool("ear", { nominal: 0.12, periods: 12 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // gap = 连续复利 − 有效年化（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.gap - (r.structuredContent.continuousEar - r.structuredContent.ear)) < 1e-12);
+  // 有限复利的 EAR < 连续复利
+  assert.ok(r.structuredContent.ear < r.structuredContent.continuousEar);
+  assert.equal(r.structuredContent.band, "very-high");
+});
+
+test("callTool drip 红利累计与收入倍数", () => {
+  const r = callTool("drip", { principal: 10000, yieldRate: 0.04, growthRate: 0.05, years: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 首年红利 = 本金 × 收益率（(1+g)^0 = 1）
+  assert.ok(Math.abs(r.structuredContent.firstYearDividend - 10000 * 0.04) < 1e-9);
+  // 收入倍数 = 累计红利 / 本金（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.incomeMultiplier - r.structuredContent.totalDividends / 10000) < 1e-12);
+  assert.ok(r.structuredContent.totalDividends > r.structuredContent.firstYearDividend);
 });
