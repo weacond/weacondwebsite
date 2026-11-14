@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
 import Link from "next/link";
 import { kellySummary, KELLY_PRESETS } from "../lib/kelly";
 export const metadata = {
@@ -36,6 +37,7 @@ export default function KellyPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="kelly" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -98,6 +100,17 @@ export default function KellyPage() {
             {" · "}
             <Link href="/position-size" className="text-indigo-500 hover:underline">→ {L.linkPos}</Link>
           </p>
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <h2 className="text-lg font-semibold mb-4">{L.faqTitle}</h2>
+            <dl className="space-y-4">
+              {(L.faqs || []).map((f, i) => (
+                <div key={i} className="text-sm">
+                  <dt className="font-medium text-slate-800">{f.q}</dt>
+                  <dd className="text-slate-500 mt-1">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </section>
       <Footer />
@@ -120,6 +133,13 @@ const zh = {
   linkPos: "头寸规模",
   bandLabels: { none: "不下注", low: "低 0–5%", moderate: "中 5–15%", high: "高 15–30%", aggressive: "激进 ≥30%" },
   presetLabels: { coinFlip: "公平投币", edge10: "10% 优势", highWin: "高胜率", highOdds: "高赔率", negative: "负期望" },
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "凯利公式怎么用？", a: "输入胜率 p 与净赔率 b（平均盈利÷平均亏损）得最优仓位 f*=p−q/b；建议用分数凯利，并对单笔风险设 1–2% 上限。" },
+    { q: "为什么用分数凯利？", a: "全凯利假设概率已知、可无限重复；现实优势被高估，全凯利会造成 40–60% 回撤，多数人扛不住。分数凯利降低方差、更可承受。" },
+    { q: "凯利和按风险定仓有何区别？", a: "凯利按优势定仓（优势大则下注大）；按风险百分比（如每笔 1%）保持单笔亏损恒定、更稳，多数交易者优先用它。" },
+    { q: "期望为负还交易吗？", a: "不交易。最优仓位 f* 为负表示长期必亏，应放弃该标的或改进策略。" },
+  ],
 };
 const en = {
   title: "Kelly Criterion",
@@ -137,4 +157,11 @@ const en = {
   linkPos: "Position Size",
   bandLabels: { none: "No bet", low: "Low 0–5%", moderate: "Mod 5–15%", high: "High 15–30%", aggressive: "Aggr ≥30%" },
   presetLabels: { coinFlip: "Coin flip", edge10: "10% edge", highWin: "High win", highOdds: "High odds", negative: "Negative" },
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How do I use Kelly?", a: "Enter win rate p and net odds b (avg win / avg loss) to get f*=p−q/b; use fractional Kelly with a 1–2% per-trade cap." },
+    { q: "Why fractional Kelly?", a: "Full Kelly assumes known probabilities and infinite repeats; real edge is over-estimated, causing 40–60% drawdowns. Fractional Kelly cuts variance." },
+    { q: "Kelly vs risk-percent sizing?", a: "Kelly sizes by edge (bigger edge, bigger bet); risk-percent (e.g. 1% per trade) keeps dollar-risk constant and is steadier." },
+    { q: "Trade with negative expectation?", a: "No. A negative optimal fraction means long-run loss; skip the instrument or improve the edge." },
+  ],
 };
