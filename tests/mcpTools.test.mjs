@@ -8,19 +8,19 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 20 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 20);
+test("注册 23 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 23);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
     "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
     "slippage", "take_profit", "trailing_stop", "annuity", "yield_to_maturity", "option_payoff",
-    "fire", "time_weighted_return",
+    "fire", "time_weighted_return", "fx_pip", "fx_cross", "interest_parity",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 20);
+  assert.equal(defs.length, 23);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -201,4 +201,29 @@ test("callTool time_weighted_return 计算序列 TWRR", () => {
   assert.equal(r.structuredContent.valid, true);
   assert.equal(r.structuredContent.count, 3);
   assert.ok(r.structuredContent.growthMultiple > 1); // 连续正收益 → 增长倍数 >1
+});
+
+test("callTool fx_pip 计算点值与手数", () => {
+  const r = callTool("fx_pip", { pipSize: 0.0001, positionSize: 100000, rate: 1.085, pips: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.lots, 1); // positionSize / 100000
+});
+
+test("callTool fx_cross 交叉汇率与倒数恒等", () => {
+  const r = callTool("fx_cross", { rateAB: 1.085, rateBC: 1.27, amount: 1000, pipSize: 0.0001, notional: 100000 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.rateAB, 1.085);
+  // invertedRate = 1/crossRate → 恒等（与具体公式无关）
+  assert.ok(Math.abs(r.structuredContent.invertedRate * r.structuredContent.crossRate - 1) < 1e-9);
+});
+
+test("callTool interest_parity 计算理论远期（利率为百分数）", () => {
+  const r = callTool("interest_parity", { spot: 1.2, domRatePct: 4, forRatePct: 2, years: 1 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.spot, 1.2);
+  assert.equal(r.structuredContent.domRate, 0.04); // 4% → 内部 /100
+  assert.equal(r.structuredContent.forRate, 0.02);
 });
