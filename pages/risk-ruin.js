@@ -7,6 +7,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
 import FaqLd from "../components/FaqLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import {
@@ -52,6 +54,12 @@ export default function RuinPage() {
       </Head>
       <CalcLd slug="risk-ruin" />
       <FaqLd questions={L.faqs} />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/risk-ruin"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Risk of Ruin", href: "/risk-ruin" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -143,6 +151,13 @@ const zh = {
   bandLabels: { safe: "安全 ≤1%", low: "较低 ≤10%", elevated: "偏高 ≤50%", high: "很高 >50%", na: "无数据" },
   presetLabels: { edge: "有优势", breakeven: "盈亏平衡", highWinLowRr: "高胜率低赔率", noEdge: "无优势" },
   faqTitle: "常见问题",
+  howToTitle: "如何使用破产概率计算器",
+  howTo: [
+    "输入胜率 w（0–100%）、盈亏比 R:R 与本金（以 R 单位计，如 10 = 可承受 10 个 R 的累计亏损）。",
+    "查看风险比率 (q/w)·(1/rr)：越接近 1 越危险，<1 表示有正期望（edge>0）。",
+    "读取破产概率 P = ((q/w)·(1/rr))^B：比率 <1 时，概率随本金 B 指数下降。",
+    "用预设对比情景，或提高盈亏比/胜率、增大本金，使 (q/w)·(1/rr) < 1 以降低破产概率。",
+  ],
   faqs: [
     { q: "破产概率怎么算？", a: "P =（(q/w)·(1/rr)）^B，其中 w=胜率、q=败率、rr=盈亏比、B=本金（R 单位）；比率越接近 1 越危险。" },
     { q: "什么因素提高破产概率？", a: "低胜率、低盈亏比、小本金（B 小）都会提高破产概率；有正期望（edge>0）则比率 <1，破产概率随本金指数下降。" },
@@ -167,6 +182,13 @@ const en = {
   bandLabels: { safe: "Safe ≤1%", low: "Low ≤10%", elevated: "Elevated ≤50%", high: "High >50%", na: "No data" },
   presetLabels: { edge: "With edge", breakeven: "Break-even", highWinLowRr: "High win / low R:R", noEdge: "No edge" },
   faqTitle: "FAQ",
+  howToTitle: "How to use the risk-of-ruin calculator",
+  howTo: [
+    "Enter win rate w (0–100%), R:R, and bankroll in R units (e.g. 10 = 10 R of cumulative loss tolerated).",
+    "Read the risk ratio (q/w)·(1/rr): the closer to 1 the more dangerous; <1 means positive edge.",
+    "Read ruin probability P = ((q/w)·(1/rr))^B: with ratio <1 it falls exponentially as bankroll B grows.",
+    "Compare presets, or improve R:R / win rate and increase bankroll so (q/w)·(1/rr) < 1 to lower ruin probability.",
+  ],
   faqs: [
     { q: "How is ruin probability computed?", a: "P = ((q/w)·(1/rr))^B, where w=win rate, q=loss rate, rr=R:R, B=bankroll in R units; the closer the ratio to 1, the more dangerous." },
     { q: "What raises ruin probability?", a: "Low win rate, low R:R, and a small bankroll (small B) all raise it; a positive edge (edge>0) makes the ratio <1, so ruin falls exponentially with bankroll." },
