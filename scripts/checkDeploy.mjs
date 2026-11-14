@@ -103,7 +103,7 @@ function main() {
   } else {
     console.log(
       "🔴 尚未就绪：还有 " + criticalBlockers +
-      " 项阻断，现在【不能】线上购买。请按 DEPLOY.md 补齐对应步骤。"
+      " 项阻断，现在【不能】线上购买。请按 docs/plans/DEPLOY.md 补齐对应步骤。"
     );
     process.exit(1);
   }

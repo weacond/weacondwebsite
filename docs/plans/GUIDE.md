@@ -228,7 +228,7 @@ weacondwebsite/
 ├── scripts/
 │   ├── gen_index.py     ← 生成 index.json
 │   └── syncR2.js        ← R2 同步脚本
-└── GUIDE.md             ← 本文件
+└── GUIDE.md             ← 本文件（现位于 docs/plans/，见 docs/INDEX.md）
 ```
 
 ---

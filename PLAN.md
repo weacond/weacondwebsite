@@ -1,7 +1,9 @@
 # Weacond — 主计划（Master Plan / 单一事实来源）
 
-> 这份文件合并并取代仓库里零散的 `START_HERE.md` / `GUIDE.md` / `EXECUTION_PLAN.md` /
-> `EBOOK_PLAN.md` / `DEPLOY.md`。它们仍可作细节参考，但**以本文件为准**。
+> 这份文件是全局主计划；它合并并取代了仓库里零散的子手册，这些子手册已归档到 `docs/plans/`：
+> `docs/plans/START_HERE.md` / `docs/plans/GUIDE.md` / `docs/plans/EXECUTION_PLAN.md` /
+> `docs/plans/EBOOK_PLAN.md` / `docs/plans/DEPLOY.md`。它们仍可作细节参考，但**以本文件为准**；
+> 文档总索引见 `docs/INDEX.md`。
 > 目标读者：你（个人 / 1–3 人小团队）。最后更新：见 git log。
 >
 > 一句话结论：**你的架构已经搭好 80%，且已经迁移到 Cloudflare。现在唯一卡在“能不能卖书”的
