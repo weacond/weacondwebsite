@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import {
   ruinSummary, RUIN_PRESETS,
@@ -49,6 +51,7 @@ export default function RuinPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="risk-ruin" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -115,6 +118,7 @@ export default function RuinPage() {
             {" · "}
             <Link href="/risk" className="text-indigo-500 hover:underline">→ {L.linkRisk}</Link>
           </p>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />
@@ -138,6 +142,13 @@ const zh = {
   linkRisk: "风险度量",
   bandLabels: { safe: "安全 ≤1%", low: "较低 ≤10%", elevated: "偏高 ≤50%", high: "很高 >50%", na: "无数据" },
   presetLabels: { edge: "有优势", breakeven: "盈亏平衡", highWinLowRr: "高胜率低赔率", noEdge: "无优势" },
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "破产概率怎么算？", a: "P =（(q/w)·(1/rr)）^B，其中 w=胜率、q=败率、rr=盈亏比、B=本金（R 单位）；比率越接近 1 越危险。" },
+    { q: "什么因素提高破产概率？", a: "低胜率、低盈亏比、小本金（B 小）都会提高破产概率；有正期望（edge>0）则比率 <1，破产概率随本金指数下降。" },
+    { q: "如何降低破产风险？", a: "提高盈亏比或胜率（使 edge>0）、增大本金（B），让 (q/w)·(1/rr) <1；本金越大破产概率越低。" },
+    { q: "破产概率模型适用吗？", a: "它假设等比例下注、独立交易，未计波动/资金费，属经典近似；实盘需结合波动与相关性。" },
+  ],
 };
 const en = {
   title: "Risk of Ruin",
@@ -155,4 +166,11 @@ const en = {
   linkRisk: "Risk metrics",
   bandLabels: { safe: "Safe ≤1%", low: "Low ≤10%", elevated: "Elevated ≤50%", high: "High >50%", na: "No data" },
   presetLabels: { edge: "With edge", breakeven: "Break-even", highWinLowRr: "High win / low R:R", noEdge: "No edge" },
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How is ruin probability computed?", a: "P = ((q/w)·(1/rr))^B, where w=win rate, q=loss rate, rr=R:R, B=bankroll in R units; the closer the ratio to 1, the more dangerous." },
+    { q: "What raises ruin probability?", a: "Low win rate, low R:R, and a small bankroll (small B) all raise it; a positive edge (edge>0) makes the ratio <1, so ruin falls exponentially with bankroll." },
+    { q: "How to lower ruin risk?", a: "Improve R:R or win rate (so edge>0) and increase bankroll (B) so that (q/w)·(1/rr) <1; a larger bankroll lowers ruin probability." },
+    { q: "Does the ruin model apply?", a: "It assumes equal-fraction bets and independent trades, excluding volatility/funding — a classic approximation; live use needs volatility and correlation." },
+  ],
 };

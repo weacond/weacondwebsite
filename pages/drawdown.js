@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { recoveryGainPct, recoveryTime, RECOVERY_TABLE, validDrawdown } from "../lib/drawdown";
 
@@ -32,6 +34,7 @@ export default function DrawdownPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="drawdown" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -93,6 +96,7 @@ export default function DrawdownPage() {
             {" · "}
             <Link href="/montecarlo" className="text-indigo-500 hover:underline">→ {L.linkMonteCarlo}</Link>
           </p>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />
@@ -117,6 +121,13 @@ const zh = {
   disclaimer: "假设连续复利增长，忽略波动路径与最大回撤中的中途归零风险。教育用途，不构成投资建议。",
   linkRisk: "风险仪表盘",
   linkMonteCarlo: "蒙特卡洛",
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "跌 50% 要涨多少回本？", a: "需涨 100%——回撤与恢复不对称：跌幅越深，回本所需涨幅越大（跌 25% 需 33%，跌 75% 需 300%）。" },
+    { q: "怎么算回本时间？", a: "在给定年化 CAGR 下，用连续复利估算从当前回撤值涨回原点的年数；CAGR ≤0 则无法回本。" },
+    { q: "为何强调回撤不对称？", a: "因对数收益不对称：下跌 x% 需上涨 x/(100−x)×100% 才回本，深回撤恢复成本极高，凸显控制回撤的重要性。" },
+    { q: "这个计算有什么局限？", a: "假设连续复利、忽略波动路径与中途归零风险，仅为教学示意；实盘需结合最大回撤与波动。" },
+  ],
 };
 const en = {
   title: "Drawdown Recovery",
@@ -135,5 +146,12 @@ const en = {
   disclaimer: "Assumes continuous compounding; ignores path risk and intraday ruin. For education, not investment advice.",
   linkRisk: "Risk dashboard",
   linkMonteCarlo: "Monte Carlo",
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How much to recover a 50% drop?", a: "A 100% gain — drawdowns and recoveries are asymmetric: the deeper the drop, the larger the gain needed (−25% needs +33%, −75% needs +300%)." },
+    { q: "How is recovery time computed?", a: "Given an annual CAGR, it estimates the years to compound from the current drawdown back to the start; CAGR ≤ 0 means no recovery." },
+    { q: "Why emphasize asymmetry?", a: "Because log returns are asymmetric: an x% drop needs an x/(100−x)×100% gain to recover, so deep drawdowns cost far more — underscoring why controlling drawdown matters." },
+    { q: "What are the limits of this calc?", a: "It assumes continuous compounding, ignoring path risk and intraday ruin — an educational illustration; live use needs max drawdown and volatility." },
+  ],
 };
 

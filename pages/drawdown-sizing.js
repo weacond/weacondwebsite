@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { ddSizingSummary, DD_SIZING_PRESETS } from "../lib/drawdownSizing";
 export const metadata = {
@@ -55,6 +57,7 @@ export default function DdSizingPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="drawdown-sizing" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -145,6 +148,7 @@ export default function DdSizingPage() {
             {" · "}
             <Link href="/risk" className="text-indigo-500 hover:underline">→ {L.linkRisk}</Link>
           </p>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />
@@ -171,6 +175,13 @@ const zh = {
   linkRisk: "风险",
   bandLabels: { zero: "零", small: "小 0–25%", moderate: "中 25–50%", large: "大 50–75%", full: "满仓 ≥75%" },
   presetLabels: { conservative: "保守 10%", standard: "标准 15%", aggressive: "激进 25%", lowDD: "低回撤 5%", highDD: "高回撤 30%" },
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "回撤→头寸怎么算？", a: "头寸比例 = 目标最大回撤 ÷ 策略历史回撤；用更小的回撤目标按比例缩小仓位，从而控制账户风险。" },
+    { q: "为何用回撤定头寸？", a: "历史回撤反映策略真实风险；按目标回撤缩放，可在保持策略特性的同时把账户最大回撤压到可承受范围。" },
+    { q: "缩放后收益/夏普怎么变？", a: "缩放收益按头寸比例线性下降，风险调整夏普近似不变——缩仓降低绝对回撤但不改变风险调整后效率。" },
+    { q: "每笔最大亏损怎么算？", a: "每笔最大亏损 = 头寸金额 × 单笔风险，帮助把单笔损失控制在账户可承受范围。" },
+  ],
 };
 const en = {
   title: "Drawdown → Position Sizing",
@@ -192,4 +203,11 @@ const en = {
   linkRisk: "Risk",
   bandLabels: { zero: "Zero", small: "Small 0–25%", moderate: "Moderate 25–50%", large: "Large 50–75%", full: "Full ≥75%" },
   presetLabels: { conservative: "Cons 10%", standard: "Std 15%", aggressive: "Aggr 25%", lowDD: "LowDD 5%", highDD: "HighDD 30%" },
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How is drawdown → position sized?", a: "Position ratio = target max drawdown ÷ strategy historical drawdown; a smaller target scales the position down to cap account risk." },
+    { q: "Why size by drawdown?", a: "Historical drawdown reflects a strategy's true risk; scaling to a target drawdown caps the account's max drawdown while preserving the strategy's character." },
+    { q: "How do scaled return / Sharpe change?", a: "Scaled return falls linearly with the position ratio; risk-adjusted Sharpe stays roughly constant — sizing lowers absolute drawdown without changing risk-adjusted efficiency." },
+    { q: "How is max loss per trade computed?", a: "Max loss per trade = position amount × per-trade risk, keeping each loss within what the account can bear." },
+  ],
 };
