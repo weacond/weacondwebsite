@@ -8,8 +8,8 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 32 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 32);
+test("注册 37 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 37);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -18,11 +18,12 @@ test("注册 32 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "fire", "time_weighted_return", "fx_pip", "fx_cross", "interest_parity",
     "rebalance", "beta", "real_after_tax", "real_return", "tax_drag", "prob_return",
     "loan", "ear", "drip",
+    "continuous", "leveredEtf", "goalSolver", "inflationGoal", "taxLoss",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 32);
+  assert.equal(defs.length, 37);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -330,4 +331,59 @@ test("callTool drip 红利累计与收入倍数", () => {
   // 收入倍数 = 累计红利 / 本金（公式无关不变式）
   assert.ok(Math.abs(r.structuredContent.incomeMultiplier - r.structuredContent.totalDividends / 10000) < 1e-12);
   assert.ok(r.structuredContent.totalDividends > r.structuredContent.firstYearDividend);
+});
+
+test("callTool continuous 连续复利终值与倍增倍数", () => {
+  const r = callTool("continuous", { principal: 10000, annualRate: 0.08, years: 20 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 利息 = 终值 − 本金（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.interest - (r.structuredContent.futureValue - 10000)) < 1e-6);
+  // 终值 = 本金 × 倍增倍数
+  assert.ok(Math.abs(r.structuredContent.futureValue - 10000 * r.structuredContent.multiplier) < 1e-6);
+  assert.equal(r.structuredContent.band, "exponential");
+});
+
+test("callTool leveredEtf 杠杆衰减与标的/杠杆未来值差", () => {
+  const r = callTool("leveredEtf", { leverage: 2, mu: 0.08, sigma: 0.2, years: 5, principal: 10000 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(r.structuredContent.decay > 0);
+  // 衰减损耗 = 标的未来值 − 杠杆未来值（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.lossFromDecay - (r.structuredContent.underlyingFuture - r.structuredContent.leveredFuture)) < 1e-6);
+  assert.equal(r.structuredContent.band, "moderate");
+});
+
+test("callTool goalSolver 目标储蓄逆解缺口占比", () => {
+  const r = callTool("goalSolver", { pv: 50000, fv: 1000000, years: 20, rate: 0.05 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(r.structuredContent.requiredRate > 0);
+  // 缺口占比 = 缺口 / 目标值（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.gapPct - r.structuredContent.gap / 1000000) < 1e-12);
+  assert.equal(r.structuredContent.band, "onTrack");
+});
+
+test("callTool inflationGoal 通胀调整后目标月投缺口", () => {
+  const r = callTool("inflationGoal", { principal: 100000, monthly: 1000, annualRate: 0.07, inflation: 0.025, years: 30, realGoal: 1000000 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(r.structuredContent.nominalFV > 0);
+  // 月投缺口 = 所需月投 − 计划月投（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.monthlyShortfall - (r.structuredContent.requiredMonthly - 1000)) < 1e-9);
+  assert.equal(r.structuredContent.inflationBand, "moderate");
+});
+
+test("callTool taxLoss 税收收割节省与结转年数", () => {
+  const r = callTool("taxLoss", { loss: 10000, taxRate: 0.3, cap: 3000 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 受限抵免：可抵免 = cap < 亏损
+  assert.ok(Math.abs(r.structuredContent.effectiveOffset - 3000) < 1e-9);
+  // 税收节省 = 可抵免 × 税率（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.taxSavings - r.structuredContent.effectiveOffset * 0.3) < 1e-12);
+  // 税后净成本 = 亏损 − 税收节省
+  assert.ok(Math.abs(r.structuredContent.afterTaxCost - (10000 - r.structuredContent.taxSavings)) < 1e-9);
+  assert.equal(r.structuredContent.carryforwardYears, 4);
+  assert.equal(r.structuredContent.band, "low");
 });
