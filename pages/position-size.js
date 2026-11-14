@@ -5,6 +5,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import { positionSize, assessPosition } from "../lib/positionSize";
 import { riskReward, requiredReward } from "../lib/riskReward";
 import { kellyFraction } from "../lib/kelly";
@@ -55,6 +57,7 @@ export default function PositionSizePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="position-size" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
@@ -112,6 +115,7 @@ export default function PositionSizePage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">{L.disclaimer}</p>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
     </div>
@@ -179,6 +183,13 @@ const zh = {
   },
   invalid: "请输入有效的账户、风险%、入场价与止损价。",
   disclaimer: "本工具基于固定止损的距离计算，不考虑波动率/保证金/滑点；非投资建议。",
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "头寸怎么算？", a: "头寸 = 账户权益 × 每笔风险% ÷ |入场价 − 止损价|。先定每笔最多亏多少，再反推该买多少。" },
+    { q: "单笔风险设多少合适？", a: "多数交易员每笔用 0.5–2%，新手建议 1% 或更低；保持单笔亏损恒定比追求大仓位更利于长期生存。" },
+    { q: "止损越远头寸越小吗？", a: "是。风险预算固定时，止损距离越远，单单位亏损越大，需更小头寸才能维持同一风险。" },
+    { q: "头寸超过账户会怎样？", a: "名义超过账户即需杠杆/保证金，集中度过高会放大回撤甚至穿仓；务必控制单笔风险。" },
+  ],
 };
 const en = {
   title: "Position Sizer",
@@ -216,5 +227,12 @@ const en = {
   },
   invalid: "Enter a valid account, risk %, entry, and stop.",
   disclaimer: "Based on a fixed stop distance; ignores volatility/margin/slippage. Not investment advice.",
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How do I size a position?", a: "Units = equity × risk% ÷ |entry − stop|. Decide the max loss per trade first, then size the position." },
+    { q: "How much risk per trade?", a: "Most traders use 0.5–2% per trade; beginners 1% or less. Keeping per-trade loss constant beats bigger positions for long-term survival." },
+    { q: "Does a wider stop mean a smaller position?", a: "Yes. With fixed risk, a wider stop raises loss per unit, so you need fewer units to keep the same risk." },
+    { q: "What if the position exceeds the account?", a: "Notional above account needs leverage/margin; over-concentration amplifies drawdowns and can blow up. Keep per-trade risk in check." },
+  ],
 };
 

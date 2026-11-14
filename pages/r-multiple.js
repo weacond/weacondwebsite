@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import {
   validRMultiple, rMultiple, rGrade, expectancyFromR,
@@ -64,6 +66,7 @@ export default function RMultiplePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="r-multiple" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -168,6 +171,7 @@ export default function RMultiplePage() {
                 {" · "}
                 <Link href="/leverage" className="text-indigo-500 hover:underline">→ {L.linkLeverage}</Link>
               </p>
+              <FaqSection faqs={L.faqs} title={L.faqTitle} />
             </>
           )}
         </div>
@@ -199,6 +203,13 @@ const zh = {
   linkLeverage: "杠杆强平",
   sides: { long: "多", short: "空" },
   presetLabels: { smallWin: "小盈 +0.5R", win: "盈利 +2R", bigWin: "大盈 +4R", stopped: "止损 −1R", shortWin: "空头 +1.5R" },
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "R 倍数是什么？", a: "R = 每笔盈亏 ÷ 初始风险单位（1R = 入场到止损距离）。用 R 衡量盈亏可剥离账户规模，直接比较策略质量。" },
+    { q: "多少 R 算好的交易？", a: "单笔 +2R 已优于多数策略；关键看长期 R 口径期望是否为正：期望 = 胜率×平均盈R − 败率×平均亏R。" },
+    { q: "负 R 怎么办？", a: "亏损记为 −R；策略好坏看长期 R 口径期望，而非单笔胜负。" },
+    { q: "R 倍数和 R:R 一样吗？", a: "不同。R:R 是目标/止损的静态比值；R 倍数是实际盈亏（含滑点/出场），更真实。" },
+  ],
 };
 const en = {
   title: "R-Multiple Calculator",
@@ -222,4 +233,11 @@ const en = {
   linkLeverage: "Leverage",
   sides: { long: "Long", short: "Short" },
   presetLabels: { smallWin: "Small +0.5R", win: "Win +2R", bigWin: "Big +4R", stopped: "Stop −1R", shortWin: "Short +1.5R" },
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "What is R-multiple?", a: "R = P&L ÷ initial risk (1R = entry-to-stop distance). Measuring in R strips out account size to compare strategy quality." },
+    { q: "What is a good R per trade?", a: "+2R beats most trades, but what matters is positive long-run expectancy-in-R: winRate × avgWinR − loseRate × avgLossR." },
+    { q: "What about negative R?", a: "Record losses as −R. A strategy's quality is its long-run expectancy-in-R, not any single win/loss." },
+    { q: "Is R-multiple the same as R:R?", a: "No. R:R is the static target/stop ratio; R-multiple is the realized P&L (incl. slippage/exit) and is more honest." },
+  ],
 };
