@@ -8,8 +8,8 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 41 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 41);
+test("注册 43 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 43);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -20,11 +20,12 @@ test("注册 41 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "loan", "ear", "drip",
     "continuous", "leveredEtf", "goalSolver", "inflationGoal", "taxLoss",
     "fairValue", "staking", "lotSize", "avgEntry",
+    "barrier", "bond",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 41);
+  assert.equal(defs.length, 43);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -435,4 +436,28 @@ test("callTool avgEntry 加权均价与到目标方向", () => {
   assert.ok(Math.abs(blended.avg - blended.totalCost / blended.totalShares) < 1e-9);
   // 到目标价方向为「上」
   assert.equal(toTarget.direction, "up");
+});
+
+test("callTool barrier 双屏障命中概率互补", () => {
+  const r = callTool("barrier", { target: 1, stop: 1, drift: 0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 无漂移等距 → 命中目标概率 0.5
+  assert.ok(Math.abs(r.structuredContent.pTarget - 0.5) < 1e-12);
+  // pStop = 1 − pTarget（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.pStop - (1 - r.structuredContent.pTarget)) < 1e-12);
+  assert.equal(r.structuredContent.band, "neutral");
+});
+
+test("callTool bond 平价债券价格与修正久期", () => {
+  const r = callTool("bond", { face: 100, couponRate: 0.05, years: 5, yieldRate: 0.05 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 平价（票面=到期收益率）→ 价格 ≈ 面值
+  assert.ok(Math.abs(r.structuredContent.price - 100) < 1e-6);
+  // 当前收益率 = 年息 / 价格（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.currentYield - r.structuredContent.couponRate * r.structuredContent.face / r.structuredContent.price) < 1e-12);
+  // 修正久期 = 麦凯久期 / (1+y)
+  assert.ok(Math.abs(r.structuredContent.modifiedDuration - r.structuredContent.macaulayDuration / (1 + r.structuredContent.yieldRate)) < 1e-12);
+  assert.equal(r.structuredContent.band, "par");
 });
