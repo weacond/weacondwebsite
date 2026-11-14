@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
 import FaqLd from "../components/FaqLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { ddSizingSummary, DD_SIZING_PRESETS } from "../lib/drawdownSizing";
@@ -58,6 +60,12 @@ export default function DdSizingPage() {
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="drawdown-sizing" />
       <FaqLd questions={L.faqs} />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/drawdown-sizing"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Drawdown Sizing", href: "/drawdown-sizing" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -176,6 +184,13 @@ const zh = {
   bandLabels: { zero: "零", small: "小 0–25%", moderate: "中 25–50%", large: "大 50–75%", full: "满仓 ≥75%" },
   presetLabels: { conservative: "保守 10%", standard: "标准 15%", aggressive: "激进 25%", lowDD: "低回撤 5%", highDD: "高回撤 30%" },
   faqTitle: "常见问题",
+  howToTitle: "如何使用回撤→头寸缩放计算器",
+  howTo: [
+    "输入账户规模、目标最大回撤 targetDD、策略历史最大回撤 strategyDD。",
+    "头寸 = targetDD / strategyDD：把策略历史回撤缩放到你愿意承受的目标回撤。",
+    "查看缩放后的收益、每笔最大亏损与风险调整夏普（stratReturn/stratVol）。",
+    "策略回撤越大或目标回撤越小，建议头寸越小；用预设对比不同风险偏好。",
+  ],
   faqs: [
     { q: "回撤→头寸怎么算？", a: "头寸比例 = 目标最大回撤 ÷ 策略历史回撤；用更小的回撤目标按比例缩小仓位，从而控制账户风险。" },
     { q: "为何用回撤定头寸？", a: "历史回撤反映策略真实风险；按目标回撤缩放，可在保持策略特性的同时把账户最大回撤压到可承受范围。" },
@@ -204,6 +219,13 @@ const en = {
   bandLabels: { zero: "Zero", small: "Small 0–25%", moderate: "Moderate 25–50%", large: "Large 50–75%", full: "Full ≥75%" },
   presetLabels: { conservative: "Cons 10%", standard: "Std 15%", aggressive: "Aggr 25%", lowDD: "LowDD 5%", highDD: "HighDD 30%" },
   faqTitle: "FAQ",
+  howToTitle: "How to use the drawdown-to-position-sizing calculator",
+  howTo: [
+    "Enter account size, target maximum drawdown targetDD, and the strategy's historical max drawdown strategyDD.",
+    "Position = targetDD / strategyDD: scale the strategy's historical drawdown down to the one you are willing to tolerate.",
+    "Read the scaled return, max loss per trade, and risk-adjusted Sharpe (stratReturn/stratVol).",
+    "The larger the strategy drawdown or the smaller the target, the smaller the suggested position; compare presets for different risk appetites.",
+  ],
   faqs: [
     { q: "How is drawdown → position sized?", a: "Position ratio = target max drawdown ÷ strategy historical drawdown; a smaller target scales the position down to cap account risk." },
     { q: "Why size by drawdown?", a: "Historical drawdown reflects a strategy's true risk; scaling to a target drawdown caps the account's max drawdown while preserving the strategy's character." },

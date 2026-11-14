@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
 import FaqLd from "../components/FaqLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { riskBudgetSummary, RISK_BUDGET_PRESETS } from "../lib/riskBudget";
@@ -40,6 +42,13 @@ const zh = {
   learnTitle: "学习",
   learn: "风险预算法将每笔交易的风险限制在账户的一定比例（如 1%）。最大仓位 = 风险金额 ÷ 每单位风险（VaR 或止损距离）。多策略时总风险预算均分给每个策略。",
   faqTitle: "常见问题",
+  howToTitle: "如何使用风险预算仓位计算器",
+  howTo: [
+    "输入账户规模与单笔风险比例 riskPct（如 1%），得到风险金额 = 账户 × riskPct。",
+    "输入每单位风险（VaR 或止损距离），得到最大仓位 = 风险金额 ÷ 每单位风险。",
+    "查看名义价值、占账户比例与每策略风险；多策略时总风险预算均分。",
+    "风险比例越小越稳健：多数稳健策略用 1%，保守用 0.5%，激进用 2%。",
+  ],
   faqs: [
     { q: "风险预算法怎么定头寸？", a: "风险金额 = 账户 × 单笔风险%；最大仓位 = 风险金额 ÷ 每单位风险（VaR 或止损距离），把每笔损失限制在账户固定比例。" },
     { q: "单笔风险比例取多少合适？", a: "常见 0.5–2%：越小越稳健但增长慢，越大越快但波动与回撤更剧烈；多数稳健策略用 1%。" },
@@ -73,6 +82,13 @@ const en = {
   learnTitle: "Learn",
   learn: "Risk budget sizing caps each trade's risk at a fixed % of account (e.g. 1%). Max position = risk amount ÷ per-unit risk (VaR or stop distance). Multi-strategy splits total risk budget evenly.",
   faqTitle: "FAQ",
+  howToTitle: "How to use the risk-budget position sizing calculator",
+  howTo: [
+    "Enter account size and risk per trade riskPct (e.g. 1%); risk amount = account × riskPct.",
+    "Enter per-unit risk (VaR or stop distance); max position = risk amount ÷ per-unit risk.",
+    "Read notional value, account share, and risk per strategy; for multiple strategies the budget is split evenly.",
+    "Smaller risk per trade is more conservative: most steady strategies use 1%, conservative 0.5%, aggressive 2%.",
+  ],
   faqs: [
     { q: "How does risk-budget sizing set a position?", a: "Risk amount = account × per-trade risk %; max position = risk amount ÷ per-unit risk (VaR or stop distance), capping each loss at a fixed account share." },
     { q: "What per-trade risk % is appropriate?", a: "Commonly 0.5–2%: smaller is steadier but slower, larger is faster but far more volatile; most steady strategies use 1%." },
@@ -117,6 +133,12 @@ export default function RiskBudgetPage() {
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="risk-budget" />
       <FaqLd questions={L.faqs} />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/risk-budget"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Risk Budget", href: "/risk-budget" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

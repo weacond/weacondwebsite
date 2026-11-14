@@ -7,6 +7,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
 import FaqLd from "../components/FaqLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { recoveryGainPct, recoveryTime, RECOVERY_TABLE, validDrawdown } from "../lib/drawdown";
@@ -35,6 +37,12 @@ export default function DrawdownPage() {
       </Head>
       <CalcLd slug="drawdown" />
       <FaqLd questions={L.faqs} />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/drawdown"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Drawdown Recovery", href: "/drawdown" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -122,6 +130,13 @@ const zh = {
   linkRisk: "风险仪表盘",
   linkMonteCarlo: "蒙特卡洛",
   faqTitle: "常见问题",
+  howToTitle: "如何使用回撤恢复计算器",
+  howTo: [
+    "输入回撤幅度 dd（0–100%，如 50% 表示账户从高点跌 50%）。",
+    "查看回本所需涨幅：亏损 50% 需涨 100% 才能回本（不对称性，分母是缩水后的本金）。",
+    "输入年化 CAGR，读取预计恢复时间（年）= ln(1+回本涨幅) / ln(1+CAGR)。",
+    "回撤越大，回本涨幅越非线性：75% 回撤需涨 300%。",
+  ],
   faqs: [
     { q: "跌 50% 要涨多少回本？", a: "需涨 100%——回撤与恢复不对称：跌幅越深，回本所需涨幅越大（跌 25% 需 33%，跌 75% 需 300%）。" },
     { q: "怎么算回本时间？", a: "在给定年化 CAGR 下，用连续复利估算从当前回撤值涨回原点的年数；CAGR ≤0 则无法回本。" },
@@ -147,6 +162,13 @@ const en = {
   linkRisk: "Risk dashboard",
   linkMonteCarlo: "Monte Carlo",
   faqTitle: "FAQ",
+  howToTitle: "How to use the drawdown recovery calculator",
+  howTo: [
+    "Enter the drawdown dd (0–100%, e.g. 50% means the account fell 50% from its peak).",
+    "Read the recovery gain: a 50% loss needs a 100% gain to recover (asymmetry — the denominator is the shrunken base).",
+    "Enter an annual CAGR and read the estimated recovery time (years) = ln(1+gain) / ln(1+CAGR).",
+    "The larger the drawdown, the more nonlinear the recovery gain: a 75% drawdown needs a 300% gain.",
+  ],
   faqs: [
     { q: "How much to recover a 50% drop?", a: "A 100% gain — drawdowns and recoveries are asymmetric: the deeper the drop, the larger the gain needed (−25% needs +33%, −75% needs +300%)." },
     { q: "How is recovery time computed?", a: "Given an annual CAGR, it estimates the years to compound from the current drawdown back to the start; CAGR ≤ 0 means no recovery." },
