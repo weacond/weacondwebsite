@@ -8,19 +8,20 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 23 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 23);
+test("注册 26 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 26);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
     "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
     "slippage", "take_profit", "trailing_stop", "annuity", "yield_to_maturity", "option_payoff",
     "fire", "time_weighted_return", "fx_pip", "fx_cross", "interest_parity",
+    "rebalance", "beta", "real_after_tax",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 23);
+  assert.equal(defs.length, 26);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -226,4 +227,36 @@ test("callTool interest_parity 计算理论远期（利率为百分数）", () =
   assert.equal(r.structuredContent.spot, 1.2);
   assert.equal(r.structuredContent.domRate, 0.04); // 4% → 内部 /100
   assert.equal(r.structuredContent.forRate, 0.02);
+});
+
+test("callTool rebalance 两资产再平衡溢价（ρ=0 → 溢价>0）", () => {
+  const r = callTool("rebalance", { w1: 0.5, s1: 0.2, s2: 0.1, rho: 0, years: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.w1, 0.5);
+  assert.equal(r.structuredContent.w2, 0.5); // 1 - w1
+  assert.ok(r.structuredContent.bonus > 0); // s1≠s2 且 ρ=0 → 溢价为正
+  // 累计溢价 = 年化溢价 × 年数（公式无关不变式）
+  assert.equal(r.structuredContent.totalBonus, r.structuredContent.bonus * 10);
+});
+
+test("callTool beta 组合 beta=1（权重归一）与系统回报", () => {
+  const r = callTool("beta", { weights: [0.5, 0.5], betas: [1.0, 1.0] });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 权重和=1、各 beta=1 → 组合 beta=1.0
+  assert.ok(Math.abs(r.structuredContent.beta - 1) < 1e-9);
+  // 系统回报 = beta × 市场回报（默认 0.1）
+  assert.ok(Math.abs(r.structuredContent.systematicReturn - 0.1) < 1e-9);
+  assert.equal(r.structuredContent.band, "market");
+});
+
+test("callTool real_after_tax 税后实际终值与总损耗", () => {
+  const r = callTool("real_after_tax", { pv: 100000, rate: 0.08, taxRate: 0.15, inflation: 0.03, years: 20 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 税后终值 = 名义终值 × (1 − taxRate)（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.afterTaxFV - r.structuredContent.nominalFV * 0.85) < 1e-6);
+  assert.ok(r.structuredContent.totalDrag > 0); // 有税 + 通胀 → 损耗为正
+  assert.ok(r.structuredContent.realFV < r.structuredContent.nominalFV); // 实际 < 名义
 });

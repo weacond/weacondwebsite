@@ -15,10 +15,13 @@ import FaqSection from "../components/FaqSection";
 import { listToolDefs } from "../lib/mcp/tools.js";
 import { webApplicationLd, faqLd, breadcrumbLd, toScript } from "../lib/jsonLd.js";
 
+// 工具数量单一事实源（随注册表自动同步，避免文案与注册表漂移）。
+const TOOL_COUNT = listToolDefs().length;
+
 export const metadata = {
   title: "Weacond MCP 端点 — 给 AI 搜索/助手调用的金融计算器",
   description:
-    "Weacond 把 12 个金融风控计算器（Kelly、ATR 止损、破产概率、风险预算、回撤规模、杠杆、期望、含费平衡价、R-multiple、保证金、资金费率、NPV）暴露为 MCP 工具，经无状态 JSON-RPC 2.0 over HTTP，Vercel 与 Cloudflare Edge 双运行时。",
+    `Weacond 把 ${TOOL_COUNT} 个金融计算器（Kelly 仓位、ATR 止损、破产概率、风险预算、回撤规模、杠杆/强平、滑点、止盈、追踪止损、外汇点值/交叉汇率/利率平价、再平衡、组合 beta、税后实际复利、NPV 等）暴露为 MCP 工具，经无状态 JSON-RPC 2.0 over HTTP，Vercel 与 Cloudflare Edge 双运行时。`,
   robots: { index: true, follow: true },
 };
 
@@ -81,7 +84,7 @@ const zh = {
     },
     {
       q: "这个端点暴露哪些工具？",
-      a: "12 个高风险意图计算器：Kelly 仓位、ATR 止损、破产概率、风险预算、回撤规模、杠杆/强平、交易期望/盈亏因子、含费盈亏平衡价、R-multiple 头寸、杠杆融资成本、永续资金费率、净现值 NPV。",
+      a: `${TOOL_COUNT} 个高风险意图计算器：Kelly 仓位、ATR 止损、破产概率、风险预算、回撤规模、杠杆/强平、交易期望/盈亏因子、含费平衡价、R-multiple 头寸、保证金、资金费率、NPV、外汇点值/交叉汇率/利率平价、再平衡溢价、组合 beta、税后实际复利等，完整清单见上方「暴露的工具」。`,
     },
     {
       q: "如何鉴权与限流？",
@@ -122,7 +125,7 @@ const en = {
     },
     {
       q: "Which tools does the endpoint expose?",
-      a: "12 high-intent calculators: Kelly sizing, ATR stop, risk of ruin, risk budget, drawdown sizing, leverage/liquidation, expectancy/profit factor, fee-adjusted breakeven, R-multiple sizing, margin financing cost, perpetual funding rate, and NPV.",
+      a: `${TOOL_COUNT} high-intent calculators: Kelly sizing, ATR stop, risk of ruin, risk budget, drawdown sizing, leverage/liquidation, slippage, take-profit, trailing stop, FX pip/cross/interest-parity, rebalancing bonus, portfolio beta, real after-tax compounding, NPV, and more — see the "Exposed tools" list above.`,
     },
     {
       q: "How is it authenticated and rate-limited?",
@@ -151,7 +154,7 @@ function endpointLd(faqs) {
     operatingSystem: "Vercel, Cloudflare Edge (stateless HTTP)",
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     description:
-      "Stateless JSON-RPC 2.0 MCP endpoint exposing 12 financial risk calculators as AI-callable tools (Kelly, ATR stop, risk of ruin, risk budget, drawdown sizing, leverage, expectancy, breakeven, R-multiple, margin, funding rate, NPV).",
+      `Stateless JSON-RPC 2.0 MCP endpoint exposing ${TOOL_COUNT} financial calculators as AI-callable tools (Kelly, ATR stop, risk of ruin, risk budget, drawdown sizing, leverage, slippage, FX, rebalancing, portfolio beta, NPV, and more).`,
   };
   const bread = breadcrumbLd([
     { name: "Weacond", href: "/" },
