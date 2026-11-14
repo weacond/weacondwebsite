@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { continuousSummary, CONTINUOUS_PRESETS } from "../lib/continuousCompound";
 export const metadata = {
   title: "连续复利计算器 — Weacond",
@@ -14,6 +16,12 @@ export const metadata = {
 const zh = {
   title: "连续复利计算器",
   subtitle: "终值=P·e^(rt)；倍增倍数=e^(rt)；连续有效利率=e^r−1。教育性参考，非投资建议。",
+  howToTitle: "如何使用连续复利计算器",
+  howTo: [
+    "输入本金 P、利率 r 与时间 t。",
+    "计算器按 终值 = P·e^(rt) 算终值与倍增倍数。",
+    "查看连续有效利率 = e^r − 1。",
+  ],
   principalLabel: "本金", rateLabel: "年化 %", yearsLabel: "年数",
   presetLabels: { modest: "稳健 5%/10y", growth: "成长 8%/20y", long: "长线 7%/30y", high: "高增 15%/15y", low: "低增 2%/5y" },
   resultTitle: "结果", fvLabel: "连续复利终值", multLabel: "倍增倍数",
@@ -25,6 +33,12 @@ const zh = {
 const en = {
   title: "Continuous Compounding",
   subtitle: "FV=P·e^(rt); multiplier=e^(rt); continuous EAR=e^r−1. Educational, not investment advice.",
+  howToTitle: "How to use the continuous-compounding calculator",
+  howTo: [
+    "Enter principal P, rate r and time t.",
+    "The calculator computes FV = P·e^(rt) and the multiplier.",
+    "Read the continuous effective rate = e^r − 1.",
+  ],
   principalLabel: "Principal", rateLabel: "Annual Rate %", yearsLabel: "Years",
   presetLabels: { modest: "Modest 5%/10y", growth: "Growth 8%/20y", long: "Long 7%/30y", high: "High 15%/15y", low: "Low 2%/5y" },
   resultTitle: "Results", fvLabel: "Continuous FV", multLabel: "Multiplier",
@@ -69,6 +83,10 @@ export default function ContinuousPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="continuous" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/continuous"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Continuous Compounding", href: "/continuous" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

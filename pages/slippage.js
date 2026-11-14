@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { slippageSummary, SLIPPAGE_PRESETS } from "../lib/slippage";
 export const metadata = {
   title: "滑点 / 价差成本 — Weacond",
@@ -14,6 +16,12 @@ export const metadata = {
 const zh = {
   title: "滑点 / 价差成本计算器",
   subtitle: "往返成本=价差+2×滑点；占名义比=成本/价格；净回报=毛回报−成本。教育性参考，非投资建议。",
+  howToTitle: "如何使用滑点/价差成本计算器",
+  howTo: [
+    "输入价差与单程滑点（价格% 或点数）。",
+    "计算器算往返成本 = 价差 + 2×滑点。",
+    "查看占名义比与扣成本后净回报。",
+  ],
   priceLabel: "价格", spreadLabel: "价差", slipLabel: "每腿滑点", grossLabel: "毛回报 %",
   presetLabels: { liquidStock: "高流动性股票", illiquid: "低流动性", cryptoSpot: "加密现货", fx: "外汇 majors", pennyStock: "低价股" },
   resultTitle: "结果", costLabel: "往返成本（价格）", costPctLabel: "占名义比",
@@ -25,6 +33,12 @@ const zh = {
 const en = {
   title: "Slippage / Spread Cost",
   subtitle: "Round-trip cost = spread + 2×slippage; % of notional = cost/price; net = gross − cost. Educational, not investment advice.",
+  howToTitle: "How to use the slippage / spread-cost calculator",
+  howTo: [
+    "Enter the spread and one-way slippage (price % or points).",
+    "The calculator computes round-trip cost = spread + 2×slippage.",
+    "Read the % of notional and the net return after cost.",
+  ],
   priceLabel: "Price", spreadLabel: "Spread", slipLabel: "Slippage / leg", grossLabel: "Gross Return %",
   presetLabels: { liquidStock: "Liquid Stock", illiquid: "Illiquid", cryptoSpot: "Crypto Spot", fx: "FX Majors", pennyStock: "Penny" },
   resultTitle: "Results", costLabel: "Round-trip cost", costPctLabel: "% of Notional",
@@ -67,6 +81,10 @@ export default function SlippagePage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="slippage" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/slippage"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Slippage / Spread Cost", href: "/slippage" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

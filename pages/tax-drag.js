@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   taxDragSummary, TAXDRAG_PRESETS,
@@ -54,6 +56,10 @@ export default function TaxDragPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="tax-drag" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/tax-drag"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "After-tax Compounding / Tax Drag", href: "/tax-drag" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -141,6 +147,12 @@ export default function TaxDragPage() {
 const zh = {
   title: "税后复利 / 税收拖累",
   subtitle: "税后年化 = r·(1−t)；税收拖累 = (名义终值 − 税后终值)/名义终值。教育性参考。",
+  howToTitle: "如何使用税后复利/税收拖累计算器",
+  howTo: [
+    "输入年化收益 r、税率 t 与持有期数 n。",
+    "计算器算税后年化 = r·(1−t)。",
+    "查看税收拖累 = (名义终值 − 税后终值)/名义终值。",
+  ],
   rateLabel: "名义年化 %",
   taxRateLabel: "税率 %",
   yearsLabel: "年数",
@@ -159,6 +171,12 @@ const zh = {
 const en = {
   title: "After-tax Compounding / Tax Drag",
   subtitle: "After-tax rate = r·(1−t); tax drag = (nominal − after-tax)/nominal. Educational.",
+  howToTitle: "How to use the after-tax compounding / tax-drag calculator",
+  howTo: [
+    "Enter annual return r, tax rate t and holding periods n.",
+    "The calculator computes after-tax rate = r·(1−t).",
+    "Read the tax drag = (nominal − after-tax)/nominal.",
+  ],
   rateLabel: "Nominal annual %",
   taxRateLabel: "Tax rate %",
   yearsLabel: "Years",

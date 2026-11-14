@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   harvestSummary, HARVEST_PRESETS,
@@ -54,6 +56,10 @@ export default function TaxLossPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="tax-loss" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/tax-loss"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Tax-Loss Harvesting", href: "/tax-loss" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -141,6 +147,12 @@ export default function TaxLossPage() {
 const zh = {
   title: "税务亏损收割计算器",
   subtitle: "当年税收节省 = min(亏损, 抵免上限) × 税率，超限结转。教育性参考。",
+  howToTitle: "如何使用税务亏损收割计算器",
+  howTo: [
+    "输入当年资本亏损、抵免上限与税率。",
+    "计算器算当年税收节省 = min(亏损, 抵免上限) × 税率。",
+    "超限部分结转来年，查看结转金额。",
+  ],
   lossLabel: "实现亏损",
   capLabel: "抵免上限（0=无限）",
   taxRateLabel: "税率 %",
@@ -160,6 +172,12 @@ const zh = {
 const en = {
   title: "Tax-Loss Harvesting",
   subtitle: "Year-1 tax saving = min(loss, offset cap) × rate; excess carried forward. Educational.",
+  howToTitle: "How to use the tax-loss harvesting calculator",
+  howTo: [
+    "Enter this year's capital loss, the offset cap and the tax rate.",
+    "The calculator computes Year-1 tax saving = min(loss, offset cap) × rate.",
+    "Excess carries forward; read the carried-forward amount.",
+  ],
   lossLabel: "Realized loss",
   capLabel: "Offset cap (0 = unlimited)",
   taxRateLabel: "Tax rate %",

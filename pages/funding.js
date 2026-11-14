@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { fundingSummary, FUNDING_PRESETS } from "../lib/fundingRate";
 export const metadata = {
   title: "永续资金费率成本计算器 — Weacond",
@@ -14,6 +16,12 @@ export const metadata = {
 const zh = {
   title: "永续资金费率成本计算器",
   subtitle: "资金费 = 名义本金 × 费率 × 期数；年化 = 费率 × 每年期数；费率为负时持有方收资金费。教育性参考，非投资建议。",
+  howToTitle: "如何使用永续资金费率成本计算器",
+  howTo: [
+    "输入名义本金、资金费率%与持仓期数。",
+    "计算器算资金费 = 名义本金 × 费率 × 期数，并年化。",
+    "费率为负时你收取资金费，为正时你支付。",
+  ],
   notionalLabel: "名义本金", rateLabel: "资金费率 %/8h", daysLabel: "持有天数", ppdLabel: "每天期数",
   presetLabels: { normalLong: "多头 0.01%/8h · 7天", highFunding: "高费 0.05%/8h · 30天", shortReceives: "空头收 0.01%/8h · 30天", weekly: "7天 0.01%/8h", monthly: "30天 0.01%/8h" },
   resultTitle: "结果", costLabel: "总资金成本", fracLabel: "占本金比例", annLabel: "年化资金费率", bandLabel: "成本等级",
@@ -24,6 +32,12 @@ const zh = {
 const en = {
   title: "Funding Rate Cost",
   subtitle: "Cost = notional × rate × periods; annualized = rate × periods/year; negative rate means you receive funding. Educational, not investment advice.",
+  howToTitle: "How to use the funding-rate cost calculator",
+  howTo: [
+    "Enter notional, funding rate % and holding periods.",
+    "The calculator computes cost = notional × rate × periods, annualized.",
+    "A negative rate means you receive funding; a positive one means you pay.",
+  ],
   notionalLabel: "Notional", rateLabel: "Funding %/8h", daysLabel: "Days Held", ppdLabel: "Periods/Day",
   presetLabels: { normalLong: "Long 0.01%/8h · 7d", highFunding: "High 0.05%/8h · 30d", shortReceives: "Short recv 0.01%/8h · 30d", weekly: "7d 0.01%/8h", monthly: "30d 0.01%/8h" },
   resultTitle: "Results", costLabel: "Total Funding", fracLabel: "% of Notional", annLabel: "Annualized Rate", bandLabel: "Cost Level",
@@ -69,6 +83,10 @@ export default function FundingPage() {
         <meta name="description" content={L.subtitle} />
       </Head>
       <CalcLd slug="funding" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/funding"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Funding Rate Cost", href: "/funding" }]),
+      ]} />
       <Navbar />
       <section className="max-w-2xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">{L.title}</h1>
