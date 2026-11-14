@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   fxSummary, FX_PRESETS,
@@ -56,6 +58,12 @@ export default function FxPipPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="fx-pip" />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/fx-pip"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "FX Pip Value / Notional", href: "/fx-pip" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -158,6 +166,13 @@ const zh = {
   notionalLabel: "名义头寸",
   pipPctLabel: "价格变动 %",
   lotsLabel: "手数",
+  howToTitle: "如何使用 FX 点值 / 名义头寸计算器",
+  howTo: [
+    "输入点大小 pipSize、头寸（单位）、汇率 rate 与点数 pips。",
+    "读取每点价值 = pipSize × 头寸 / 汇率，衡量每 1 个点移动的盈亏。",
+    "读取名义头寸 = 头寸 × 汇率，得到以账户货币计的价值。",
+    "读取手数与价格变动 %，并查看变动等级（低/中/高）。",
+  ],
   invalid: "头寸/汇率/点大小须 >0。",
   disclaimer: "简化模型（账户货币≈报价货币或按 rate 换算），忽略点差、隔夜利息与滑点，非交易建议。",
   linkPosition: "头寸规模",
@@ -178,6 +193,13 @@ const en = {
   notionalLabel: "Notional",
   pipPctLabel: "Price move %",
   lotsLabel: "Lots",
+  howToTitle: "How to use the FX pip value / notional calculator",
+  howTo: [
+    "Enter pip size, position (units), the rate, and the number of pips.",
+    "Read pip value = pipSize × size / rate: the P&L per one-pip move.",
+    "Read notional = size × rate: the position value in account currency.",
+    "Read lots and the price move %, and check the band (low/moderate/high).",
+  ],
   invalid: "Position / rate / pip size must be > 0.",
   disclaimer: "Simplified model (account ccy ≈ quote ccy or via rate); ignores spread, swap, slippage. Not trading advice.",
   linkPosition: "Position size",

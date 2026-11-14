@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { interestParitySummary, INTEREST_PARITY_PRESETS } from "../lib/interestParity";
 export const metadata = {
   title: "利率平价 / 远期汇率计算器 — Weacond",
@@ -18,6 +20,13 @@ const zh = {
   presetLabels: { domHigher: "本币5% vs 外币1% · 1y", domLower: "本币1% vs 外币5% · 1y", equal: "利率相等 3% · 2y", longTerm: "5% vs 2% · 5y", halfYear: "6% vs 3% · 0.5y" },
   resultTitle: "结果", fwdLabel: "理论远期", premLabel: "升贴水", misLabel: "套利基差", bandLabel: "升贴水等级",
   bandText: { flat: "平", small: "小", moderate: "中", large: "大", invalid: "无效" },
+  howToTitle: "如何使用利率平价 / 远期汇率计算器",
+  howTo: [
+    "输入即期汇率 S、本币利率（%）、外币利率（%）与期限（年）；市场远期为选填。",
+    "读取理论远期 F = S × (1+r_d)^t / (1+r_f)^t：本币利率更高则远期贴水（F<S）。",
+    "读取升贴水 ≈ r_d − r_f（小幅利差时），并查看升贴水等级（平/小/中/大）。",
+    "填入市场远期，读取套利基差 = 市场远期与理论远期之差（扣除成本后）。",
+  ],
   learnTitle: "学习",
   learn: "利率平价：本币利率高于外币，本币远期贴水（F<S），因本币持有成本更高。远期 F = S×(1+r_d)^t/(1+r_f)^t。升贴水 ≈ r_d − r_f（小幅时）。市场远期偏离理论值即存在套利机会（扣除成本后）。",
 };
@@ -28,6 +37,13 @@ const en = {
   presetLabels: { domHigher: "Dom 5% vs For 1% · 1y", domLower: "Dom 1% vs For 5% · 1y", equal: "Equal 3% · 2y", longTerm: "5% vs 2% · 5y", halfYear: "6% vs 3% · 0.5y" },
   resultTitle: "Results", fwdLabel: "Theory Forward", premLabel: "Premium", misLabel: "Arb Basis", bandLabel: "Premium Level",
   bandText: { flat: "Flat", small: "Small", moderate: "Moderate", large: "Large", invalid: "Invalid" },
+  howToTitle: "How to use the interest rate parity / forward rate calculator",
+  howTo: [
+    "Enter spot S, domestic rate (%), foreign rate (%), and term in years; the market forward is optional.",
+    "Read the theoretical forward F = S × (1+r_d)^t / (1+r_f)^t: a higher domestic rate means a forward discount (F<S).",
+    "Read the premium ≈ r_d − r_f (for small spreads) and its band (flat/small/moderate/large).",
+    "Enter a market forward to read the arbitrage basis = market forward − theoretical forward (after costs).",
+  ],
   learnTitle: "Learn",
   learn: "Interest rate parity: when domestic rate exceeds foreign, the domestic currency trades at a forward discount (F<S), reflecting higher carry. Forward F = S×(1+r_d)^t/(1+r_f)^t. Premium ≈ r_d − r_f for small spreads. A market forward deviating from theory implies arbitrage (after costs).",
 };
@@ -70,6 +86,12 @@ export default function InterestParityPage() {
         <meta name="description" content={L.subtitle} />
       </Head>
       <CalcLd slug="interest-parity" />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/interest-parity"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Interest Rate Parity / Forward", href: "/interest-parity" }]),
+        ]}
+      />
       <Navbar />
       <section className="max-w-2xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">{L.title}</h1>

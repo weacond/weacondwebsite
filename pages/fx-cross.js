@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   fxCrossSummary, FXCROSS_PRESETS,
@@ -47,6 +49,12 @@ export default function FxCrossPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="fx-cross" />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/fx-cross"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "FX Cross-Rate / Conversion", href: "/fx-cross" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -142,6 +150,13 @@ const zh = {
   convertLabel: "换算后金额",
   invLabel: "反报价 C/A",
   pipLabel: "每点价值",
+  howToTitle: "如何使用 FX 交叉汇率 / 货币换算计算器",
+  howTo: [
+    "输入汇率 A/B（分子）与 B/C（分母），如 EUR/USD 与 USD/JPY。",
+    "读取交叉汇率 A/C = (A/B) / (B/C)，无需美元即可得任意两币汇率。",
+    "输入金额（货币 A），读取换算后金额 = 金额 × 汇率。",
+    "读取反报价 C/A 与每点价值，便于反向换算与点值估算。",
+  ],
   invalid: "汇率须 >0，名义头寸 >0。",
   disclaimer: "简化模型（忽略点差/隔夜利息/流动性），非交易建议。",
   linkFxPip: "FX 点值",
@@ -161,6 +176,13 @@ const en = {
   convertLabel: "Converted amount",
   invLabel: "Inverted C/A",
   pipLabel: "Pip value",
+  howToTitle: "How to use the FX cross-rate / currency conversion calculator",
+  howTo: [
+    "Enter rate A/B (numerator) and B/C (denominator), e.g. EUR/USD and USD/JPY.",
+    "Read the cross rate A/C = (A/B) / (B/C): any pair's rate without going through USD.",
+    "Enter an amount in currency A and read the converted amount = amount × rate.",
+    "Read the inverted rate C/A and pip value for reverse conversion and pip sizing.",
+  ],
   invalid: "Rates must be > 0, notional > 0.",
   disclaimer: "Simplified model (ignores spread/swap/liquidity). Not trading advice.",
   linkFxPip: "FX Pip Value",

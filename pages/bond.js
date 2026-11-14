@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   bondSummary, BOND_PRESETS,
@@ -48,6 +50,12 @@ export default function BondPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="bond" />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/bond"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Bond Price / Duration", href: "/bond" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -143,6 +151,13 @@ const zh = {
   macLabel: "麦凯久期",
   modLabel: "修正久期",
   yearUnit: "年",
+  howToTitle: "如何使用债券价格 / 久期计算器",
+  howTo: [
+    "输入票面利率（%）、到期年数与到期收益率（%）；模型按年付息、面值 100。",
+    "读取债券价格并判断平价/溢价/折价：收益率高于票面→折价、低于→溢价、相等→平价。",
+    "读取当前收益率 = 票息 / 价格，反映持有期间的即时回报。",
+    "读取麦凯久期与修正久期（= 麦凯 / (1+收益率)）：衡量价格对利率变动的敏感度。",
+  ],
   invalid: "年数须 ≥1，收益率 >−1。",
   disclaimer: "按年付息、面值 100 的简化模型，忽略付息频率与信用利差，非投资建议。",
   linkRealReturn: "实际回报",
@@ -162,6 +177,13 @@ const en = {
   macLabel: "Macaulay duration",
   modLabel: "Modified duration",
   yearUnit: "yr",
+  howToTitle: "How to use the bond price / duration calculator",
+  howTo: [
+    "Enter the coupon rate (%), years to maturity, and the yield to maturity (%); the model uses annual coupons, face 100.",
+    "Read the bond price and its band: yield above coupon → discount, below → premium, equal → par.",
+    "Read current yield = coupon / price, the instant return over the holding period.",
+    "Read Macaulay and modified duration (= Macaulay / (1+yield)): how sensitive the price is to rate changes.",
+  ],
   invalid: "Years must be ≥ 1, yield > −1.",
   disclaimer: "Simplified annual-coupon model, face 100; ignores frequency and credit spread. Not investment advice.",
   linkRealReturn: "Real Return",

@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   loanSummary, LOAN_PRESETS,
@@ -49,6 +51,12 @@ export default function LoanPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="loan" />
+      <StructuredData
+        data={[
+          howToLd(L.howToTitle, L.howTo, "/loan"),
+          breadcrumbLd([{ name: "Home", href: "/" }, { name: "Loan / Debt Payoff", href: "/loan" }]),
+        ]}
+      />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -147,6 +155,13 @@ const zh = {
   compound: "复利增长",
   bond: "债券久期",
   realReturn: "实际收益率",
+  howToTitle: "如何使用贷款/偿债摊销计算器",
+  howTo: [
+    "输入本金 P（如 10000）、年利率（%）与年期（如 1 年）。",
+    "查看月供：等额本息月供 = P·r·(1+r)^n / ((1+r)^n−1)，r 为月利率、n 为总月数。",
+    "读取总利息、总还款（本金+利息）与利息占比，评估借款成本。",
+    "查看偿还状态（快速/适中/缓慢/无法偿还）：利率过高或期限过短会拖慢甚至无法按时偿还。",
+  ],
   note: "等额本息假设利率恒定、按月付息。教育性参考，非投资建议。",
   na: "—",
   presetLabels: { car: "车贷", mortgage: "房贷", student: "学贷", highRate: "高利率", zeroRate: "零利率" },
@@ -167,6 +182,13 @@ const en = {
   compound: "Compound growth",
   bond: "Bond duration",
   realReturn: "Real return",
+  howToTitle: "How to use the loan / debt payoff calculator",
+  howTo: [
+    "Enter principal P (e.g. 10000), the annual rate (%), and the term in years (e.g. 1 year).",
+    "Read the monthly payment: equal-payment = P·r·(1+r)^n / ((1+r)^n−1), where r is the monthly rate and n the total months.",
+    "Read total interest, total paid (principal + interest), and the interest ratio to gauge borrowing cost.",
+    "Check the payoff status (fast/medium/slow/unpayable): a high rate or a short term slows or makes payoff infeasible.",
+  ],
   note: "Equal-payment assumes a constant rate with monthly interest. Educational reference, not investment advice.",
   na: "—",
   presetLabels: { car: "Car loan", mortgage: "Mortgage", student: "Student", highRate: "High rate", zeroRate: "Zero rate" },
