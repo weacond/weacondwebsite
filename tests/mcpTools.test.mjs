@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 44 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 44);
+test("注册 45 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 45);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -21,12 +21,12 @@ test("注册 44 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "loan", "ear", "drip",
     "continuous", "leveredEtf", "goalSolver", "inflationGoal", "taxLoss",
     "fairValue", "staking", "lotSize", "avgEntry",
-    "barrier", "bond", "var",
+    "barrier", "bond", "var", "realEstate",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 44);
+  assert.equal(defs.length, 45);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -481,4 +481,30 @@ test("callTool var 入参非法 → isError", () => {
   assert.equal(callTool("var", { positionValue: 0, sigma: 0.2 }).isError, true); // 头寸 ≤0
   assert.equal(callTool("var", { positionValue: 1000000, sigma: 0.2, confidence: 1 }).isError, true); // 置信度 ≥1
   assert.equal(callTool("var", { positionValue: 1000000, sigma: 0.2, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool realEstate 单户住宅 → 全指标与不变式", () => {
+  const r = callTool("realEstate", { purchasePrice: 350000, downPayment: 70000, annualRent: 32000, operatingExpenses: 5000, mortgageRate: 0.065, loanTermYears: 30, targetCapRate: 0.08 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.annualDebtService - r.structuredContent.monthlyPI * 12) < 1e-6);
+  assert.ok(Math.abs(r.structuredContent.cashFlow - (r.structuredContent.noi - r.structuredContent.annualDebtService)) < 1e-6);
+  assert.ok(Math.abs(r.structuredContent.dscr - r.structuredContent.noi / r.structuredContent.annualDebtService) < 1e-9);
+  assert.ok(r.structuredContent.capRate > 0);
+});
+
+test("callTool realEstate 全款 → 无按揭（DSCR=null, CoC=CapRate）", () => {
+  const r = callTool("realEstate", { purchasePrice: 300000, downPayment: 300000, annualRent: 22000, operatingExpenses: 4500 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.hasDebt, false);
+  assert.equal(r.structuredContent.dscr, null);
+  assert.equal(r.structuredContent.band, "nofinancing");
+  assert.ok(Math.abs(r.structuredContent.cashOnCash - r.structuredContent.capRate) < 1e-12);
+});
+
+test("callTool realEstate 入参非法 → isError", () => {
+  assert.equal(callTool("realEstate", { purchasePrice: 350000 }).isError, true); // 缺 annualRent
+  assert.equal(callTool("realEstate", { purchasePrice: 0, annualRent: 24000 }).isError, true); // 价 ≤0
+  assert.equal(callTool("realEstate", { purchasePrice: 100000, downPayment: 200000, annualRent: 24000 }).isError, true); // 首付>价
+  assert.equal(callTool("realEstate", { purchasePrice: 100000, annualRent: 24000, bogus: 1 }).isError, true); // 未知字段
 });
