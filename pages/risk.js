@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqLd from "../components/FaqLd";
 import FaqSection from "../components/FaqSection";
 import { CURVE_PRESETS, getCurvePreset, buildRiskDashboard, riskTier } from "../lib/riskDashboard";
@@ -66,6 +68,10 @@ export default function RiskPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="risk" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/risk"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Risk & Performance Dashboard", href: "/risk" }]),
+      ]} />
       <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -288,6 +294,14 @@ function UnderwaterChart({ curve, L }) {
 const zh = {
   title: "风险与绩效仪表盘",
   subtitle: "输入净值曲线或用预设，一次读出最大回撤/持续/恢复、VaR/CVaR 尾部风险、偏度峰度，以及夏普/索提诺/卡玛/欧米伽/尾部/斯特林六大绩效比率。教育性工具，非投资建议。",
+  howToTitle: "如何使用风险/绩效仪表盘",
+  howTo: [
+    "选择一条净值曲线预设，或粘贴自定义净值序列（至少 2 点）。",
+    "设定置信度、无风险利率与曲线跨度（年）。",
+    "读取回撤画像：最大回撤、持续/恢复期数、溃疡指数、水下占比。",
+    "查看尾部风险：VaR 95%、VaR 99%、CVaR 99%、偏度、超额峰度。",
+    "比较六大绩效比率：夏普、索提诺、卡玛、欧米伽、尾部、斯特林。",
+  ],
   preset: "选择净值曲线",
   custom: "自定义净值曲线",
   customHint: "每行/空格/逗号分隔的净值，至少 2 个点；留空则用上方预设。",
@@ -337,6 +351,14 @@ const zh = {
 const en = {
   title: "Risk & Performance Dashboard",
   subtitle: "Paste an equity curve or pick a preset to read max drawdown / duration / recovery, VaR/CVaR tail risk, skew & kurtosis, plus Sharpe / Sortino / Calmar / Omega / Tail / Sterling ratios. Educational tool, not investment advice.",
+  howToTitle: "How to use the risk & performance dashboard",
+  howTo: [
+    "Pick an equity-curve preset, or paste a custom net-value series (at least 2 points).",
+    "Set confidence, risk-free rate and the curve span in years.",
+    "Read the drawdown portrait: max drawdown, duration/recovery, ulcer index, time underwater.",
+    "Check tail risk: VaR 95%, VaR 99%, CVaR 99%, skewness, excess kurtosis.",
+    "Compare six performance ratios: Sharpe, Sortino, Calmar, Omega, Tail, Sterling.",
+  ],
   preset: "Choose an equity curve",
   custom: "Custom equity curve",
   customHint: "Net values separated by line/space/comma, at least 2 points; leave blank to use the preset above.",

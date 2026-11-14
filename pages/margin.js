@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   marginSummary, MARGIN_PRESETS,
@@ -56,6 +58,10 @@ export default function MarginPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="margin" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/margin"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Margin Financing / Interest", href: "/margin" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -149,6 +155,13 @@ export default function MarginPage() {
 const zh = {
   title: "杠杆融资成本 / 保证金利息",
   subtitle: "融资成本 = 借入·利率·(天/365)；占本金比 = 成本/本金。教育性参考。",
+  howToTitle: "如何使用保证金/融资利息计算器",
+  howTo: [
+    "输入本金与杠杆倍数（如 2×、10×）。",
+    "填入融资年利率%与持有天数。",
+    "计算器算借入金额、头寸价值与融资成本。",
+    "读取「占本金比」判断融资成本是否过高（低 <1% / 中 1–5% / 高 ≥5%）。",
+  ],
   principalLabel: "本金",
   leverageLabel: "杠杆倍数",
   interestLabel: "年利率 %",
@@ -168,6 +181,13 @@ const zh = {
 const en = {
   title: "Leverage Financing / Margin Interest",
   subtitle: "Financing cost = borrowed·rate·(days/365); cost ratio = cost/principal. Educational.",
+  howToTitle: "How to use the margin financing calculator",
+  howTo: [
+    "Enter principal and leverage (e.g. 2×, 10×).",
+    "Fill in the annual financing rate % and days held.",
+    "The calculator computes the borrowed amount, position value and financing cost.",
+    "Read the cost/principal ratio to judge whether financing is high (low <1% / moderate 1–5% / high ≥5%).",
+  ],
   principalLabel: "Principal",
   leverageLabel: "Leverage",
   interestLabel: "Annual rate %",

@@ -5,6 +5,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqLd from "../components/FaqLd";
 import FaqSection from "../components/FaqSection";
 import { positionSize, assessPosition } from "../lib/positionSize";
@@ -57,6 +59,10 @@ export default function PositionSizePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="position-size" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/position-size"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Position Sizer", href: "/position-size" }]),
+      ]} />
       <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -150,6 +156,14 @@ function Result({ label, value, highlight }) {
 const zh = {
   title: "头寸计算器",
   subtitle: "先定“每笔最多亏多少”，再反推该买多少。卖Put 与趋势交易的仓位纪律。",
+  howToTitle: "如何使用头寸/定仓计算器",
+  howTo: [
+    "输入账户权益与「每笔风险%」（建议 0.5–2%）。",
+    "填入入场价与止损价，确定止损距离。",
+    "计算器按 ⌊ 账户×风险% ÷ |入场−止损| ⌋ 反推头寸单位数。",
+    "查看名义价值、占账户比例与最大亏损，判断集中度是否过高。",
+    "结合胜率/赔率查看风险:收益比、盈亏平衡胜率与 Kelly 建议仓位。",
+  ],
   inputs: "输入",
   account: "账户权益",
   riskPct: "每笔风险（%）",
@@ -194,6 +208,14 @@ const zh = {
 const en = {
   title: "Position Sizer",
   subtitle: "Decide max loss per trade first, then size the position. The core discipline for put-selling & trend trading.",
+  howToTitle: "How to use the position sizer",
+  howTo: [
+    "Enter account equity and risk per trade % (0.5–2% recommended).",
+    "Fill in entry and stop price to set the stop distance.",
+    "The calculator back-solves units = ⌊ equity × risk% ÷ |entry − stop| ⌋.",
+    "Read notional, position % and max loss to check concentration.",
+    "Use win rate / odds to see the R:R ratio, breakeven win rate and Kelly sizing.",
+  ],
   inputs: "Inputs",
   account: "Account Equity",
   riskPct: "Risk per Trade (%)",

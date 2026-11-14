@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   validLeverage, notional, leveragedPnl, liquidationMove, liquidationPrice,
@@ -65,6 +67,10 @@ export default function LeveragePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="leverage" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/leverage"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Leverage & Liquidation", href: "/leverage" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -185,6 +191,14 @@ export default function LeveragePage() {
 const zh = {
   title: "杠杆与强平计算器",
   subtitle: "输入杠杆倍数与价格变动，算放大后盈亏、强平价与最大亏损。价格反向 1/杠杆 即触强平。",
+  howToTitle: "如何使用杠杆/强平计算器",
+  howTo: [
+    "输入杠杆倍数（如 2×–20×）与价格变动%。",
+    "选择方向（多/空），填账户权益与维持保证金%。",
+    "计算器算放大后权益变动、名义价值与风险等级。",
+    "读取强平幅度与强平价（入场 100），判断价格反向多少即触强平。",
+    "设最大可亏%，反推可承受的最大价格变动。",
+  ],
   levLabel: "杠杆倍数 ×",
   moveLabel: "价格变动 %",
   sideLabel: "方向",
@@ -208,6 +222,14 @@ const zh = {
 const en = {
   title: "Leverage & Liquidation",
   subtitle: "Enter leverage and a price move to see amplified P&L, liquidation price and max loss. A price move of 1/leverage against you triggers liquidation.",
+  howToTitle: "How to use the leverage & liquidation calculator",
+  howTo: [
+    "Enter leverage (e.g. 2×–20×) and a price move %.",
+    "Choose side (long/short), and fill account equity and maintenance margin %.",
+    "The calculator computes amplified P&L, notional and the risk band.",
+    "Read the move-to-liquidation and liquidation price (entry 100) to see how far an adverse move triggers liquidation.",
+    "Set a max loss % to back-solve the tolerable price move.",
+  ],
   levLabel: "Leverage ×",
   moveLabel: "Price move %",
   sideLabel: "Side",

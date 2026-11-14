@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { lotSizeSummary, LOT_SIZE_PRESETS } from "../lib/lotSize";
 export const metadata = {
@@ -15,6 +17,14 @@ export const metadata = {
 const zh = {
   title: "手数 / 合约乘数计算器",
   subtitle: "由风险定手数 = 风险金额 ÷ 每手风险；名义价值 = 手数×价格×乘数；保证金 = 名义/杠杆。教育性参考，非投资建议。",
+  howToTitle: "如何使用手数/合约乘数计算器",
+  howTo: [
+    "输入账户权益与单笔风险%（如 1%）。",
+    "填入价格、止损与合约乘数（期货/外汇常用 10×/100×）。",
+    "计算器算风险金额、每手风险，并反推手数 = 风险金额 ÷ 每手风险。",
+    "查看名义价值、所需保证金与账户暴露%。",
+    "读取暴露等级（轻/中/重/过度杠杆），避免过度集中。",
+  ],
   accountLabel: "账户",
   riskPctLabel: "单笔风险 %",
   priceLabel: "价格",
@@ -41,6 +51,14 @@ const zh = {
 const en = {
   title: "Lot Size / Contract Multiplier",
   subtitle: "Units from risk = risk amount ÷ risk/lot; notional = units×price×multiplier; margin = notional/leverage. Educational, not investment advice.",
+  howToTitle: "How to use the lot size / contract multiplier calculator",
+  howTo: [
+    "Enter account equity and risk per trade % (e.g. 1%).",
+    "Fill in price, stop and the contract multiplier (futures/FX often 10×/100×).",
+    "The calculator computes risk amount, risk/lot, and back-solves units = risk amount ÷ risk/lot.",
+    "Read notional, required margin and account exposure %.",
+    "Check the exposure band (light/moderate/heavy/over-leveraged) to avoid over-concentration.",
+  ],
   accountLabel: "Account",
   riskPctLabel: "Risk per Trade %",
   priceLabel: "Price",
@@ -101,6 +119,10 @@ export default function LotSizePage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="lot-size" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/lot-size"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Lot Size / Contract Multiplier", href: "/lot-size" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">

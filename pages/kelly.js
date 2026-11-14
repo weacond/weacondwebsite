@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqLd from "../components/FaqLd";
 import Link from "next/link";
 import { kellySummary, KELLY_PRESETS } from "../lib/kelly";
@@ -37,6 +39,10 @@ export default function KellyPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="kelly" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/kelly"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Kelly Criterion", href: "/kelly" }]),
+      ]} />
       <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -120,6 +126,14 @@ export default function KellyPage() {
 const zh = {
   title: "凯利公式",
   subtitle: "f*=p−q/b；几何增长率；分数凯利。教育性参考。",
+  howToTitle: "如何使用凯利公式计算器",
+  howTo: [
+    "输入胜率%与净赔率 b（平均盈利 ÷ 平均亏损）。",
+    "计算器算最优仓位 f* = p − q/b。",
+    "查看几何增长率（每单位期望）。",
+    "读取半凯利/四分之一凯利——现实优势被高估，建议用分数凯利。",
+    "若 f*≤0（无正期望），放弃该标的或改进策略。",
+  ],
   pLabel: "胜率 %",
   bLabel: "净赔率 b",
   fStarLabel: "最优仓位 f*",
@@ -144,6 +158,14 @@ const zh = {
 const en = {
   title: "Kelly Criterion",
   subtitle: "f*=p−q/b; growth rate; fractional Kelly. Educational.",
+  howToTitle: "How to use the Kelly criterion calculator",
+  howTo: [
+    "Enter win rate % and net odds b (avg win ÷ avg loss).",
+    "The calculator computes the optimal fraction f* = p − q/b.",
+    "Read the geometric growth rate (expectation per unit).",
+    "Check half / quarter Kelly — real edge is over-estimated, so use fractional Kelly.",
+    "If f* ≤ 0 (no positive edge), skip the instrument or improve the strategy.",
+  ],
   pLabel: "Win rate %",
   bLabel: "Net odds b",
   fStarLabel: "Optimal f*",
