@@ -8,17 +8,18 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 12 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 12);
+test("注册 15 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 15);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
     "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
+    "slippage", "take_profit", "trailing_stop",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 12);
+  assert.equal(defs.length, 15);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -124,4 +125,35 @@ test("callTool npv 现金流不足 2 项 → 入参非法（minItems）", () => 
   const r = callTool("npv", { rate: 0.1, cashflows: [-10000] });
   assert.equal(r.isError, true);
   assert.equal(r.structuredContent.error, "invalid_args");
+});
+
+test("callTool slippage 往返成本占名义比与成本分级", () => {
+  const r = callTool("slippage", { price: 100, spread: 0.02, slippage: 0.01, grossReturn: 0.05 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.roundTripCost - 0.04) < 1e-9); // 0.02 + 2×0.01
+  assert.ok(Math.abs(r.structuredContent.costPct - 0.0004) < 1e-9); // 0.04 / 100
+  assert.equal(r.structuredContent.band, "low"); // 0.0004 < 0.001
+});
+
+test("callTool take_profit 止盈价 / 每单位盈利 / R:R 分级", () => {
+  const r = callTool("take_profit", { entry: 100, stop: 95, targetR: 2, side: "long" });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.riskPerUnit, 5); // |100 − 95|
+  assert.equal(r.structuredContent.takeProfit, 110); // 100 + 2×5
+  assert.equal(r.structuredContent.rewardPerUnit, 10); // 2×5
+  assert.equal(r.structuredContent.rrRatio, 2);
+  assert.equal(r.structuredContent.band, "good"); // 2 ≤ rr < 3
+});
+
+test("callTool trailing_stop 移动止损位 / 已实现 R / 保本触发", () => {
+  const r = callTool("trailing_stop", {
+    entry: 100, stop: 90, price: 112, trailDistance: 10, side: "long", triggerR: 1,
+  });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.riskPerUnit, 10); // |100 − 90|
+  assert.equal(r.structuredContent.trailingStop, 102); // max(90, 112−10)
+  assert.ok(Math.abs(r.structuredContent.rAchieved - 1.2) < 1e-9); // (112−100)/10
+  assert.equal(r.structuredContent.breakEvenTriggered, true); // 1.2 ≥ 1
+  assert.ok(Math.abs(r.structuredContent.lockInR - 0.2) < 1e-9); // (102−100)/10
 });
