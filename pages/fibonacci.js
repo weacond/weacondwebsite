@@ -5,6 +5,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { retracementLevels, extensionLevels } from "../lib/fibonacci";
 
 export const metadata = {
@@ -16,6 +18,12 @@ export const metadata = {
 const zh = {
   title: "斐波那契回撤 / 扩展",
   subtitle: "给定一段趋势的波段高/低，计算回撤（回调支撑阻力）与扩展（突破目标）。",
+  howToTitle: "如何使用斐波那契回撤/扩展计算器",
+  howTo: [
+    "输入一段趋势的波段高与低。",
+    "计算器算出回撤（回调支撑/阻力）与扩展（突破目标）位。",
+    "用于识别回调支撑阻力与突破目标。",
+  ],
   inputs: "输入",
   swingHigh: "波段高",
   swingLow: "波段低",
@@ -30,6 +38,12 @@ const zh = {
 const en = {
   title: "Fibonacci Retracement / Extension",
   subtitle: "Given a trend's swing high/low, compute retracement (reversal S/R) and extension (breakout targets).",
+  howToTitle: "How to use the Fibonacci retracement / extension calculator",
+  howTo: [
+    "Enter a trend's swing high and low.",
+    "The calculator computes retracement (reversal S/R) and extension (breakout) levels.",
+    "Use them to mark reversal support/resistance and breakout targets.",
+  ],
   inputs: "Inputs",
   swingHigh: "Swing High",
   swingLow: "Swing Low",
@@ -59,6 +73,10 @@ export default function FibonacciPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="fibonacci" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/fibonacci"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Fibonacci Retracement / Extension", href: "/fibonacci" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-4xl mx-auto">

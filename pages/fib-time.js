@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { fibTimeSummary, FIB_TIME_PRESETS, TIME_MULTS } from "../lib/fibTime";
 export const metadata = {
@@ -30,6 +32,10 @@ export default function FibTimePage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="fib-time" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/fib-time"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Fibonacci Time Zones", href: "/fib-time" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -103,6 +109,12 @@ export default function FibTimePage() {
 const zh = {
   title: "斐波那契时间周期",
   subtitle: "时间轴预测：t2+T×φ。教育性参考。",
+  howToTitle: "如何使用斐波那契时间周期计算器",
+  howTo: [
+    "输入参考时间点 t1、t2 与间隔 T。",
+    "计算器按 t2+T×φ 预测下一组时间窗口。",
+    "用于时间轴预测（教育性参考）。",
+  ],
   t2Label: "摆动结束 t₂",
   tLabel: "周期 T（根）",
   curLabel: "当前时间",
@@ -118,6 +130,12 @@ const zh = {
 const en = {
   title: "Fibonacci Time Zones",
   subtitle: "Time-axis prediction: t2+T×φ. Educational.",
+  howToTitle: "How to use the Fibonacci time-zones calculator",
+  howTo: [
+    "Enter reference points t1, t2 and interval T.",
+    "The calculator predicts the next time windows via t2 + T×φ.",
+    "Use it for time-axis prediction (educational).",
+  ],
   t2Label: "Swing end t₂",
   tLabel: "Period T (bars)",
   curLabel: "Current time",

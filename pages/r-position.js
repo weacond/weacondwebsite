@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { rPositionSummary, R_POSITION_PRESETS } from "../lib/rPosition";
 export const metadata = {
@@ -48,6 +50,10 @@ export default function RPositionPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="r-position" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/r-position"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "R-Multiple Position Sizing", href: "/r-position" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -135,6 +141,12 @@ export default function RPositionPage() {
 const zh = {
   title: "R-Multiple 头寸管理",
   subtitle: "风险金额=账户×risk%；预期盈利=风险×R；最大亏损=风险。教育性参考。",
+  howToTitle: "如何使用 R-Multiple 头寸管理计算器",
+  howTo: [
+    "输入账户、风险百分比与预期 R（盈亏比）。",
+    "计算器算风险金额 = 账户 × risk%，预期盈利 = 风险 × R，最大亏损 = 风险。",
+    "据此设定头寸（教育性参考）。",
+  ],
   accountLabel: "账户金额",
   riskLabel: "每笔风险 %",
   rLabel: "R 倍数",
@@ -155,6 +167,12 @@ const zh = {
 const en = {
   title: "R-Multiple Position Sizing",
   subtitle: "Risk = account × risk%; profit = risk × R; max loss = risk. Educational.",
+  howToTitle: "How to use the R-multiple position-sizing calculator",
+  howTo: [
+    "Enter the account, risk % and expected R (reward:risk).",
+    "The calculator computes risk = account × risk%, profit = risk × R, max loss = risk.",
+    "Use it to size the position (educational).",
+  ],
   accountLabel: "Account",
   riskLabel: "Risk %/trade",
   rLabel: "R multiple",

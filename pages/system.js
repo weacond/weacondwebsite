@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { simulateSystem, validSim, simInsight, SIM_PRESETS } from "../lib/systemSim";
 
@@ -62,6 +64,10 @@ export default function SystemPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="system" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/system"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Trading System Simulator", href: "/system" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -180,6 +186,12 @@ export default function SystemPage() {
 const zh = {
   title: "交易系统模拟器",
   subtitle: "给定胜率、盈亏比 R、每笔下注比例与交易次数，模拟净值曲线、最大回撤与破产概率——事前压力你的交易优势。",
+  howToTitle: "如何使用交易系统模拟器",
+  howTo: [
+    "输入胜率、盈亏比 R、每笔下注比例与交易次数。",
+    "计算器模拟净值曲线、最大回撤与破产概率。",
+    "用于事前压力你的交易优势。",
+  ],
   winRateLabel: "胜率",
   rLabel: "盈亏比 R",
   betLabel: "每笔下注",
@@ -206,6 +218,12 @@ const zh = {
 const en = {
   title: "Trading System Simulator",
   subtitle: "Given win rate, reward:risk R, bet fraction and number of trades, simulate the equity curve, max drawdown and probability of ruin — stress-test your edge before you trade it.",
+  howToTitle: "How to use the trading-system simulator",
+  howTo: [
+    "Enter win rate, reward:risk R, bet fraction and number of trades.",
+    "The calculator simulates the equity curve, max drawdown and probability of ruin.",
+    "Use it to stress-test your edge before trading.",
+  ],
   winRateLabel: "Win rate",
   rLabel: "Reward:risk R",
   betLabel: "Bet per trade",

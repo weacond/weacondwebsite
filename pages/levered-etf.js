@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   leveredEtfSummary, LEVERED_PRESETS,
@@ -59,6 +61,10 @@ export default function LeveredEtfPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="levered-etf" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/levered-etf"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Leveraged ETF Decay", href: "/levered-etf" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -158,6 +164,12 @@ export default function LeveredEtfPage() {
 const zh = {
   title: "杠杆 ETF 衰减计算器",
   subtitle: "杠杆后年化 = L·μ − ½·L·(L−1)·σ²；波动损耗/衰减。教育性参考。",
+  howToTitle: "如何使用杠杆 ETF 衰减计算器",
+  howTo: [
+    "输入杠杆倍数 L、年化收益 μ 与年化波动 σ。",
+    "计算器按 L·μ − ½·L·(L−1)·σ² 算杠杆后年化。",
+    "查看波动损耗/衰减（教育性参考）。",
+  ],
   leverageLabel: "杠杆倍数 L",
   muLabel: "标的年化 μ %",
   sigmaLabel: "标的年化波动 σ %",
@@ -179,6 +191,12 @@ const zh = {
 const en = {
   title: "Leveraged ETF Decay",
   subtitle: "Levered annual = L·μ − ½·L·(L−1)·σ²; volatility drag/decay. Educational reference.",
+  howToTitle: "How to use the leveraged-ETF decay calculator",
+  howTo: [
+    "Enter the leverage L, annualized return μ and annualized vol σ.",
+    "The calculator computes the levered annualized return via L·μ − ½·L·(L−1)·σ².",
+    "Read the volatility drag / decay (educational reference).",
+  ],
   leverageLabel: "Leverage L",
   muLabel: "Underlying annual μ %",
   sigmaLabel: "Underlying annual vol σ %",

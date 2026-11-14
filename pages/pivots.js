@@ -5,6 +5,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { pivotLevels, classicPivots, pivotTrend } from "../lib/pivots";
 
 export const metadata = {
@@ -64,6 +66,10 @@ export default function PivotsPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="pivots" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/pivots"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Pivot Points Calculator", href: "/pivots" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-4xl mx-auto">
@@ -164,6 +170,12 @@ function Result({ label, value, cls }) {
 const zh = {
   title: "支点计算器",
   subtitle: "由前一周期的高/低/收盘计算日内支撑阻力位。经典 / 伍迪 / 卡马拉拉 / 斐波那契四种算法，含当日趋势解读。",
+  howToTitle: "如何使用支点计算器",
+  howTo: [
+    "输入前一周期的高、低、收盘。",
+    "计算器按经典 / 伍迪 / 卡马拉拉 / 斐波那契算出日内支撑阻力位。",
+    "查看当日趋势解读。",
+  ],
   inputs: "输入",
   high: "最高 High",
   low: "最低 Low",
@@ -187,6 +199,12 @@ const zh = {
 const en = {
   title: "Pivot Points Calculator",
   subtitle: "Intraday support/resistance from the prior period's high/low/close. Classic / Woodie / Camarilla / Fibonacci, with a trend read.",
+  howToTitle: "How to use the pivot points calculator",
+  howTo: [
+    "Enter the prior period's high, low and close.",
+    "The calculator computes intraday support/resistance via Classic / Woodie / Camarilla / Fibonacci.",
+    "Read the intraday trend interpretation.",
+  ],
   inputs: "Inputs",
   high: "High",
   low: "Low",
