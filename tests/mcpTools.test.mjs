@@ -8,8 +8,8 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 37 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 37);
+test("注册 41 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 41);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -19,11 +19,12 @@ test("注册 37 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "rebalance", "beta", "real_after_tax", "real_return", "tax_drag", "prob_return",
     "loan", "ear", "drip",
     "continuous", "leveredEtf", "goalSolver", "inflationGoal", "taxLoss",
+    "fairValue", "staking", "lotSize", "avgEntry",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 37);
+  assert.equal(defs.length, 41);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -386,4 +387,52 @@ test("callTool taxLoss 税收收割节省与结转年数", () => {
   assert.ok(Math.abs(r.structuredContent.afterTaxCost - (10000 - r.structuredContent.taxSavings)) < 1e-9);
   assert.equal(r.structuredContent.carryforwardYears, 4);
   assert.equal(r.structuredContent.band, "low");
+});
+
+test("callTool fairValue 安全边际与上涨空间", () => {
+  const r = callTool("fairValue", { price: 40, eps: 6, targetPE: 15, d0: 2, g: 0.03, r: 0.08 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 安全边际 = (FV − 价格) / FV（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.marginOfSafety - (r.structuredContent.fairValue - 40) / r.structuredContent.fairValue) < 1e-12);
+  // 上涨空间 = (FV − 价格) / 价格
+  assert.ok(Math.abs(r.structuredContent.upside - (r.structuredContent.fairValue - 40) / 40) < 1e-12);
+  assert.equal(r.structuredContent.band, "deep");
+});
+
+test("callTool staking 质押净收益与年度奖励", () => {
+  const r = callTool("staking", { principal: 1000, apy: 0.04, inflationRate: 0.02, years: 5 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 净收益 = apy − 通胀（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.netYield - (r.structuredContent.apy - r.structuredContent.inflationRate)) < 1e-12);
+  // 年度奖励 = 本金 × apy
+  assert.ok(Math.abs(r.structuredContent.annualReward - r.structuredContent.principal * r.structuredContent.apy) < 1e-9);
+  assert.equal(r.structuredContent.band, "low");
+});
+
+test("callTool lotSize 名义价值/保证金/账户暴露", () => {
+  const r = callTool("lotSize", { account: 100000, riskPct: 0.01, price: 100, stop: 95, multiplier: 1, leverage: 1 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // 名义价值 = 手数 × 价格 × 乘数（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.notional - r.structuredContent.units * 100 * 1) < 1e-6);
+  // 保证金 = 名义价值 / 杠杆
+  assert.ok(Math.abs(r.structuredContent.margin - r.structuredContent.notional / 1) < 1e-9);
+  // 账户暴露 = 名义价值 / 账户
+  assert.ok(Math.abs(r.structuredContent.exposure - r.structuredContent.notional / 100000) < 1e-12);
+  assert.equal(r.structuredContent.band, "light");
+});
+
+test("callTool avgEntry 加权均价与到目标方向", () => {
+  const r = callTool("avgEntry", { existingShares: 100, existingPrice: 100, addShares: 50, addPrice: 110, current: 112, target: 120 });
+  assert.equal(r.isError, false);
+  const { blended, toTarget } = r.structuredContent;
+  assert.equal(blended.valid, true);
+  // 总成本 = 原持仓成本 + 加仓成本（公式无关不变式）
+  assert.ok(Math.abs(blended.totalCost - (100 * 100 + 50 * 110)) < 1e-6);
+  // 均价 = 总成本 / 总股数
+  assert.ok(Math.abs(blended.avg - blended.totalCost / blended.totalShares) < 1e-9);
+  // 到目标价方向为「上」
+  assert.equal(toTarget.direction, "up");
 });
