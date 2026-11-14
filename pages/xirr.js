@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { irr, annualize, validCashflows, cashflowInsight } from "../lib/xirr";
 
@@ -45,6 +47,10 @@ export default function XirrPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="xirr" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/xirr"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "IRR / XIRR", href: "/xirr" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -108,6 +114,12 @@ export default function XirrPage() {
 const zh = {
   title: "IRR / XIRR 计算器",
   subtitle: "输入现金流序列，反解内部收益率 IRR 与年化回报——真实不规则现金流的标准口径。",
+  howToTitle: "如何使用 IRR / XIRR 计算器",
+  howTo: [
+    "输入现金流序列（负号表示净流出，如初始 −100、后续 +120）。",
+    "计算器反解内部收益率 IRR。",
+    "查看年化回报，评估不规则现金流的真实收益。",
+  ],
   cfTitle: "现金流序列（负=投入，正=回收）",
   cfNote: "第 0 期通常为初始投入；后续为正代表回收。至少需一项负、一项正。",
   invalid: "请至少填写一项投入(负)与一项回收(正)。",
@@ -123,6 +135,12 @@ const zh = {
 const en = {
   title: "IRR / XIRR Calculator",
   subtitle: "Enter a cashflow series and solve the internal rate of return IRR and annualized return — the standard measure for irregular cashflows.",
+  howToTitle: "How to use the IRR / XIRR calculator",
+  howTo: [
+    "Enter a cashflow series (a negative sign means net outflow, e.g. −100 initially, +120 later).",
+    "The calculator solves the internal rate of return IRR.",
+    "Read the annualized return to assess the real yield of irregular cashflows.",
+  ],
   cfTitle: "Cashflow series (negative = outflow, positive = inflow)",
   cfNote: "Period 0 is usually the initial outflow; later positives are inflows. Needs at least one negative and one positive.",
   invalid: "Enter at least one outflow (negative) and one inflow (positive).",

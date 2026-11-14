@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { npvSummary, NPV_PRESETS } from "../lib/npvCalc";
 export const metadata = {
@@ -46,6 +48,10 @@ export default function NpvPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="npv" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/npv"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Net Present Value", href: "/npv" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -128,6 +134,13 @@ export default function NpvPage() {
 const zh = {
   title: "净现值 NPV",
   subtitle: "NPV=Σ CF/(1+r)^t；折现因子；永续；年金。教育性参考。",
+  howToTitle: "如何使用净现值 NPV 计算器",
+  howTo: [
+    "输入各期现金流 CF（首期可为 0，后续为净流入/流出）。",
+    "设定折现率 r%。",
+    "计算器按 NPV=Σ CF/(1+r)^t 累加折现值。",
+    "查看折现因子、永续与年金等价，判断项目/投资是否值得。",
+  ],
   rateLabel: "折现率 %",
   cfLabel: "现金流（CF₀ 通常为首期流出）",
   npvLabel: "净现值 NPV",
@@ -143,6 +156,13 @@ const zh = {
 const en = {
   title: "Net Present Value",
   subtitle: "NPV=Σ CF/(1+r)^t; discount factor; perpetuity; annuity. Educational.",
+  howToTitle: "How to use the NPV calculator",
+  howTo: [
+    "Enter each period's cash flow CF (period 0 may be 0; later ones are net inflow/outflow).",
+    "Set the discount rate r%.",
+    "The calculator sums discounted values as NPV=Σ CF/(1+r)^t.",
+    "Read the discount factor, perpetuity and annuity equivalents to judge the project/investment.",
+  ],
   rateLabel: "Discount rate %",
   cfLabel: "Cash flows (CF₀ = initial outlay)",
   npvLabel: "Net Present Value",

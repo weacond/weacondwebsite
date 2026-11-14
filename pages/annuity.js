@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   annuitySummary, ANNUITY_PRESETS,
@@ -45,6 +47,10 @@ export default function AnnuityPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="annuity" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/annuity"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Annuity Payout / Retirement", href: "/annuity" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -126,6 +132,13 @@ export default function AnnuityPage() {
 const zh = {
   title: "年金给付 / 退休规划",
   subtitle: "年金给付 PMT = PV·r/(1−(1+r)^−n)；所需储蓄；给付年数。教育性参考。",
+  howToTitle: "如何使用年金给付/退休规划计算器",
+  howTo: [
+    "输入本金 PV 与年利率%。",
+    "设定给付年数 n。",
+    "计算器按 PMT = PV·r/(1−(1+r)^−n) 求每期给付。",
+    "查看所需储蓄与给付年数，规划退休现金流。",
+  ],
   pvLabel: "现值（储蓄）",
   rateLabel: "年化利率 %",
   yearsLabel: "给付年数",
@@ -144,6 +157,13 @@ const zh = {
 const en = {
   title: "Annuity Payout / Retirement",
   subtitle: "PMT = PV·r/(1−(1+r)^−n); savings required; payout years. Educational.",
+  howToTitle: "How to use the annuity payout / retirement calculator",
+  howTo: [
+    "Enter the principal PV and the annual rate %.",
+    "Set the payout years n.",
+    "The calculator computes each payment as PMT = PV·r/(1−(1+r)^−n).",
+    "Read the required savings and payout years to plan retirement cash flow.",
+  ],
   pvLabel: "Present value",
   rateLabel: "Annual rate %",
   yearsLabel: "Payout years",

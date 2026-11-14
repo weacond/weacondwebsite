@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { futureValue, dcaVsLump, doublingYears, yearSchedule, validCompound } from "../lib/compound";
 
@@ -61,6 +63,10 @@ export default function CompoundPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="compound" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/compound"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Compound Growth Planner", href: "/compound" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -154,6 +160,13 @@ export default function CompoundPage() {
 const zh = {
   title: "复利投资规划器",
   subtitle: "本金 + 每月定投，按月复利算终值与利息贡献；对比 DCA 与一次性投入，附 72 法则。",
+  howToTitle: "如何使用复利投资规划器",
+  howTo: [
+    "输入初始本金与每月定投金额。",
+    "设定年化收益率%与持有期数（月/年）。",
+    "计算器按月复利算终值与利息贡献。",
+    "对比 DCA 与一次性投入，并用 72 法则估算翻倍年限。",
+  ],
   principalLabel: "一次性本金",
   monthlyLabel: "每月定投",
   rateLabel: "年化收益率 %",
@@ -180,6 +193,13 @@ const zh = {
 const en = {
   title: "Compound Growth Planner",
   subtitle: "One-time principal + monthly contributions, compounded monthly: future value, interest earned, DCA vs lump sum, plus the rule of 72.",
+  howToTitle: "How to use the compound growth planner",
+  howTo: [
+    "Enter the initial principal and the monthly contribution.",
+    "Set the annual return % and the holding period.",
+    "The calculator compounds monthly to get future value and interest earned.",
+    "Compare DCA vs lump sum, and use the rule of 72 to estimate years to double.",
+  ],
   principalLabel: "One-time principal",
   monthlyLabel: "Monthly contribution",
   rateLabel: "Annual return %",

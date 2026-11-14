@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   ytmSummary, YTM_PRESETS,
@@ -52,6 +54,10 @@ export default function YtmPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="ytm" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/ytm"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Yield to Maturity", href: "/ytm" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -139,6 +145,12 @@ export default function YtmPage() {
 const zh = {
   title: "到期收益率 YTM",
   subtitle: "YTM=使债券价格=面值的折现率（二分法求解，年付息）。教育性参考。",
+  howToTitle: "如何使用到期收益率 YTM 计算器",
+  howTo: [
+    "输入债券现价、面值、票面利率%与剩余年限。",
+    "计算器用二分法求使现值=价格的折现率 YTM。",
+    "查看年化到期收益率（年付息口径）。",
+  ],
   couponLabel: "票息率",
   priceLabel: "价格",
   yearsLabel: "年期",
@@ -157,6 +169,12 @@ const zh = {
 const en = {
   title: "Yield to Maturity",
   subtitle: "YTM is the discount rate that makes bond price = face value (bisection, annual coupons). Educational reference.",
+  howToTitle: "How to use the YTM calculator",
+  howTo: [
+    "Enter the bond's current price, face value, coupon rate % and years to maturity.",
+    "The calculator bisection-solves the discount rate YTM that makes PV = price.",
+    "Read the annualized yield to maturity (annual-coupon basis).",
+  ],
   couponLabel: "Coupon rate",
   priceLabel: "Price",
   yearsLabel: "Years",

@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { twrrSummary, TWRR_PRESETS } from "../lib/twrr";
 export const metadata = {
   title: "时间加权收益率 TWRR 计算器 — Weacond",
@@ -14,6 +16,13 @@ export const metadata = {
 const zh = {
   title: "时间加权收益率 (TWRR) 计算器",
   subtitle: "总收益 = Π(1+r)−1（几何链接，对现金流中性）；年化几何 vs 算术；波动拖累。教育性参考，非投资建议。",
+  howToTitle: "如何使用时间加权收益率 TWRR 计算器",
+  howTo: [
+    "输入各子期收益序列（空格/逗号分隔，如 0.02 -0.01 0.03）。",
+    "设定每年期数 PPY。",
+    "计算器几何链接：总收益 = Π(1+r_i)−1（对资金进出中性）。",
+    "查看年化几何 vs 算术、波动拖累（AM≥GM）。",
+  ],
   returnsLabel: "每期收益 %（逗号/空格分隔）", ppyLabel: "每年期数",
   presetLabels: { steady: "稳健月 +1%", volatile: "震荡 ±3%", bullRun: "牛市 6个月", daily: "日收益 0.1%", losses: "连续亏损" },
   resultTitle: "结果", countLabel: "期数", totalLabel: "总收益", annLabel: "年化几何", dragLabel: "波动拖累", bandLabel: "年化等级",
@@ -54,6 +63,10 @@ export default function TwrrPage() {
         <meta name="description" content={L.subtitle} />
       </Head>
       <CalcLd slug="twrr" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/twrr"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Time-Weighted Return (TWRR)", href: "/twrr" }]),
+      ]} />
       <Navbar />
       <section className="max-w-2xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">{L.title}</h1>
