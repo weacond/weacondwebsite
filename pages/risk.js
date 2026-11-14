@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import { CURVE_PRESETS, getCurvePreset, buildRiskDashboard, riskTier } from "../lib/riskDashboard";
 
 export const metadata = {
@@ -64,6 +66,7 @@ export default function RiskPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="risk" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -155,6 +158,7 @@ export default function RiskPage() {
           )}
 
           <p className="mt-8 text-center text-xs text-slate-400">{L.disclaimer}</p>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />
@@ -322,6 +326,13 @@ const zh = {
   tail: "尾部比",
   sterling: "斯特林",
   disclaimer: "示例曲线与预设参数均为教学示意，非真实历史行情；本工具用于演示风险度量的含义，不构成投资建议。",
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "最大回撤怎么看？", a: "最大回撤 = 净值从高点到后续低点的最大跌幅，衡量最坏亏损幅度；越大越说明策略在逆境中的脆弱度。" },
+    { q: "VaR / CVaR 是什么？", a: "VaR(95%) 指 95% 概率下不超过的亏损；CVaR(99%) 是最糟 1% 的平均亏损，刻画尾部风险，比单一 VaR 更稳健。" },
+    { q: "夏普、索提诺、卡玛区别？", a: "夏普=收益/总波动；索提诺=收益/下行波动；卡玛=年化收益/最大回撤——分别衡量风险调整后的盈利质量，越高越好。" },
+    { q: "风险度量能预测未来吗？", a: "不能。它们只描述历史曲线特征；示例曲线用于理解定义，实盘需结合当前波动与回撤画像判断风险。" },
+  ],
 };
 const en = {
   title: "Risk & Performance Dashboard",
@@ -364,5 +375,12 @@ const en = {
   tail: "Tail Ratio",
   sterling: "Sterling",
   disclaimer: "Example curves and preset parameters are illustrative, not real market data; this tool demonstrates what risk metrics mean, not investment advice.",
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How do I read max drawdown?", a: "Max drawdown = the largest drop from a peak to the following trough, measuring worst-case loss magnitude; larger values signal greater fragility in adversity." },
+    { q: "What are VaR and CVaR?", a: "VaR(95%) is the loss not exceeded with 95% probability; CVaR(99%) is the average loss in the worst 1% of cases — a more robust measure of tail risk than VaR alone." },
+    { q: "Sharpe vs Sortino vs Calmar?", a: "Sharpe = return / total volatility; Sortino = return / downside volatility; Calmar = CAGR / max drawdown — each scores risk-adjusted quality, higher is better." },
+    { q: "Can risk metrics predict the future?", a: "No. They only describe historical curve characteristics; presets illustrate definitions, while live use needs current volatility and drawdown context." },
+  ],
 };
 
