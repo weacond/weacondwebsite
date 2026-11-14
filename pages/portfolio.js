@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { planForPreset, PRESETS } from "../lib/portfolioPresets";
 
 export const metadata = {
@@ -40,6 +42,10 @@ export default function PortfolioPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="portfolio" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/portfolio"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Portfolio Optimizer", href: "/portfolio" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -249,6 +255,12 @@ function FrontierChart({ frontier, L }) {
 const zh = {
   title: "组合优化器",
   subtitle: "给定一篮子资产（预期收益 / 波动 / 相关），对比 5 种配权方案的夏普、波动与分散度。教育性工具，非投资建议。",
+  howToTitle: "如何使用组合优化器",
+  howTo: [
+    "输入一篮子资产的预期收益、波动率与相关系数。",
+    "计算器对比 5 种配权方案的夏普、波动与分散度。",
+    "查看哪种配权在夏普/波动/分散上最优。",
+  ],
   preset: "选择资产篮子",
   assets: "资产",
   asset: "标的",
@@ -274,6 +286,12 @@ const zh = {
 const en = {
   title: "Portfolio Optimizer",
   subtitle: "Given a basket of assets (expected return / vol / correlation), compare 5 weighting schemes by Sharpe, vol, and diversification. Educational tool, not investment advice.",
+  howToTitle: "How to use the portfolio optimizer",
+  howTo: [
+    "Enter each asset's expected return, volatility and correlation.",
+    "The calculator compares 5 weighting schemes by Sharpe, vol and diversification.",
+    "See which weighting is best on Sharpe / vol / diversification.",
+  ],
   preset: "Choose asset basket",
   assets: "Assets",
   asset: "Asset",

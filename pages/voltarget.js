@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { positionForTarget, validVolTarget, volTargetInsight, VOL_PRESETS } from "../lib/volTarget";
 
@@ -41,6 +43,10 @@ export default function VolTargetPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="voltarget" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/voltarget"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Volatility-Target Allocator", href: "/voltarget" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -125,6 +131,12 @@ export default function VolTargetPage() {
 const zh = {
   title: "波动率目标配置器",
   subtitle: "给定目标波动率与资产波动，算所需杠杆与头寸规模，把组合波动控制到目标。",
+  howToTitle: "如何使用波动率目标配置器",
+  howTo: [
+    "输入目标波动率%与资产波动率%。",
+    "计算器算所需杠杆 = 目标 / 资产波动。",
+    "查看头寸规模，把组合波动控制到目标。",
+  ],
   capitalLabel: "资金",
   targetLabel: "目标波动 %",
   assetLabel: "资产波动 %",
@@ -141,6 +153,12 @@ const zh = {
 const en = {
   title: "Volatility-Target Allocator",
   subtitle: "Given a target volatility and asset volatility, compute the leverage and position size that hold portfolio vol to target.",
+  howToTitle: "How to use the volatility-target allocator",
+  howTo: [
+    "Enter the target volatility % and the asset volatility %.",
+    "The calculator computes leverage = target / asset vol.",
+    "Read the position size that holds portfolio vol to target.",
+  ],
   capitalLabel: "Capital",
   targetLabel: "Target vol %",
   assetLabel: "Asset vol %",

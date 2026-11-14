@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   rebalanceSummary, REBALANCE_PRESETS,
@@ -53,6 +55,10 @@ export default function RebalancePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="rebalance" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/rebalance"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Rebalancing Bonus", href: "/rebalance" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -152,6 +158,12 @@ export default function RebalancePage() {
 const zh = {
   title: "再平衡收益计算器",
   subtitle: "再平衡溢价 ≈ w₁w₂(σ₁²+σ₂²−2ρσ₁σ₂)；相对买入持有的额外收益。教育性参考。",
+  howToTitle: "如何使用再平衡收益计算器",
+  howTo: [
+    "输入两资产的权重 w₁、w₂、波动率 σ₁、σ₂ 与相关系数 ρ。",
+    "计算器按 再平衡溢价 ≈ w₁w₂(σ₁²+σ₂²−2ρσ₁σ₂) 算超额收益。",
+    "查看相对买入持有的额外收益。",
+  ],
   w1Label: "资产1 权重 w₁ %",
   rhoLabel: "相关系数 ρ %",
   s1Label: "资产1 波动 σ₁ %",
@@ -171,6 +183,12 @@ const zh = {
 const en = {
   title: "Rebalancing Bonus",
   subtitle: "Rebalancing premium ≈ w₁w₂(σ₁²+σ₂²−2ρσ₁σ₂) over buy-and-hold. Educational reference.",
+  howToTitle: "How to use the rebalancing bonus calculator",
+  howTo: [
+    "Enter two assets' weights w₁, w₂, vols σ₁, σ₂ and correlation ρ.",
+    "The calculator applies the premium ≈ w₁w₂(σ₁²+σ₂²−2ρσ₁σ₂).",
+    "Read the extra return versus buy-and-hold.",
+  ],
   w1Label: "Asset 1 weight w₁ %",
   rhoLabel: "Correlation ρ %",
   s1Label: "Asset 1 vol σ₁ %",

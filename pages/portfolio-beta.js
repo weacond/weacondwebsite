@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   betaSummary, BETA_PRESETS,
@@ -49,6 +51,10 @@ export default function PortfolioBetaPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="portfolio-beta" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/portfolio-beta"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Portfolio Beta / Systematic Risk", href: "/portfolio-beta" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -136,6 +142,12 @@ export default function PortfolioBetaPage() {
 const zh = {
   title: "组合 Beta / 系统性风险",
   subtitle: "组合 beta = Σwᵢβᵢ；系统回报 = β×市场回报；非系统波动分解。教育性参考。",
+  howToTitle: "如何使用组合 Beta/系统性风险计算器",
+  howTo: [
+    "输入各资产的权重 w 与 beta βᵢ。",
+    "计算器算组合 beta = Σwᵢβᵢ。",
+    "查看系统回报 = β×市场回报，与非系统波动分解。",
+  ],
   weightsLabel: "权重（逗号分隔）",
   betasLabel: "Beta（逗号分隔）",
   mktReturnLabel: "市场回报 %",
@@ -155,6 +167,12 @@ const zh = {
 const en = {
   title: "Portfolio Beta / Systematic Risk",
   subtitle: "Portfolio β = Σwᵢβᵢ; systematic return = β×market; residual vol decomposition. Educational.",
+  howToTitle: "How to use the portfolio beta / systematic-risk calculator",
+  howTo: [
+    "Enter each asset's weight w and beta βᵢ.",
+    "The calculator computes portfolio β = Σwᵢβᵢ.",
+    "Read the systematic return = β×market and the residual-vol decomposition.",
+  ],
   weightsLabel: "Weights (comma-sep)",
   betasLabel: "Betas (comma-sep)",
   mktReturnLabel: "Market return %",

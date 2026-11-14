@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   dragSummary, dragBand, VOL_DRAG_PRESETS,
@@ -48,6 +50,10 @@ export default function VolDragPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="vol-drag" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/vol-drag"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Volatility Drag / Geometric vs Arithmetic", href: "/vol-drag" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -135,6 +141,12 @@ export default function VolDragPage() {
 const zh = {
   title: "波动拖累 / 几何 vs 算术收益",
   subtitle: "输入每期收益率，对比算术与几何（复合）收益，量化波动拖累与终值差异。长期增长看几何均值。",
+  howToTitle: "如何使用波动拖累/几何 vs 算术收益计算器",
+  howTo: [
+    "输入每期收益率序列。",
+    "计算器对比算术收益与几何（复合）收益。",
+    "查看波动拖累与终值差异，理解长期增长看几何均值。",
+  ],
   returnsLabel: "每期收益率（逗号或空格分隔，如 0.1, -0.2, 0.15）",
   initialLabel: "初始本金",
   arithLabel: "算术均值",
@@ -154,6 +166,12 @@ const zh = {
 const en = {
   title: "Volatility Drag / Geometric vs Arithmetic",
   subtitle: "Enter per-period returns to compare arithmetic and geometric (compounded) returns, and quantify volatility drag and terminal-value gap. Long-run growth is the geometric mean.",
+  howToTitle: "How to use the volatility-drag / geometric-vs-arithmetic calculator",
+  howTo: [
+    "Enter the per-period return series.",
+    "The calculator compares arithmetic and geometric (compounded) returns.",
+    "Read the volatility drag and terminal-value gap; long-run growth is the geometric mean.",
+  ],
   returnsLabel: "Per-period returns (comma or space separated, e.g. 0.1, -0.2, 0.15)",
   initialLabel: "Initial capital",
   arithLabel: "Arithmetic mean",

@@ -6,6 +6,8 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { CORR_PRESETS, diversifyPlan } from "../lib/correlationLab";
 
 export const metadata = {
@@ -43,6 +45,10 @@ export default function CorrelationPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="correlation" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/correlation"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Correlation & Diversification", href: "/correlation" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -194,6 +200,12 @@ function Metric({ label, value, accent }) {
 const zh = {
   title: "相关性 & 分散化",
   subtitle: "给定资产篮子（相关矩阵 + 波动率），对比等权 vs 逆波动配权下的分散化比率 DR、HHI、逐对相关强度与热力图。教育性工具，非投资建议。",
+  howToTitle: "如何使用相关性/分散化计算器",
+  howTo: [
+    "输入资产篮子的相关矩阵与波动率。",
+    "计算器对比等权 vs 逆波动配权的分散化比率 DR、HHI 与逐对相关强度。",
+    "查看热力图，找出分散化最佳资产组合。",
+  ],
   preset: "选择资产篮子",
   mode: "配权",
   equalWeight: "等权",
@@ -214,6 +226,12 @@ const zh = {
 const en = {
   title: "Correlation & Diversification",
   subtitle: "Given a basket (correlation matrix + vols), compare equal vs inverse-vol weighting on diversification ratio DR, HHI, per-pair strength, and a heatmap. Educational tool, not investment advice.",
+  howToTitle: "How to use the correlation & diversification calculator",
+  howTo: [
+    "Enter the basket's correlation matrix and volatilities.",
+    "The calculator compares equal vs inverse-vol weighting on DR, HHI and per-pair strength.",
+    "Read the heatmap to find the most diversifying mix.",
+  ],
   preset: "Choose asset basket",
   mode: "Weighting",
   equalWeight: "Equal",
