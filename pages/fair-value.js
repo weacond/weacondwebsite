@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   fairValueSummary, FAIRVALUE_PRESETS,
@@ -60,6 +62,10 @@ export default function FairValuePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="fair-value" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/fair-value"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Fair Value Calculator", href: "/fair-value" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -165,6 +171,12 @@ export default function FairValuePage() {
 const zh = {
   title: "公允价值（Fair Value）计算器",
   subtitle: "P/E 回归 + 戈登增长（DDM）+ 格雷厄姆安全边际。教育性参考。",
+  howToTitle: "如何使用公允价值计算器",
+  howTo: [
+    "输入现价、EPS、行业 P/E、增长率 g 与折现率。",
+    "计算器算 P/E 回归、戈登增长（DDM）估值。",
+    "查看格雷厄姆安全边际，判断是否低估。",
+  ],
   priceLabel: "当前价格",
   epsLabel: "每股收益 EPS",
   targetPELabel: "目标 P/E",
@@ -186,6 +198,12 @@ const zh = {
 const en = {
   title: "Fair Value Calculator",
   subtitle: "P/E reversion + Gordon growth (DDM) + Graham margin of safety. Educational reference.",
+  howToTitle: "How to use the fair-value calculator",
+  howTo: [
+    "Enter price, EPS, industry P/E, growth rate g and discount rate.",
+    "The calculator applies P/E reversion and Gordon growth (DDM).",
+    "Read the Graham margin of safety to judge if it's undervalued.",
+  ],
   priceLabel: "Current price",
   epsLabel: "Earnings EPS",
   targetPELabel: "Target P/E",

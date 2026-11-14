@@ -7,6 +7,8 @@ import { computeOptionChain, impliedVol, ivRank, ivPercentile, classifyIVRank, v
 import { analyzeStrategy, strategyTemplates, probOfProfit, strategyGreeks, deltaHedge, probInRange } from "../lib/optionsStrategies.js";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { useState, useEffect, useMemo } from "react";
 
 // 预置标的 + 默认现货（数据拉取失败时回退，诚实标注 demo）
@@ -77,6 +79,10 @@ export default function OptionsPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title} — Weacond</title></Head>
       <CalcLd slug="options" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/options"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Options Chain · Volatility Surface", href: "/options" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-6xl mx-auto">
@@ -541,6 +547,12 @@ function VolPositioning({ iv, L }) {
 const zh = {
   title: "期权链 · 波动面",
   subtitle: "Black-Scholes 模型估算 · 价格与希腊字母（Δ Γ Θ V ρ）",
+  howToTitle: "如何使用期权链/波动面计算器",
+  howTo: [
+    "输入标的现价、行权价、到期天数与波动率。",
+    "计算器用 Black-Scholes 算期权价格与希腊字母。",
+    "查看 Δ Γ Θ V ρ，评估方向/时间/波动敏感度。",
+  ],
   modelBadge: "模型估算 · 非实时",
   symbol: "标的",
   expiry: "到期",
@@ -626,6 +638,12 @@ const zh = {
 const en = {
   title: "Options Chain · Volatility Surface",
   subtitle: "Black-Scholes model estimate · price & greeks (Δ Γ Θ V ρ)",
+  howToTitle: "How to use the options chain / vol-surface calculator",
+  howTo: [
+    "Enter the spot, strike, days to expiry and volatility.",
+    "The calculator uses Black-Scholes to price the option and its greeks.",
+    "Read Δ Γ Θ V ρ to gauge directional / time / vol sensitivity.",
+  ],
   modelBadge: "Model · Not Live",
   symbol: "Symbol",
   expiry: "Expiry",

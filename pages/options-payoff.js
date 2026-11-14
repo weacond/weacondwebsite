@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   payoffSummary, PAYOFF_PRESETS,
@@ -53,6 +55,10 @@ export default function OptionsPayoffPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="options-payoff" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/options-payoff"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Options Payoff / Break-Even", href: "/options-payoff" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -157,6 +163,12 @@ export default function OptionsPayoffPage() {
 const zh = {
   title: "期权盈亏 / 盈亏平衡",
   subtitle: "到期盈亏 = 内在价值∓权利金；盈亏平衡点；最大盈亏（单腿）。教育性参考。",
+  howToTitle: "如何使用期权盈亏/盈亏平衡计算器",
+  howTo: [
+    "选择期权类型与方向（买/卖 看涨/看跌），输入行权价与权利金。",
+    "计算器算到期盈亏 = 内在价值 ∓ 权利金。",
+    "查看盈亏平衡点与最大盈亏（单腿）。",
+  ],
   typeLabel: "类型",
   sideLabel: "方向",
   longLabel: "买",
@@ -181,6 +193,12 @@ const zh = {
 const en = {
   title: "Options Payoff / Break-Even",
   subtitle: "Expiry P/L = intrinsic ∓ premium; break-even point; max profit/loss (single leg). Educational.",
+  howToTitle: "How to use the options payoff / break-even calculator",
+  howTo: [
+    "Choose option type and side (long/short, call/put); enter strike and premium.",
+    "The calculator computes expiry P/L = intrinsic ∓ premium.",
+    "Read the break-even point and max profit/loss (single leg).",
+  ],
   typeLabel: "Type",
   sideLabel: "Side",
   longLabel: "Buy",

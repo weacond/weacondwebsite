@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { hedgeRatio, validHedge, hedgeInsight, HEDGE_PRESETS } from "../lib/hedge";
 
@@ -41,6 +43,10 @@ export default function HedgePage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="hedge" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/hedge"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Hedge Ratio Calculator", href: "/hedge" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -138,6 +144,12 @@ export default function HedgePage() {
 const zh = {
   title: "对冲比率计算器",
   subtitle: "给定两资产相关 ρ 与波动，算最小方差对冲比率、残余风险与最优权重，并对比 50/50。",
+  howToTitle: "如何使用对冲比率计算器",
+  howTo: [
+    "输入两资产的波动率 σ₁、σ₂ 与相关系数 ρ。",
+    "计算器算最小方差对冲比率、残余风险与最优权重。",
+    "对比 50/50 朴素配权，评估对冲效率。",
+  ],
   rhoLabel: "相关 ρ",
   volALabel: "σ_A（%）",
   volBLabel: "σ_B（%）",
@@ -164,6 +176,12 @@ const zh = {
 const en = {
   title: "Hedge Ratio Calculator",
   subtitle: "Given two assets' correlation ρ and volatilities, compute the minimum-variance hedge ratio, residual risk and optimal weights, vs a naive 50/50.",
+  howToTitle: "How to use the hedge-ratio calculator",
+  howTo: [
+    "Enter two assets' volatilities σ₁, σ₂ and correlation ρ.",
+    "The calculator computes the minimum-variance hedge ratio, residual risk and optimal weights.",
+    "Compare with a naive 50/50 to gauge hedge efficiency.",
+  ],
   rhoLabel: "Correlation ρ",
   volALabel: "σ_A (%)",
   volBLabel: "σ_B (%)",

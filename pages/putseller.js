@@ -5,6 +5,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import { buildPutScreener, DEFAULT_PUT_UNIVERSE } from "../lib/putseller";
 
 // 卖 Put 筛选结果（纯函数、确定性、无网络）。B-S 模型估算，非实时报价。
@@ -19,6 +21,13 @@ const meta = {
     keywords: "卖 Put, Put 筛选器, IV Rank, Theta 优势, 期权卖方, 增强收益, 权利金, 实值概率",
     h1: "卖 Put 筛选器",
     sub: "在 IV 高企、质地优良的标的里，找到 Theta 站在你这一边、被赋值概率低的虚值 Put。",
+    howToTitle: "如何使用卖 Put 筛选器",
+    howTo: [
+      "筛选器从 IV Rank > 50 且基本面 > 60 的标的中选出虚值 Put。",
+      "查看权利金、盈利概率、实值概率与 Theta 优势。",
+      "优先选 P(ITM) < 50% 的标的，到期大概率归零、收全权利金。",
+      "牢记最大亏损 ≈ 行权价 − 权利金，务必预留保证金。",
+    ],
     resultsTitle: "通过筛选的卖 Put 机会",
     emptyTitle: "暂无通过筛选的标的",
     emptySub: "当前标的池没有同时满足「IV Rank > 50」与「基本面 > 60」的标的。",
@@ -54,6 +63,13 @@ const meta = {
     keywords: "sell put, put screener, IV rank, theta, options selling, premium, probability of ITM",
     h1: "Put-Selling Screener",
     sub: "Find OTM puts where Theta favors the seller and the odds of assignment are low — in high-IV, high-quality names.",
+    howToTitle: "How to use the put-selling screener",
+    howTo: [
+      "The screener picks OTM puts from names with IV Rank > 50 and fundamentals > 60.",
+      "Read the premium, probability of profit, P(ITM) and Theta edge.",
+      "Favor P(ITM) < 50% names — they likely expire worthless, keeping the premium.",
+      "Remember max loss ≈ strike − premium; reserve margin.",
+    ],
     resultsTitle: "Puts passing the screen",
     emptyTitle: "No puts pass the screen",
     emptySub: "No name in the current universe clears both IV Rank > 50 and fundamentals > 60.",
@@ -121,6 +137,10 @@ export default function PutSellingPage() {
         />
       </Head>
       <CalcLd slug="putseller" />
+      <StructuredData items={[
+        howToLd(t.howToTitle, t.howTo, "/putseller"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Put-Selling Screener", href: "/putseller" }]),
+      ]} />
       <Navbar />
       <main className="pt-20 min-h-screen">
         <section className="max-w-6xl mx-auto px-6 py-12">
