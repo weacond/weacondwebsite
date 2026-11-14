@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import { trailingStopSummary, TRAILING_STOP_PRESETS } from "../lib/trailingStop";
 export const metadata = {
@@ -38,6 +40,13 @@ const zh = {
   no: "否",
   learnTitle: "学习",
   learn: "移动止损随价格滚动以锁定利润：多头止损 = max(初始止损, 现价−跟踪距离)，空头反之。当已实现 R 达到触发 R（默认 1R）时可将止损移到成本（保本）。锁定 R 表示若现按移动止损平仓能锁定的 R 倍数。",
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "移动止损怎么用？", a: "止损随价格滚动锁定利润：多头 = max(初始止损, 现价−跟踪距离)，空头反之。跟踪距离越大越抗噪但回吐越多。" },
+    { q: "保本止损是什么？", a: "当已实现 R 达到触发 R（默认 1R）时，把止损移到成本价，使该笔最差不亏（仅可能亏手续费）。" },
+    { q: "跟踪距离怎么选？", a: "取决于波动与持仓周期：日内用较小距离，波段用较大；过大易回吐、过小易被震出，常见 0.5–2 倍 ATR 或 5–10%。" },
+    { q: "锁定 R 代表什么？", a: "锁定 R = 若现按移动止损平仓能锁定的 R 倍数，用于判断是否已实现足够利润可上保本。" },
+  ],
 };
 const en = {
   title: "Trailing / Break-even Stop",
@@ -65,6 +74,13 @@ const en = {
   no: "No",
   learnTitle: "Learn",
   learn: "A trailing stop rolls with price to lock profit: long stop = max(initial stop, price − trail), short mirror. When R achieved reaches trigger R (default 1R) you can move stop to cost (break-even). Lock-in R is the R locked if you close at the trailing stop now.",
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How do I use a trailing stop?", a: "The stop rolls with price to lock profit: long = max(initial stop, price − trail), short mirror. A larger trail tolerates more noise but gives back more." },
+    { q: "What is a break-even stop?", a: "When R achieved hits trigger R (default 1R), move the stop to cost so the trade can no longer lose (fees aside)." },
+    { q: "How to choose the trail distance?", a: "Match it to volatility and holding period: smaller intraday, larger for swing; too wide gives back profit, too tight gets shaken out — commonly 0.5–2× ATR or 5–10%." },
+    { q: "What does lock-in R mean?", a: "Lock-in R is the R you would lock if you closed at the trailing stop now — a cue for whether enough profit is in to move to break-even." },
+  ],
 };
 function fmtNum(x) {
   if (!Number.isFinite(x)) return "—";
@@ -94,6 +110,7 @@ export default function TrailingStopPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="trailing-stop" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -159,6 +176,7 @@ export default function TrailingStopPage() {
             <h2 className="text-sm font-semibold text-indigo-900 mb-2">{L.learnTitle}</h2>
             <p className="text-sm text-indigo-800 leading-relaxed">{L.learn}</p>
           </div>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />

@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import FaqLd from "../components/FaqLd";
+import FaqSection from "../components/FaqSection";
 import Link from "next/link";
 import {
   atrSummary, rrBand, ATR_PRESETS,
@@ -57,6 +59,7 @@ export default function AtrStopPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="atr-stop" />
+      <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -159,6 +162,7 @@ export default function AtrStopPage() {
             {" · "}
             <Link href="/leverage" className="text-indigo-500 hover:underline">→ {L.linkLeverage}</Link>
           </p>
+          <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
       <Footer />
@@ -189,6 +193,13 @@ const zh = {
   sides: { long: "多", short: "空" },
   bandLabels: { poor: "无盈亏比", thin: "偏薄 <1", fair: "合理 1–2", strong: "优秀 ≥2" },
   presetLabels: { dayLong: "日内多头", swingShort: "波段空头", cryptoLong: "币圈多头", simple: "简单示例" },
+  faqTitle: "常见问题",
+  faqs: [
+    { q: "ATR 止损怎么定？", a: "止损 = 入场价 ± N·ATR（ATR 为平均真实波幅，衡量波动）。N 越大止损越宽、抗噪但回撤大；常见 N=1.5–3。" },
+    { q: "ATR 倍数 N 怎么选？", a: "取决于持仓周期：日内用较小 N（如 1.5），波段/周线用较大 N（如 2.5–3），避免被正常波动震出。" },
+    { q: "为何用 ATR 而非固定百分比止损？", a: "ATR 让止损随波动自适应：高波动品种自动放宽、低波动收紧，使每笔风险更一致，避免高波动被频繁扫损。" },
+    { q: "ATR 止损能算头寸吗？", a: "能。头寸 = 风险金额 ÷ 止损距离（N·ATR），可把单笔风险控制在账户的固定比例（如 1%）。" },
+  ],
 };
 const en = {
   title: "ATR Stop & Position Size",
@@ -213,4 +224,11 @@ const en = {
   sides: { long: "Long", short: "Short" },
   bandLabels: { poor: "No R:R", thin: "Thin <1", fair: "Fair 1–2", strong: "Strong ≥2" },
   presetLabels: { dayLong: "Day long", swingShort: "Swing short", cryptoLong: "Crypto long", simple: "Simple" },
+  faqTitle: "FAQ",
+  faqs: [
+    { q: "How do I set an ATR stop?", a: "Stop = entry ± N·ATR (ATR = average true range, a volatility measure). Larger N = wider stop, more noise-tolerance but bigger drawdown; N=1.5–3 is common." },
+    { q: "How to choose the ATR multiplier N?", a: "Match it to your holding period: intraday uses small N (~1.5), swing/weekly larger (~2.5–3) so normal volatility does not shake you out." },
+    { q: "Why ATR over a fixed % stop?", a: "ATR makes the stop volatility-adaptive: it widens for volatile names and tightens for quiet ones, keeping per-trade risk consistent and avoiding whipsaws." },
+    { q: "Does ATR stop size the position?", a: "Yes. Position = risk$ ÷ stop distance (N·ATR), letting you cap per-trade risk at a fixed account % (e.g. 1%)." },
+  ],
 };
