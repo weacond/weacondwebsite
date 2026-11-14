@@ -7,9 +7,10 @@ import {
   listToolDefs,
   callTool,
 } from "../lib/mcp/tools.js";
+import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 43 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 43);
+test("注册 44 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 44);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -20,12 +21,12 @@ test("注册 43 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "loan", "ear", "drip",
     "continuous", "leveredEtf", "goalSolver", "inflationGoal", "taxLoss",
     "fairValue", "staking", "lotSize", "avgEntry",
-    "barrier", "bond",
+    "barrier", "bond", "var",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 43);
+  assert.equal(defs.length, 44);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -460,4 +461,24 @@ test("callTool bond 平价债券价格与修正久期", () => {
   // 修正久期 = 麦凯久期 / (1+y)
   assert.ok(Math.abs(r.structuredContent.modifiedDuration - r.structuredContent.macaulayDuration / (1 + r.structuredContent.yieldRate)) < 1e-12);
   assert.equal(r.structuredContent.band, "par");
+});
+
+test("callTool var 参数法 VaR/ES（μ=0 便于手算，ES ≥ VaR）", () => {
+  const r = callTool("var", { positionValue: 1000000, sigma: 0.2, confidence: 0.95 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  // VaR = z·σ_h（μ=0 → 无漂移），σ_h = 0.2·√(1/252)
+  const expected = stdNormalQuantile(0.95) * (0.2 / Math.sqrt(252));
+  assert.ok(Math.abs(r.structuredContent.varPct - expected) < 1e-6);
+  // 损失金额 = 头寸价值 × VaR 占比（公式无关不变式）
+  assert.ok(Math.abs(r.structuredContent.varLoss - 1000000 * r.structuredContent.varPct) < 1e-3);
+  // 预期短缺恒 ≥ VaR
+  assert.ok(r.structuredContent.esPct >= r.structuredContent.varPct);
+});
+
+test("callTool var 入参非法 → isError", () => {
+  assert.equal(callTool("var", { positionValue: 1000000 }).isError, true); // 缺 sigma
+  assert.equal(callTool("var", { positionValue: 0, sigma: 0.2 }).isError, true); // 头寸 ≤0
+  assert.equal(callTool("var", { positionValue: 1000000, sigma: 0.2, confidence: 1 }).isError, true); // 置信度 ≥1
+  assert.equal(callTool("var", { positionValue: 1000000, sigma: 0.2, bogus: 1 }).isError, true); // 未知字段
 });
