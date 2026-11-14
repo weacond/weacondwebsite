@@ -8,14 +8,17 @@ import {
   callTool,
 } from "../lib/mcp/tools.js";
 
-test("注册 6 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 6);
+test("注册 12 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 12);
   const names = TOOLS.map((t) => t.name);
-  for (const n of ["kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage"]) {
+  for (const n of [
+    "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
+    "expectancy", "breakeven", "r_multiple", "margin", "funding_rate", "npv",
+  ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 6);
+  assert.equal(defs.length, 12);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -73,4 +76,52 @@ test("callTool atr_stop 合法入参产出结构化结果", () => {
   const r = callTool("atr_stop", { account: 10000, riskPct: 1, side: "long", entry: 100, atrVal: 2 });
   assert.equal(r.isError, false);
   assert.equal(r.structuredContent.valid, true);
+});
+
+test("callTool expectancy 正期望（EV 与盈亏因子）", () => {
+  const r = callTool("expectancy", { winRate: 0.55, avgWin: 200, avgLoss: 100, trades: 100 });
+  assert.equal(r.isError, false);
+  assert.ok(Math.abs(r.structuredContent.expectedValue - 65) < 1e-9); // 0.55·200 − 0.45·100 = 65
+  assert.ok(r.structuredContent.profitFactor > 1);
+});
+
+test("callTool breakeven 含费平衡价（原始 summary 形状）", () => {
+  const r = callTool("breakeven", { side: "long", entry: 100, stop: 97, target: 106, feePct: 0.05 });
+  assert.equal(r.isError, false);
+  assert.ok(Math.abs(r.structuredContent.breakeven - 100.10005) < 1e-4); // 100·1.0005/0.9995
+  assert.equal(r.structuredContent.rr.grossRr, 2); // risk=3, reward=6
+});
+
+test("callTool r_multiple 风险金额/预期盈利（riskPct 为小数）", () => {
+  const r = callTool("r_multiple", { account: 100000, riskPct: 0.01, rMultiple: 2, winRate: 0.5 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.riskAmount, 1000); // 100000 × 0.01
+  assert.equal(r.structuredContent.expectedProfit, 2000); // 1000 × 2
+});
+
+test("callTool margin 杠杆融资成本", () => {
+  const r = callTool("margin", { principal: 10000, leverage: 3, annualInterest: 0.08, days: 30 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.borrowed, 20000); // 10000 × (3−1)
+  assert.equal(r.structuredContent.positionValue, 30000); // 10000 × 3
+});
+
+test("callTool funding_rate 资金成本与年化", () => {
+  const r = callTool("funding_rate", { notional: 100000, fundingRatePct: 0.01, days: 30 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.totalCost, 900); // 100000 × 0.0001 × 90
+  assert.ok(Math.abs(r.structuredContent.annualized - 0.1095) < 1e-9); // 0.0001 × 1095
+});
+
+test("callTool npv 净现值与回收率", () => {
+  const r = callTool("npv", { rate: 0.1, cashflows: [-10000, 5000, 6000, 7000] });
+  assert.equal(r.isError, false);
+  assert.ok(r.structuredContent.npv > 0);
+  assert.equal(r.structuredContent.payoffIndex, 1.8); // (5000+6000+7000)/10000
+});
+
+test("callTool npv 现金流不足 2 项 → 入参非法（minItems）", () => {
+  const r = callTool("npv", { rate: 0.1, cashflows: [-10000] });
+  assert.equal(r.isError, true);
+  assert.equal(r.structuredContent.error, "invalid_args");
 });
