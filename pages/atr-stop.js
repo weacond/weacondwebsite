@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqLd from "../components/FaqLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
@@ -59,6 +61,10 @@ export default function AtrStopPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="atr-stop" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/atr-stop"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "ATR Stop & Position Size", href: "/atr-stop" }]),
+      ]} />
       <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
@@ -173,6 +179,13 @@ export default function AtrStopPage() {
 const zh = {
   title: "ATR 止损与头寸计算器",
   subtitle: "用 ATR 定止损距离与风险头寸：止损 = 入场 ± N·ATR，头寸 = 风险金额 / 止损距离。",
+  howToTitle: "如何使用 ATR 止损与头寸计算器",
+  howTo: [
+    "输入入场价、ATR 值与止损倍数 N。",
+    "设定每笔风险金额（账户 % 或金额）。",
+    "计算器算止损价 = 入场 ± N·ATR，头寸 = 风险金额 / 止损距离。",
+    "查看波动自适应的风险控制头寸。",
+  ],
   accountLabel: "账户权益",
   riskLabel: "单笔风险 %",
   sideLabel: "方向",
@@ -204,6 +217,13 @@ const zh = {
 const en = {
   title: "ATR Stop & Position Size",
   subtitle: "Size positions from ATR: stop = entry ± N·ATR, shares = risk$ / stop distance. Volatility-adaptive risk control.",
+  howToTitle: "How to use the ATR stop & position-size calculator",
+  howTo: [
+    "Enter entry price, ATR value and the stop multiple N.",
+    "Set the risk per trade (account % or amount).",
+    "The calculator computes stop = entry ± N·ATR and position = risk$ / stop distance.",
+    "Read the volatility-adaptive risk-control position.",
+  ],
   accountLabel: "Account equity",
   riskLabel: "Risk per trade %",
   sideLabel: "Side",

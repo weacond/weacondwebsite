@@ -5,7 +5,8 @@
 // 已铺开页 = 既有 4 个旗舰页 + 利率/FX 6 个（loan / ear / bond / fx-pip / fx-cross / interest-parity）
 //   + 仓位/风险 6 个（position-size / risk / margin / leverage / lot-size / kelly）
 //   + 估值/收益 6 个（npv / xirr / twrr / compound / annuity / ytm）
-//   + 绩效/概率 6 个（expectancy / winrate / r-multiple / prob-return / real-return / real-after-tax）。
+//   + 绩效/概率 6 个（expectancy / winrate / r-multiple / prob-return / real-return / real-after-tax）
+//   + 交易管理 6 个（atr-stop / trailing-stop / two-barrier / take-profit / breakeven / average-entry）。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -22,6 +23,7 @@ const COVERED = [
   "position-size", "risk", "margin", "leverage", "lot-size", "kelly",
   "npv", "xirr", "twrr", "compound", "annuity", "ytm",
   "expectancy", "winrate", "r-multiple", "prob-return", "real-return", "real-after-tax",
+  "atr-stop", "trailing-stop", "two-barrier", "take-profit", "breakeven", "average-entry",
 ];
 
 // 三处都齐才算“已铺开”：HowTo JSON-LD 注入、BreadcrumbList 注入、且面包屑首项为 Home；

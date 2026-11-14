@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   positionSummary, pnlStatus, AVG_ENTRY_PRESETS,
@@ -57,6 +59,10 @@ export default function AverageEntryPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="average-entry" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/average-entry"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Average Entry & P&L", href: "/average-entry" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -176,6 +182,12 @@ export default function AverageEntryPage() {
 const zh = {
   title: "加仓均价与盈亏计算器",
   subtitle: "输入原持仓与加仓，算新的加权均价、现价盈亏与到目标价距离。交易复盘常用。",
+  howToTitle: "如何使用加仓均价与盈亏计算器",
+  howTo: [
+    "输入原持仓的份额/价格与加仓的份额/价格。",
+    "计算器算加权均价与现价盈亏。",
+    "输入目标价，查看到目标的距离。",
+  ],
   existingSharesLabel: "原持仓股数",
   existingPriceLabel: "原持仓均价",
   addSharesLabel: "加入股数",
@@ -198,6 +210,12 @@ const zh = {
 const en = {
   title: "Average Entry & P&L",
   subtitle: "Enter your existing position and the add to see the blended average, P&L at spot and distance to a target. A common trade-review tool.",
+  howToTitle: "How to use the average-entry & P&L calculator",
+  howTo: [
+    "Enter the existing position (shares/price) and the add (shares/price).",
+    "The calculator computes the weighted average and P&L at spot.",
+    "Enter a target price to see the distance to it.",
+  ],
   existingSharesLabel: "Existing shares",
   existingPriceLabel: "Existing avg",
   addSharesLabel: "Add shares",

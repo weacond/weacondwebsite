@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   breakevenSummary, rrBand, BREAKEVEN_PRESETS,
@@ -52,6 +54,10 @@ export default function BreakevenPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="breakeven" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/breakeven"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Breakeven After Fees", href: "/breakeven" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -145,6 +151,12 @@ export default function BreakevenPage() {
 const zh = {
   title: "含手续费盈亏平衡计算器",
   subtitle: "扣手续费后多少价打平：平衡价 = 入场·(1±fee)/(∓fee)，并给出扣费后有效盈亏比。",
+  howToTitle: "如何使用含手续费盈亏平衡计算器",
+  howTo: [
+    "输入入场价、目标价、止损价与手续费率%。",
+    "计算器按 平衡价 = 入场·(1±fee)/(∓fee) 算扣费后打平价。",
+    "查看扣费后有效盈亏比，评估真实成本。",
+  ],
   sideLabel: "方向",
   feeLabel: "单边手续费 %",
   entryLabel: "入场价",
@@ -166,6 +178,12 @@ const zh = {
 const en = {
   title: "Breakeven After Fees",
   subtitle: "What price breaks even after fees: breakeven = entry·(1±fee)/(∓fee), plus the net (post-fee) R:R.",
+  howToTitle: "How to use the breakeven-after-fees calculator",
+  howTo: [
+    "Enter entry, target and stop prices, plus the fee rate %.",
+    "The calculator computes breakeven = entry·(1±fee)/(∓fee) after fees.",
+    "Read the net (post-fee) R:R to assess the true cost.",
+  ],
   sideLabel: "Side",
   feeLabel: "Fee per side %",
   entryLabel: "Entry",

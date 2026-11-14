@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import FaqLd from "../components/FaqLd";
 import FaqSection from "../components/FaqSection";
 import Link from "next/link";
@@ -17,6 +19,13 @@ export const metadata = {
 const zh = {
   title: "移动止损 / 保本止损计算器",
   subtitle: "已实现R=盈亏÷每单位风险；移动止损=按跟踪距离滚动；保本=达到触发R后止损移成本。教育性参考，非投资建议。",
+  howToTitle: "如何使用移动止损/保本止损计算器",
+  howTo: [
+    "输入入场价、每单位风险与跟踪距离。",
+    "设定触发 R（保本周期的触发点）。",
+    "计算器滚动移动止损，并在达到触发 R 时移成本保本。",
+    "查看已实现 R 与保本/移动止损价。",
+  ],
   entryLabel: "入场价",
   stopLabel: "初始止损",
   priceLabel: "当前价",
@@ -51,6 +60,13 @@ const zh = {
 const en = {
   title: "Trailing / Break-even Stop",
   subtitle: "R achieved = profit ÷ risk/unit; trailing stop rolls with price; break-even moves stop to cost at trigger R. Educational, not investment advice.",
+  howToTitle: "How to use the trailing / break-even stop calculator",
+  howTo: [
+    "Enter entry price, risk per unit and the trail distance.",
+    "Set the trigger R for the break-even phase.",
+    "The calculator rolls the trailing stop and moves it to cost at trigger R.",
+    "Read R achieved and the break-even / trailing stop price.",
+  ],
   entryLabel: "Entry",
   stopLabel: "Initial Stop",
   priceLabel: "Current Price",
@@ -110,6 +126,10 @@ export default function TrailingStopPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="trailing-stop" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/trailing-stop"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Trailing / Break-even Stop", href: "/trailing-stop" }]),
+      ]} />
       <FaqLd questions={L.faqs} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">

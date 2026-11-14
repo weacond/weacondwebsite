@@ -6,6 +6,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import {
   barrierSummary, BARRIER_PRESETS,
@@ -47,6 +49,10 @@ export default function BarrierPage() {
         <title>{L.title}</title>
       </Head>
       <CalcLd slug="two-barrier" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/two-barrier"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Two-barrier Hit Probability", href: "/two-barrier" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
@@ -123,6 +129,12 @@ export default function BarrierPage() {
 const zh = {
   title: "双屏障命中概率计算器",
   subtitle: "先触及目标还是先触及止损？经典两屏障模型：P(先触目标) = b / (a+b)。",
+  howToTitle: "如何使用双屏障命中概率计算器",
+  howTo: [
+    "输入现价、目标价与止损价。",
+    "计算器算到目标的距离 b 与到止损的距离 a。",
+    "按经典两屏障模型算 P(先触目标) = b / (a+b)。",
+  ],
   targetLabel: "到目标距离 a",
   stopLabel: "到止损距离 b",
   driftLabel: "每步漂移 λ",
@@ -140,6 +152,12 @@ const zh = {
 const en = {
   title: "Two-barrier Hit Probability",
   subtitle: "Target first or stop first? Classic two-barrier model: P(target first) = b / (a + b).",
+  howToTitle: "How to use the two-barrier hit-probability calculator",
+  howTo: [
+    "Enter the spot, target and stop prices.",
+    "The calculator computes distance b to target and a to stop.",
+    "It applies the classic two-barrier model: P(target first) = b / (a + b).",
+  ],
   targetLabel: "Distance to target a",
   stopLabel: "Distance to stop b",
   driftLabel: "Drift per step λ",

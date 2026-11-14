@@ -5,6 +5,8 @@ import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
+import StructuredData from "../components/StructuredData";
+import { howToLd, breadcrumbLd } from "../lib/jsonLd";
 import Link from "next/link";
 import { takeProfitSummary, TAKE_PROFIT_PRESETS } from "../lib/takeProfit";
 export const metadata = {
@@ -15,6 +17,12 @@ export const metadata = {
 const zh = {
   title: "止盈目标 / R:R 计算器",
   subtitle: "止盈价=入场±目标R×每单位风险；R:R=盈利/风险；止盈回报%=盈利/入场。教育性参考，非投资建议。",
+  howToTitle: "如何使用止盈目标/R:R 计算器",
+  howTo: [
+    "输入入场价、每单位风险与目标 R 倍数。",
+    "计算器算止盈价 = 入场 ± 目标 R × 每单位风险。",
+    "查看 R:R 与止盈回报%，评估盈亏比。",
+  ],
   entryLabel: "入场价",
   stopLabel: "止损价",
   targetRLabel: "目标 R 倍数",
@@ -40,6 +48,12 @@ const zh = {
 const en = {
   title: "Take-Profit / R:R Target",
   subtitle: "TP price = entry ± target R × risk/unit; R:R = reward/risk; TP return % = reward/entry. Educational, not investment advice.",
+  howToTitle: "How to use the take-profit / R:R calculator",
+  howTo: [
+    "Enter entry price, risk per unit and the target R multiple.",
+    "The calculator computes TP price = entry ± target R × risk/unit.",
+    "Read the R:R and take-profit return % to assess the reward/risk.",
+  ],
   entryLabel: "Entry",
   stopLabel: "Stop",
   targetRLabel: "Target R",
@@ -96,6 +110,10 @@ export default function TakeProfitPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head><title>{L.title}</title></Head>
       <CalcLd slug="take-profit" />
+      <StructuredData items={[
+        howToLd(L.howToTitle, L.howTo, "/take-profit"),
+        breadcrumbLd([{ name: "Home", href: "/" }, { name: "Take-Profit / R:R Target", href: "/take-profit" }]),
+      ]} />
       <Navbar />
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
