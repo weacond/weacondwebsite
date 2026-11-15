@@ -3,6 +3,7 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { groupedTools, TOOLS } from "../lib/toolsIndex";
@@ -19,6 +20,21 @@ export default function CalculatorsPage() {
   const { lang } = useLanguage();
   const L = lang === "en" ? en : zh;
   const groups = groupedTools();
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const shownGroups = q
+    ? groups
+        .map((g) => ({
+          ...g,
+          tools: g.tools.filter((t) =>
+            [t.title, t.titleEn, t.desc, t.descEn, t.category, t.id, t.href].some((f) =>
+              String(f).toLowerCase().includes(q)
+            )
+          ),
+        }))
+        .filter((g) => g.tools.length > 0)
+    : groups;
+  const shownCount = shownGroups.reduce((n, g) => n + g.tools.length, 0);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -30,11 +46,41 @@ export default function CalculatorsPage() {
       <section className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">{L.title}</h1>
-          <p className="text-slate-500 mb-8">
+          <p className="text-slate-500 mb-4">
             {L.subtitle} <span className="text-xs text-slate-400">{TOOLS.length} {L.tools}</span>
           </p>
 
-          {groups.map((g) => (
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={L.searchPlaceholder}
+              aria-label={L.searchPlaceholder}
+              className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                {L.clear}
+              </button>
+            )}
+          </div>
+          {q && (
+            <p className="text-[10px] text-slate-400 mb-3">
+              {L.resultsHint
+                .replace("{n}", String(shownCount))
+                .replace("{total}", String(TOOLS.length))}
+            </p>
+          )}
+
+          {query && shownCount === 0 && (
+            <p className="text-sm text-slate-400 py-8 text-center">{L.noResults}</p>
+          )}
+
+          {shownGroups.map((g) => (
             <div key={g.category} className="mb-8">
               <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-indigo-500 rounded-full inline-block" />
@@ -75,11 +121,19 @@ const zh = {
   title: "计算工具集",
   subtitle: "Weacond 的量化计算与分析工具，按类别组织。每个工具可交互、双语，用于教学演示。",
   tools: "个工具",
+  searchPlaceholder: "搜索工具（名称 / 类别 / 关键词）…",
+  clear: "清除",
+  noResults: "无匹配工具",
+  resultsHint: "显示 {n} / {total} 个工具",
   disclaimer: "所有工具均为教育演示，参数为示意性估计，不构成投资建议。",
 };
 const en = {
   title: "Calculators & Tools",
   subtitle: "Weacond's quantitative calculators & analysis tools, organized by category. Each is interactive, bilingual, and for education only.",
   tools: "tools",
+  searchPlaceholder: "Search tools (name / category / keyword)…",
+  clear: "Clear",
+  noResults: "No matching tools",
+  resultsHint: "Showing {n} of {total} tools",
   disclaimer: "All tools are educational demonstrations with illustrative parameters, not investment advice.",
 };
