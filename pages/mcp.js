@@ -72,6 +72,10 @@ const zh = {
   toolsTitle: "暴露的工具",
   toolsHint: "共 {n} 个高风险意图计算器，每个带 JSON Schema 入参校验。",
   openCalc: "打开计算器页 →",
+  searchPlaceholder: "搜索工具（名称 / 类别 / 关键词）…",
+  clear: "清除",
+  noResults: "无匹配工具",
+  resultsHint: "显示 {n} / {total} 个工具",
   examplesTitle: "调用示例",
   examplesHint: "三个最常见请求，点「复制」即用。",
   envTitle: "环境变量",
@@ -114,6 +118,10 @@ const en = {
   toolsTitle: "Exposed tools",
   toolsHint: "{n} high-intent calculators, each with JSON Schema input validation.",
   openCalc: "Open calculator page →",
+  searchPlaceholder: "Search tools (name / category / keyword)…",
+  clear: "Clear",
+  noResults: "No matching tools",
+  resultsHint: "Showing {n} of {total} tools",
   examplesTitle: "Call examples",
   examplesHint: "Three common requests — click copy to use.",
   envTitle: "Environment variables",
@@ -171,6 +179,15 @@ export default function McpPage() {
   const L = lang === "en" ? en : zh;
   const tools = listToolDefs();
   const [copied, setCopied] = useState("");
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? tools.filter((t) =>
+        [t.name, t.category, t.title, t.description].some((f) =>
+          String(f).toLowerCase().includes(q)
+        )
+      )
+    : tools;
   const copy = (key, text) => {
     try {
       navigator.clipboard.writeText(text);
@@ -233,8 +250,34 @@ export default function McpPage() {
             <p className="text-xs text-slate-400 mb-3">
               {L.toolsHint.replace("{n}", String(tools.length))}
             </p>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={L.searchPlaceholder}
+                aria-label={L.searchPlaceholder}
+                className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                >
+                  {L.clear}
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 mb-2">
+              {L.resultsHint
+                .replace("{n}", String(shown.length))
+                .replace("{total}", String(tools.length))}
+            </p>
+            {shown.length === 0 ? (
+              <p className="text-xs text-slate-400 py-4">{L.noResults}</p>
+            ) : (
             <ul className="space-y-3">
-              {tools.map((t) => (
+              {shown.map((t) => (
                 <li
                   key={t.name}
                   className="border-t border-slate-100 pt-3 first:border-t-0 first:pt-0"
@@ -274,6 +317,7 @@ export default function McpPage() {
                 </li>
               ))}
             </ul>
+            )}
             <p className="text-[10px] text-slate-300 mt-2">
               * = {lang === "en" ? "required" : "必填"}
             </p>
