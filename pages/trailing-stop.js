@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import CrossLinks from "../components/CrossLinks";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
@@ -199,6 +200,7 @@ export default function TrailingStopPage() {
           <FaqSection faqs={L.faqs} title={L.faqTitle} />
         </div>
       </section>
+      <CrossLinks slug="trailing-stop" />
       <Footer />
     </div>
   );

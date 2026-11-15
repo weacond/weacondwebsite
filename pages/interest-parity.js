@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import CrossLinks from "../components/CrossLinks";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
@@ -155,6 +156,7 @@ export default function InterestParityPage() {
           <p className="text-sm text-indigo-800 leading-relaxed">{L.learn}</p>
         </div>
       </section>
+      <CrossLinks slug="interest-parity" />
       <Footer />
     </div>
   );

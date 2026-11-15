@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import CrossLinks from "../components/CrossLinks";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
@@ -149,6 +150,7 @@ export default function FxPipPage() {
           </p>
         </div>
       </section>
+      <CrossLinks slug="fx-pip" />
       <Footer />
     </div>
   );
