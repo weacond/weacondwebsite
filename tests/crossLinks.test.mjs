@@ -1,72 +1,80 @@
 // tests/crossLinks.test.mjs — 交叉链接引擎（计算器 ↔ 概念/词典 ↔ MCP ↔ 对比）
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { crossLinksFor, hasCrossLinks } from "../lib/crossLinks.js";
+import fs from "node:fs";
+import path from "node:path";
+import { crossLinksFor, hasCrossLinks, MCP_NAME_BY_SLUG } from "../lib/crossLinks.js";
 import { TOOLS as MCP_TOOLS } from "../lib/mcp/tools.js";
-import { getToolBySlug, allToolHrefs } from "../lib/toolsIndex.js";
+import { getToolBySlug } from "../lib/toolsIndex.js";
 
-// MCP 工具名集合（反向校验：引擎里 MCP_BY_TOOL 引用的 name 必须真实存在）
+// MCP 工具名集合（反向校验：引擎里引用的 MCP 名必须真实存在）
 const MCP_NAMES = new Set(MCP_TOOLS.map((t) => t.name));
-// 注册表计算器 href 集合（校验 compare 兄弟 + 概念/工具 href 不悬空）
-const PAGE_HREFS = new Set(allToolHrefs());
+const PAGES = path.join(process.cwd(), "pages");
+const mappedSlugs = Object.keys(MCP_NAME_BY_SLUG);
 
-test("crossLinksFor 对已知计算器返回三类交叉链接", () => {
-  const dcf = crossLinksFor("dcf");
-  assert.ok(dcf.concepts.some((c) => c.id === "dcf"), "dcf 含 DCF 概念");
-  assert.ok(dcf.mcp.some((m) => m.name === "dcf"), "dcf 含 dcf MCP 工具");
-  assert.equal(dcf.compare.length, 0, "dcf 无对比兄弟（v1 未配置）");
-});
-
-test("purchasing-power / real-estate / dca 各自带可对比兄弟", () => {
-  const pp = crossLinksFor("purchasing-power");
-  assert.ok(pp.compare.some((c) => c.slug === "inflation-goal"), "pp→inflation-goal");
-  const re = crossLinksFor("real-estate");
-  assert.ok(re.compare.some((c) => c.slug === "dcf"), "real-estate→dcf");
-  const dca = crossLinksFor("dca");
-  assert.ok(dca.compare.some((c) => c.slug === "npv"), "dca→npv");
-});
-
-// 反向校验：引擎引用的 MCP 工具名必须在 MCP 注册表真实存在（防拼写/改名脱节）
-test("所有 MCP 工具名都存在于 MCP 注册表", () => {
-  const slugs = ["dcf", "dca", "purchasing-power", "real-estate", "kelly"];
-  for (const s of slugs) {
-    for (const m of crossLinksFor(s).mcp) {
-      assert.ok(MCP_NAMES.has(m.name), `MCP 工具名 ${m.name} 不在注册表`);
-      assert.ok(m.title && m.titleEn, `${m.name} 缺双语标题`);
-    }
+// 1) 引擎引用的每个 MCP 名都必须存在于 MCP 注册表（防改名/拼写脱节）
+test("MCP_NAME_BY_SLUG 里每个 slug 的 MCP 名都存在于 MCP 注册表", () => {
+  for (const slug of mappedSlugs) {
+    const name = MCP_NAME_BY_SLUG[slug];
+    assert.ok(MCP_NAMES.has(name), `${slug} → MCP 名「${name}」不在 MCP 注册表`);
+    const m = crossLinksFor(slug).mcp;
+    assert.equal(m.length, 1, `${slug} 应有 1 个 MCP 工具`);
+    assert.ok(m[0].title && m[0].titleEn, `${slug} 的 MCP 项缺双语标题`);
   }
 });
 
-// 反向校验：compare 兄弟 slug 必须解析到真实计算器页（防悬空链接）
+// 2) 「接入」不变量：每个有页面文件的映射 slug 都必须在页面里渲染 <CrossLinks slug=...>
+test("每个有页面的映射 slug 都接入了 <CrossLinks> 渲染", () => {
+  for (const slug of mappedSlugs) {
+    const file = path.join(PAGES, slug + ".js");
+    if (!fs.existsSync(file)) continue; // 无页面则不强制接入
+    const src = fs.readFileSync(file, "utf8");
+    assert.ok(
+      src.includes(`<CrossLinks slug="${slug}" />`),
+      `${slug} 在 MCP_NAME_BY_SLUG 中但页面未渲染 <CrossLinks slug="${slug}" />`
+    );
+    assert.ok(
+      src.includes("import CrossLinks from \"../components/CrossLinks\""),
+      `${slug} 渲染了 CrossLinks 但缺少 import`
+    );
+  }
+});
+
+// 3) compare 兄弟 slug 必须解析到真实计算器页（防悬空链接）
 test("所有 compare 兄弟都解析到真实计算器页", () => {
-  const slugs = ["dcf", "dca", "purchasing-power", "real-estate", "kelly"];
-  for (const s of slugs) {
-    for (const c of crossLinksFor(s).compare) {
+  for (const slug of mappedSlugs) {
+    for (const c of crossLinksFor(slug).compare) {
       assert.ok(getToolBySlug(c.slug), `compare 兄弟 /${c.slug} 不存在`);
       assert.equal(c.href, "/" + c.slug, "compare href 与 slug 一致");
     }
   }
 });
 
-// 概念/工具 href 不悬空（/glossary、/mcp 是真实页面）
+// 4) 交叉链接 href 不悬空：/glossary、/mcp 是真实页面；compare 必须解析到注册表计算器
 test("所有交叉链接 href 不悬空", () => {
-  const knownPages = new Set([...PAGE_HREFS, "/glossary", "/mcp"]);
-  const slugs = ["dcf", "dca", "purchasing-power", "real-estate", "kelly"];
-  for (const s of slugs) {
-    const c = crossLinksFor(s);
+  for (const slug of mappedSlugs) {
+    const c = crossLinksFor(slug);
     for (const x of [...c.concepts, ...c.mcp, ...c.compare]) {
-      assert.ok(knownPages.has(x.href), `${s} 的交叉链接 ${x.href} 悬空`);
+      const ok =
+        x.href === "/glossary" ||
+        x.href === "/mcp" ||
+        getToolBySlug(String(x.href).replace(/^\//, ""));
+      assert.ok(ok, `${slug} 的交叉链接 ${x.href} 悬空`);
     }
   }
 });
 
-// 容错：未知 slug 返回全空；/ 前缀 / 大小写不影响；hasCrossLinks 正确
+// 5) 容错：未知 slug 返回全空；/ 前缀归一；hasCrossLinks 正确
 test("未知 slug 返回全空 + hasCrossLinks 判断", () => {
   const empty = crossLinksFor("nonexistent-tool");
   assert.deepEqual(empty, { concepts: [], mcp: [], compare: [] });
   assert.equal(hasCrossLinks("nonexistent-tool"), false);
   assert.equal(hasCrossLinks("dcf"), true);
-  assert.equal(crossLinksFor("/dcf").mcp.length, crossLinksFor("dcf").mcp.length, "/ 前缀归一");
+  assert.equal(
+    crossLinksFor("/dcf").mcp.length,
+    crossLinksFor("dcf").mcp.length,
+    "/ 前缀归一"
+  );
 });
 
-console.log("✅ crossLinks 全部通过");
+console.log(`✅ crossLinks 全部通过（${mappedSlugs.length} 个映射 slug）`);

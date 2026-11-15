@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import CrossLinks from "../components/CrossLinks";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
 import CalcLd from "../components/CalcLd";
@@ -210,6 +211,7 @@ export default function VarPage() {
           </div>
         </div>
       </section>
+      <CrossLinks slug="var" />
       <Footer />
     </div>
   );
