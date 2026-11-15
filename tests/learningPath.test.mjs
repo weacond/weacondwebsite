@@ -44,3 +44,11 @@ test("totalMinutes 为各模块 estMin 之和且为正", () => {
   assert.equal(totalMinutes(), sum);
   assert.ok(totalMinutes() > 0);
 });
+
+// ── 新计算器接入守卫（防回退）──────────────────────────────────────────────
+test("4 个新计算器已编入学习路径（dcf/dca/purchasing-power/real-estate）", () => {
+  const tools = new Set(LEARNING_PATH.map((m) => m.tool));
+  for (const t of ["/dcf", "/dca", "/purchasing-power", "/real-estate"]) {
+    assert.ok(tools.has(t), `learningPath 缺少模块: ${t}`);
+  }
+});

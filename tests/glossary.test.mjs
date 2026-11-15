@@ -30,7 +30,7 @@ test("id 唯一；分组覆盖全部概念且按 order 排序", () => {
 });
 
 test("相关 href 均指向已知工具页", () => {
-  const known = ["/risk", "/performance", "/correlation", "/portfolio", "/montecarlo", "/options", "/position-size", "/r-multiple", "/leverage", "/compound", "/backtest", "/stresstest", "/atr-stop", "/excursion", "/breakeven", "/risk-ruin", "/real-return", "/fair-value", "/levered-etf", "/rebalance", "/tax-loss", "/fx-pip", "/bond", "/tax-drag", "/margin", "/expectancy", "/options-payoff", "/ytm", "/loan", "/fx-cross", "/drip", "/staking", "/portfolio-beta", "/annuity", "/goal-solver", "/drawdown-sizing", "/r-position", "/real-after-tax", "/prob-return", "/fib-time", "/kelly", "/npv", "/risk-budget", "/trailing-stop", "/take-profit", "/lot-size", "/slippage", "/inflation-goal", "/ear", "/continuous", "/fire", "/funding", "/interest-parity", "/twrr"];
+  const known = ["/risk", "/performance", "/correlation", "/portfolio", "/montecarlo", "/options", "/position-size", "/r-multiple", "/leverage", "/compound", "/backtest", "/stresstest", "/atr-stop", "/excursion", "/breakeven", "/risk-ruin", "/real-return", "/fair-value", "/levered-etf", "/rebalance", "/tax-loss", "/fx-pip", "/bond", "/tax-drag", "/margin", "/expectancy", "/options-payoff", "/ytm", "/loan", "/fx-cross", "/drip", "/staking", "/portfolio-beta", "/annuity", "/goal-solver", "/drawdown-sizing", "/r-position", "/real-after-tax", "/prob-return", "/fib-time", "/kelly", "/npv", "/risk-budget", "/trailing-stop", "/take-profit", "/lot-size", "/slippage", "/inflation-goal", "/ear", "/continuous", "/fire", "/funding", "/interest-parity", "/twrr", "/dcf", "/dca", "/purchasing-power", "/real-estate"];
   for (const h of allRelatedHrefs()) {
     assert.ok(known.includes(h), `unknown href ${h}`);
   }
@@ -45,4 +45,12 @@ test("getGlossaryTerm: 已知返回、未知抛错", () => {
 test("覆盖 5 个类别", () => {
   const cats = new Set(GLOSSARY.map((t) => t.category));
   for (const c of ["risk", "returns", "portfolio", "options", "position"]) assert.ok(cats.has(c), `category ${c} present`);
+});
+
+// ── 新计算器接入守卫（防回退）──────────────────────────────────────────────
+test("4 个新计算器概念已入词典（dcf/dca/purchasingPower/realEstate）", () => {
+  const ids = new Set(GLOSSARY.map((t) => t.id));
+  for (const id of ["dcf", "dca", "purchasingPower", "realEstate"]) {
+    assert.ok(ids.has(id), `glossary 缺少概念: ${id}`);
+  }
 });
