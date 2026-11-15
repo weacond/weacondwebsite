@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 45 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 45);
+test("注册 48 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 48);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -22,11 +22,12 @@ test("注册 45 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "continuous", "leveredEtf", "goalSolver", "inflationGoal", "taxLoss",
     "fairValue", "staking", "lotSize", "avgEntry",
     "barrier", "bond", "var", "realEstate",
+    "dcf", "dca", "purchasingPower",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 45);
+  assert.equal(defs.length, 48);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -507,4 +508,57 @@ test("callTool realEstate 入参非法 → isError", () => {
   assert.equal(callTool("realEstate", { purchasePrice: 0, annualRent: 24000 }).isError, true); // 价 ≤0
   assert.equal(callTool("realEstate", { purchasePrice: 100000, downPayment: 200000, annualRent: 24000 }).isError, true); // 首付>价
   assert.equal(callTool("realEstate", { purchasePrice: 100000, annualRent: 24000, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool dcf 成长股 → 内在价值=显性期+终值现值，含每股/上行空间", () => {
+  const r = callTool("dcf", { fcf0: 100, growth: 0.1, years: 3, terminalGrowth: 0.03, wacc: 0.1, shares: 100, price: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.intrinsicValue - (r.structuredContent.pvExplicit + r.structuredContent.pvTerminal)) < 1e-9);
+  assert.ok(Math.abs(r.structuredContent.tvShare - r.structuredContent.pvTerminal / r.structuredContent.intrinsicValue) < 1e-9);
+  assert.ok(Math.abs(r.structuredContent.perShare - r.structuredContent.intrinsicValue / 100) < 1e-9);
+  assert.ok(Math.abs(r.structuredContent.upside - (r.structuredContent.perShare - 10) / 10) < 1e-9);
+  assert.ok(r.structuredContent.intrinsicValue > 1000);
+});
+
+test("callTool dcf 入参非法 → isError", () => {
+  assert.equal(callTool("dcf", { fcf0: 100, wacc: 0.1 }).isError, true); // 缺 years
+  assert.equal(callTool("dcf", { fcf0: 0, years: 3, wacc: 0.1 }).isError, true); // fcf0 ≤0
+  assert.equal(callTool("dcf", { fcf0: 100, years: 0, wacc: 0.1 }).isError, true); // years ≤0
+  assert.equal(callTool("dcf", { fcf0: 100, years: 3, wacc: 0.1, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool dca 正收益 → 一次性胜出", () => {
+  const r = callTool("dca", { monthly: 1000, annualRate: 0.08, years: 10 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.equal(r.structuredContent.winner, "lump");
+  assert.ok(r.structuredContent.fvLump > r.structuredContent.fvDca);
+  assert.ok(r.structuredContent.lumpEdge > 0);
+  assert.ok(Math.abs(r.structuredContent.totalDca - 1000 * 12 * 10) < 1e-6);
+});
+
+test("callTool dca 入参非法 → isError", () => {
+  assert.equal(callTool("dca", { years: 10 }).isError, true); // 缺 monthly
+  assert.equal(callTool("dca", { monthly: 0, years: 10 }).isError, true); // monthly ≤0
+  assert.equal(callTool("dca", { monthly: 1000, years: 0 }).isError, true); // years ≤0
+  assert.equal(callTool("dca", { monthly: 1000, years: 10, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool purchasingPower 通胀 5%×10y → 购买力流失/半衰期/需名义收益", () => {
+  const r = callTool("purchasingPower", { amount: 100000, inflation: 0.05, years: 10, realReturn: 0.03 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.futureNominal - 100000 * r.structuredContent.factor) < 1e-3);
+  assert.ok(Math.abs(r.structuredContent.realValueToday * r.structuredContent.factor - 100000) < 1e-3);
+  assert.ok(Math.abs(r.structuredContent.powerLost - (1 - 1 / r.structuredContent.factor)) < 1e-12);
+  assert.ok(Math.abs(r.structuredContent.requiredNominal - 0.0815) < 1e-9); // (1.03)(1.05)−1
+  assert.ok(Math.abs(r.structuredContent.halfLife - Math.log(2) / Math.log(1.05)) < 1e-9);
+});
+
+test("callTool purchasingPower 入参非法 → isError", () => {
+  assert.equal(callTool("purchasingPower", { inflation: 0.05 }).isError, true); // 缺 amount
+  assert.equal(callTool("purchasingPower", { amount: -1, inflation: 0.05, years: 5 }).isError, true); // 金额<0
+  assert.equal(callTool("purchasingPower", { amount: 100, inflation: -0.1, years: 5 }).isError, true); // 通胀<0
+  assert.equal(callTool("purchasingPower", { amount: 100, bogus: 1 }).isError, true); // 未知字段
 });
