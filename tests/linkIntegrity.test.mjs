@@ -100,3 +100,16 @@ test("Navbar：4 个新计算器已接入 navItems", () => {
     assert.ok(keys.has(k), `navItems 缺少新计算器 key: ${k}`);
   }
 });
+
+// ── 防回退：用户可见文案不得残留过期工具数（67 是修复前的硬编码值，现已改为随注册表动态）──
+test("源码无过期硬编码工具数（67 个金融计算工具）", () => {
+  const files = [
+    path.join(__dirname, "..", "pages", "index.js"),
+    path.join(__dirname, "..", "lib", "jsonLd.js"),
+    path.join(__dirname, "..", "lib", "sitemap.js"),
+  ];
+  for (const f of files) {
+    const src = fs.readFileSync(f, "utf8");
+    assert.ok(!src.includes("67 个金融计算工具"), `${f} 残留过期 '67 个金融计算工具'，应改为动态 ${allToolHrefs().length}`);
+  }
+});

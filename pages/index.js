@@ -3,6 +3,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import Link from "next/link";
 import StructuredData from "../components/StructuredData";
 import { organizationLd, webApplicationLd, faqLd } from "../lib/jsonLd";
+import { TOOLS } from "../lib/toolsIndex";
 
 export const metadata = {
   title: "Weacond — 让投资变得轻松、便捷、稳健",
@@ -27,10 +28,12 @@ export const metadata = {
 };
 
 // 首页 FAQ（诚实、教育性，供 JSON-LD；反幻觉：不编造收益/评分）
+// 工具数从注册表派生，避免与 lib/toolsIndex.js 脱节
+const TOOL_COUNT = TOOLS.length;
 const HOME_FAQ = [
   {
     q: "Weacond 是什么？",
-    a: "Weacond 是 AI + 量化 + 教育三位一体的金融决策平台，提供三引擎信号（基本面公允价值 + 技术面突破 + 波动率）、回测、本地 AI 与 67 个金融计算工具。",
+    a: `Weacond 是 AI + 量化 + 教育三位一体的金融决策平台，提供三引擎信号（基本面公允价值 + 技术面突破 + 波动率）、回测、本地 AI 与 ${TOOL_COUNT} 个金融计算工具。`,
   },
   {
     q: "Weacond 的信号是投资建议吗？",
@@ -42,7 +45,7 @@ const HOME_FAQ = [
   },
   {
     q: "免费版包含哪些功能？",
-    a: "免费层含每日信号示例、公允价值与 67 个金融计算工具；进阶功能见定价页。",
+    a: `免费层含每日信号示例、公允价值与 ${TOOL_COUNT} 个金融计算工具；进阶功能见定价页。`,
   },
 ];
 

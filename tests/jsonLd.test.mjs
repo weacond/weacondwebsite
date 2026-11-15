@@ -10,6 +10,7 @@ import {
   toLdString,
   toScript,
 } from "../lib/jsonLd.js";
+import { TOOLS } from "../lib/toolsIndex.js";
 
 function t(name, fn) {
   fn();
@@ -89,6 +90,12 @@ t("itemLd 列出全部工具，位置 1..n，url 正确", () => {
   assert.equal(o.itemListElement[0].name, "Pivot Points", "优先用英文标题");
   assert.equal(o.itemListElement[0].url, "https://weacond.com/pivots", "尾斜杠被规整");
   assert.deepEqual(itemLd(null).itemListElement, [], "null → 空清单");
+});
+
+// ── 防回退：用户可见工具数必须 = 注册表（曾硬编码 67，实际随 TOOLS 增长）──
+t("webApplicationLd 描述的工具数 = TOOLS.length", () => {
+  const desc = webApplicationLd().description;
+  assert.ok(desc.includes(`${TOOLS.length} 个金融计算工具`), "描述应含当前工具数，而非过期硬编码");
 });
 
 console.log(`\n✅ jsonLd: ${passed}/${passed} 通过`);
