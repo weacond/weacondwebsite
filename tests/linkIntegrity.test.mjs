@@ -45,3 +45,27 @@ test("索引 href 唯一且均为合法站内路径", () => {
   assert.equal(new Set(hrefs).size, hrefs.length, "href 去重后应一致（collectAll 已去重，做双重保险）");
   for (const h of hrefs) assert.ok(h.startsWith("/"), `非法 href: ${h}`);
 });
+
+// ── 首页精选列表守卫（防回退）──────────────────────────────────────────────
+// 首页 pages/index.js 用 zh/en 两份「精选」tools 数组，不依赖 TOOLS 注册表，
+// 故新增计算器易被漏同步。这里锁定两件事，防未来回退：
+//   (1) 4 个新计算器 dcf/dca/purchasing-power/real-estate 同时出现在 zh+en 精选；
+//   (2) 首页所有 href 都能解析到真实页面，防「A 页链 B、B 不存在」类回退。
+const indexSrc = fs.readFileSync(path.join(pagesDir, "index.js"), "utf8");
+
+test("首页精选：4 个新计算器已在 zh+en 列表（防回退）", () => {
+  for (const slug of ["/dcf", "/dca", "/purchasing-power", "/real-estate"]) {
+    const count = (indexSrc.match(new RegExp(`href: "${slug}"`, "g")) || []).length;
+    assert.ok(count >= 2, `首页精选中 ${slug} 出现 ${count} 次，应 ≥2（zh+en 各一）`);
+  }
+});
+
+test("首页精选：所有 href 都解析到真实页面", () => {
+  const re = /href[:=]\s*["']\/([^"']+)["']/g;
+  const found = new Set();
+  let m;
+  while ((m = re.exec(indexSrc)) !== null) found.add("/" + m[1]);
+  assert.ok(found.size > 0, "应能从首页解析出若干 href");
+  const missing = [...found].filter((h) => !pages.has(hrefToPage(h)));
+  assert.deepEqual(missing, [], `首页存在无法解析的 href: ${missing.join(", ")}`);
+});
