@@ -40,6 +40,7 @@ const COVERED = [
   "fibonacci", "fib-time", "pivots", "r-position", "levered-etf", "system",
   "var", "real-estate",
   "dcf", "dca", "purchasing-power",
+  "calmar",
 ];
 
 // 三处都齐才算“已铺开”：HowTo JSON-LD 注入、BreadcrumbList 注入、且面包屑首项为 Home；
