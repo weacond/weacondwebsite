@@ -46,6 +46,13 @@
 - **Payments**: User to Stripe Checkout to Webhook to Supabase update
 - **Notifications**: Workers to Web Push / Email
 
+## MCP Endpoint
+
+Weacond exposes its deterministic financial calculators as **Model Context Protocol
+(MCP)** tools — AI assistants and search can call them over stateless JSON-RPC 2.0 on
+HTTP, dual-runtime on Vercel + Cloudflare Edge. See `docs/mcp.md` (integration guide)
+and <https://weacond.com/mcp> (public, bilingual endpoint doc).
+
 ## Directory Structure
 
 - `pages/` - Next.js pages (index, signals, pricing, about, contact, login, dashboard, terms, privacy, ebooks)
