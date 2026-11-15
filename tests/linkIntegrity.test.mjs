@@ -69,3 +69,34 @@ test("首页精选：所有 href 都解析到真实页面", () => {
   const missing = [...found].filter((h) => !pages.has(hrefToPage(h)));
   assert.deepEqual(missing, [], `首页存在无法解析的 href: ${missing.join(", ")}`);
 });
+
+// ── Navbar 导航守卫（防回退）────────────────────────────────────────────────
+// Navbar 用 navItems({href, key}) + 双语 labels(zh/en)。新增计算器易只加
+// navItems 而漏加翻译（或反之），导致顶栏出现 undefined 文案。这里锁定两件
+// 不变式，防未来回退：
+//   (1) 每个 navItems 的 key 在 labels.zh 与 labels.en 各出现一次（共 ≥2 次）；
+//   (2) 4 个新计算器 dcf/dca/purchasingPower/realEstate 已接入 navItems。
+const navSrc = fs.readFileSync(path.join(__dirname, "..", "components", "Navbar.js"), "utf8");
+
+function navItemKeys(src) {
+  const start = src.indexOf("const navItems = [");
+  const end = src.indexOf("];", start);
+  assert.ok(start >= 0 && end > start, "应能定位 navItems 数组");
+  return [...src.slice(start, end).matchAll(/\bkey:\s*"([^"]+)"/g)].map((m) => m[1]);
+}
+
+test("Navbar：每个导航 key 在 zh+en 都有翻译（共 ≥2 次）", () => {
+  const keys = navItemKeys(navSrc);
+  assert.ok(keys.length > 10, "应解析到一批导航项 key");
+  for (const k of new Set(keys)) {
+    const labelCount = (navSrc.match(new RegExp(`\\b${k}:\\s*"`, "g")) || []).length;
+    assert.ok(labelCount >= 2, `导航 key "${k}" 在 labels 中出现 ${labelCount} 次，应 ≥2（zh+en）`);
+  }
+});
+
+test("Navbar：4 个新计算器已接入 navItems", () => {
+  const keys = new Set(navItemKeys(navSrc));
+  for (const k of ["dcf", "dca", "purchasingPower", "realEstate"]) {
+    assert.ok(keys.has(k), `navItems 缺少新计算器 key: ${k}`);
+  }
+});
