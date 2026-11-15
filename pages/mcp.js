@@ -13,6 +13,7 @@ import Head from "next/head";
 import Link from "next/link";
 import FaqSection from "../components/FaqSection";
 import { listToolDefs } from "../lib/mcp/tools.js";
+import { mcpPageHref } from "../lib/crossLinks.js";
 import { webApplicationLd, faqLd, breadcrumbLd, toScript } from "../lib/jsonLd.js";
 
 // 工具数量单一事实源（随注册表自动同步，避免文案与注册表漂移）。
@@ -70,6 +71,7 @@ const zh = {
   authLabel: "鉴权",
   toolsTitle: "暴露的工具",
   toolsHint: "共 {n} 个高风险意图计算器，每个带 JSON Schema 入参校验。",
+  openCalc: "打开计算器页 →",
   examplesTitle: "调用示例",
   examplesHint: "三个最常见请求，点「复制」即用。",
   envTitle: "环境变量",
@@ -111,6 +113,7 @@ const en = {
   authLabel: "Auth",
   toolsTitle: "Exposed tools",
   toolsHint: "{n} high-intent calculators, each with JSON Schema input validation.",
+  openCalc: "Open calculator page →",
   examplesTitle: "Call examples",
   examplesHint: "Three common requests — click copy to use.",
   envTitle: "Environment variables",
@@ -246,6 +249,14 @@ export default function McpPage() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">{t.description}</p>
+                  {mcpPageHref(t.name) ? (
+                    <Link
+                      href={mcpPageHref(t.name)}
+                      className="inline-block mt-1 text-[11px] text-indigo-600 hover:text-indigo-800"
+                    >
+                      {L.openCalc}
+                    </Link>
+                  ) : null}
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {Object.entries(t.inputSchema.properties || {}).map(([k, v]) => (
                       <code

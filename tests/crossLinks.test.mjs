@@ -3,7 +3,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { crossLinksFor, hasCrossLinks, MCP_NAME_BY_SLUG } from "../lib/crossLinks.js";
+import {
+  crossLinksFor,
+  hasCrossLinks,
+  MCP_NAME_BY_SLUG,
+  SLUG_BY_MCP_NAME,
+  mcpPageHref,
+} from "../lib/crossLinks.js";
 import { TOOLS as MCP_TOOLS } from "../lib/mcp/tools.js";
 import { getToolBySlug } from "../lib/toolsIndex.js";
 
@@ -75,6 +81,40 @@ test("未知 slug 返回全空 + hasCrossLinks 判断", () => {
     crossLinksFor("dcf").mcp.length,
     "/ 前缀归一"
   );
+});
+
+// 6) 反向闭环：SLUG_BY_MCP_NAME 是 MCP_NAME_BY_SLUG 的逆映射（round-trip 一致）
+test("SLUG_BY_MCP_NAME 是 MCP_NAME_BY_SLUG 的逆映射", () => {
+  const names = Object.values(MCP_NAME_BY_SLUG);
+  assert.equal(names.length, new Set(names).size, "MCP 名应唯一（逆映射才成立）");
+  for (const [slug, name] of Object.entries(MCP_NAME_BY_SLUG)) {
+    assert.equal(SLUG_BY_MCP_NAME[name], slug, `逆映射 ${name} 应回到 ${slug}`);
+  }
+});
+
+// 7) 反向 slug 不悬空：每个 MCP 名对应的计算器页都真实存在
+test("每个 SLUG_BY_MCP_NAME 都解析到真实页面（无悬空链接）", () => {
+  const pages = new Set(
+    fs.readdirSync(PAGES).filter((f) => f.endsWith(".js")).map((f) => f.slice(0, -3))
+  );
+  for (const [name, slug] of Object.entries(SLUG_BY_MCP_NAME)) {
+    assert.ok(pages.has(slug), `MCP 工具「${name}」的计算器页 /${slug} 不存在`);
+  }
+});
+
+// 8) mcpPageHref 行为：已知名返回 /slug，未知名/undefined 返回 null
+test("mcpPageHref 已知名→/slug，未知名→null", () => {
+  assert.equal(mcpPageHref("kelly"), "/kelly");
+  assert.equal(mcpPageHref("atr_stop"), "/atr-stop");
+  assert.equal(mcpPageHref("nonexistent-tool"), null);
+  assert.equal(mcpPageHref(undefined), null);
+});
+
+// 9) /mcp 页已接入反向链接（计算器页 ↔ MCP 工具 双向闭环）
+test("/mcp 页已接入反向计算器链接", () => {
+  const src = fs.readFileSync(path.join(PAGES, "mcp.js"), "utf8");
+  assert.ok(src.includes("mcpPageHref"), "mcp.js 应使用 mcpPageHref");
+  assert.ok(src.includes('from "../lib/crossLinks.js"'), "mcp.js 应 import crossLinks");
 });
 
 console.log(`✅ crossLinks 全部通过（${mappedSlugs.length} 个映射 slug）`);
