@@ -22,6 +22,7 @@ const zh = {
   backtest: "策略回测",
   pricing: "定价方案",
   ai: "本地 AI",
+  compare: "Weacond 对比",
   terms: "服务条款",
   privacy: "隐私政策",
   aboutPage: "关于我们",
@@ -41,6 +42,7 @@ const en = {
   backtest: "Backtest",
   pricing: "Pricing",
   ai: "Local AI",
+  compare: "Compare",
   terms: "Terms of Service",
   privacy: "Privacy Policy",
   aboutPage: "About",
@@ -74,6 +76,7 @@ export default function Footer() {
               <Link href="/backtest" className="hover:text-white transition-colors">{L.backtest}</Link>
               <Link href="/ai" className="hover:text-white transition-colors">{L.ai}</Link>
               <Link href="/pricing" className="hover:text-white transition-colors">{L.pricing}</Link>
+              <Link href="/weacond-vs" className="hover:text-white transition-colors">{L.compare}</Link>
             </div>
           </div>
           <div>
