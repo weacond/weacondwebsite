@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 48 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 48);
+test("注册 50 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 50);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -23,11 +23,12 @@ test("注册 48 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "fairValue", "staking", "lotSize", "avgEntry",
     "barrier", "bond", "var", "realEstate",
     "dcf", "dca", "purchasingPower",
+    "calmar", "sortino",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 48);
+  assert.equal(defs.length, 50);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -561,4 +562,33 @@ test("callTool purchasingPower 入参非法 → isError", () => {
   assert.equal(callTool("purchasingPower", { amount: -1, inflation: 0.05, years: 5 }).isError, true); // 金额<0
   assert.equal(callTool("purchasingPower", { amount: 100, inflation: -0.1, years: 5 }).isError, true); // 通胀<0
   assert.equal(callTool("purchasingPower", { amount: 100, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool calmar 计算序列 Calmar 比率（CAGR÷|MDD|）", () => {
+  const r = callTool("calmar", { returns: "0.1,-0.05,0.1,0.1", freq: 4, rf: 0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.annualized - 0.26445) < 1e-6);
+  assert.ok(Math.abs(r.structuredContent.mdd - 0.05) < 1e-9);
+  assert.ok(Math.abs(r.structuredContent.calmar - 5.289) < 1e-3);
+});
+
+test("callTool calmar 入参非法 → isError", () => {
+  assert.equal(callTool("calmar", { returns: "0.1,0.1" }).isError, true); // 缺 freq
+  assert.equal(callTool("calmar", { returns: "abc", freq: 4 }).isError, true); // 收益非法 → valid:false
+  assert.equal(callTool("calmar", { returns: "0.1,0.1", freq: 4, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool sortino 计算序列 Sortino 比率（(CAGR−MAR)÷下行偏差）", () => {
+  const r = callTool("sortino", { returns: "0.1,-0.05,0.1,0.1", freq: 4, mar: 0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.downsideDeviation - 0.05) < 1e-9);
+  assert.ok(Math.abs(r.structuredContent.sortino - 5.289) < 1e-3);
+});
+
+test("callTool sortino 入参非法 → isError", () => {
+  assert.equal(callTool("sortino", { returns: "0.1,0.1" }).isError, true); // 缺 freq
+  assert.equal(callTool("sortino", { returns: "x", freq: 4 }).isError, true); // 收益非法
+  assert.equal(callTool("sortino", { returns: "0.1,0.1", freq: 4, bogus: 1 }).isError, true); // 未知字段
 });

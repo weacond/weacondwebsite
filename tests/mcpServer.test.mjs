@@ -11,9 +11,9 @@ test("initialize 返回协议版本/能力/服务器信息", () => {
   assert.ok(r.result.serverInfo.name);
 });
 
-test("tools/list 返回 45 个工具定义，确定性顺序", () => {
+test("tools/list 返回 50 个工具定义，确定性顺序", () => {
   const r = handleMcpRequest({ jsonrpc: "2.0", id: 2, method: "tools/list" });
-  assert.equal(r.result.tools.length, 48);
+  assert.equal(r.result.tools.length, 50);
   assert.ok(r.result.tools[0].inputSchema);
   assert.equal(r.result.resultType, "complete");
   // 顺序稳定

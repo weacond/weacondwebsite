@@ -76,7 +76,7 @@ HTTP, so use the URL/transport form your client supports).
 
 ## Tools
 
-48 high-intent calculators, each with a JSON Schema input contract and a back-link to
+50 high-intent calculators, each with a JSON Schema input contract and a back-link to
 its calculator page. The full live catalog (with per-tool schemas + copy-to-use
 examples) is at <https://weacond.com/mcp>. Representative tools:
 
