@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import { usePaper, markPositions } from "../lib/paper";
+import { manageSubscription } from "../lib/subscribeClient.js";
 
 export const metadata = {
   title: "仪表盘 — Weacond",
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [owned, setOwned] = useState([]);
+  const [subs, setSubs] = useState([]);
   const [justBought, setJustBought] = useState(false);
   // 3 天任务进度：真实派生自本地 store（信号访问 / 教学 / 模拟交易），非硬编码
   const [taskState, setTaskState] = useState({ seenSignals: false, seenTutorial: false });
@@ -43,6 +45,14 @@ export default function Dashboard() {
         const slugs = Array.isArray(d.slugs) ? d.slugs : [];
         localStorage.setItem("weacond_purchases", JSON.stringify(slugs));
         setOwned(slugs);
+      })
+      .catch(() => {});
+    // 有效订阅（§0e 落库 + §0g 状态端点）：服务端真实来源，无则空数组，绝不阻塞渲染
+    fetch("/api/subscription-status", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { subscriptions: [] }))
+      .then((d) => {
+        const list = Array.isArray(d.subscriptions) ? d.subscriptions : [];
+        setSubs(list);
       })
       .catch(() => {});
   }, [router.isReady, router.query.success]);
@@ -260,6 +270,62 @@ export default function Dashboard() {
               </Link>
               {positions.length > 0 && <span className="text-xs text-slate-400">{L.riskHint}</span>}
             </div>
+          </div>
+
+          {/* 我的订阅（服务端真实来源 /api/subscription-status）：有效订阅 + 管理/取消入口 */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold mb-3">{lang === "zh" ? "我的订阅" : "My Subscriptions"}</h2>
+              {subs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => manageSubscription(lang)}
+                  className="text-sm text-indigo-600 hover:underline mb-3"
+                >
+                  {lang === "zh" ? "管理 / 取消订阅 →" : "Manage / cancel →"}
+                </button>
+              )}
+            </div>
+            {subs.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                {lang === "zh" ? "你还没有有效订阅。" : "You have no active subscriptions."}
+              </p>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {subs.map((s, i) => (
+                  <div
+                    key={s.stripe_subscription_id || s.id || i}
+                    className="flex items-center justify-between bg-white rounded-lg border border-slate-100 px-4 py-3"
+                  >
+                    <span className="text-sm font-medium text-slate-700">
+                      {(s.plan || "subscription")
+                        .replace(/-/g, " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase())}
+                      {s.interval && (
+                        <span className="text-xs text-slate-400 ml-2">
+                          {s.interval === "year"
+                            ? lang === "zh"
+                              ? "年付"
+                              : "annual"
+                            : lang === "zh"
+                            ? "月付"
+                            : "monthly"}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs text-indigo-600">
+                      {s.status === "trialing"
+                        ? lang === "zh"
+                          ? "试用中"
+                          : "trialing"
+                        : lang === "zh"
+                        ? "有效"
+                        : "active"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 我的电子书（服务端真实来源 /api/purchases） */}

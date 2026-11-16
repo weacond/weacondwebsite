@@ -124,6 +124,37 @@
 
 ---
 
+## 0h. 2026-11-17 更新（已落地：订阅自助管理/取消，Stripe Billing Portal + 仪表盘消费）
+
+**承接 §0g 的缺口**：把「订阅管理/取消」这条标准自助能力补齐，并让 §0g 的 `/api/subscription-status`
++ §0e 落库的 `customer_id` 都有了真实消费方——**订阅链路彻底闭环**。
+
+- **`lib/stripe.js`**：新增 `createBillingPortalSession(customerId, [returnUrl])`——Edge 兼容、直接
+  `fetch` Stripe REST API `POST /v1/billing_portal/sessions`（沿用 §0d 的 `serializeStripeParams`
+  + Bearer 模式，无 Node SDK）。无 `STRIPE_SECRET_KEY` 或 `customerId` → 返回 `null`（调用方降级，绝不抛错）。
+- **`pages/api/manage-subscription.js`**（新增，`POST`）：镜像 `/api/purchases` 的 `resolveEmail`
+  （cookie token 验真、生产不信 `query.email`）→ `getUserSubscriptions(email)` 取【有效订阅】的
+  `customer_id` → `createBillingPortalSession` → 返回 `{ url }` 供前端跳转。
+  降级矩阵：非 POST→405 / 未配 Stripe→503 / 未登录→401 / 无有效订阅→409（引导去定价页）。
+- **`lib/subscribeClient.js`**：新增 `manageSubscription(lang)`，与 `subscribe` 对称——
+  `POST /api/manage-subscription`（带登录 cookie）→ 拿 URL 跳转；409 自动跳 `/pricing` 引导订阅。
+- **`pages/dashboard.js`**：新增「我的订阅」区，`fetch /api/subscription-status` 拉有效订阅并渲染
+  （方案名 + 月/年付 + 状态），有效订阅时显示「管理 / 取消订阅」按钮调 `manageSubscription()`。
+  这是 `/api/subscription-status` 的**首个真实消费方**，§0g 不再悬空。
+- 验证：新增 `tests/billingPortal.test.mjs`（9 断言，mock `global.fetch` + `__setTestServiceClient`：
+  无 key/无 id→null 不触网、happy 返回 url 且 body 带 customer+return_url+Bearer、非 2xx 抛错；
+  端点 405/503/401/409/happy-200 且透传 customer_id）。全量 **1523/1523** 通过；`npm run build` EXIT=0
+  （`/api/manage-subscription` + `/dashboard` 均编译）。
+
+> 一句话：订阅全链路闭环 = 结账(§0d)→生命周期落库(§0e)→权益查询(§0f)→状态端点(§0g)→自助管理(§0h)。
+> 用户可「订阅 → 在仪表盘看到 → 一键管理/取消」。**仍剩唯一产品决策**：把 `hasActiveSubscription(email, plan)`
+> 接到某个真正受保护的付费功能（§0f 已就绪，只差「解锁什么」）。
+
+**非代码待办（你回来处理）**：Stripe 后台配置 **Customer Portal** 并把 `return_url` 指向 `/dashboard`；
+`/api/manage-subscription` 即自动可用（未配时优雅降级 503）。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |
