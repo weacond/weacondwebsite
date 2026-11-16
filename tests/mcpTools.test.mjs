@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 53 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 53);
+test("注册 54 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 54);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -23,12 +23,12 @@ test("注册 53 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "fairValue", "staking", "lotSize", "avgEntry",
     "barrier", "bond", "var", "realEstate",
     "dcf", "dca", "purchasingPower",
-    "calmar", "sortino", "alpha", "infoRatio", "sharpe",
+    "calmar", "sortino", "alpha", "infoRatio", "sharpe", "treynor",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 53);
+  assert.equal(defs.length, 54);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -632,4 +632,18 @@ test("callTool sharpe 入参非法 → isError", () => {
   assert.equal(callTool("sharpe", { returns: "0.1,0.1" }).isError, true); // 缺 freq
   assert.equal(callTool("sharpe", { returns: "abc", freq: 4 }).isError, true); // 收益非法
   assert.equal(callTool("sharpe", { returns: "0.1,0.1", freq: 4, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool treynor 计算 Treynor 比率（(Rp−Rf)÷beta）", () => {
+  const r = callTool("treynor", { rp: 0.18, rf: 0.02, beta: 1.0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.treynor - 0.16) < 1e-9);
+});
+
+test("callTool treynor 入参非法 → isError", () => {
+  assert.equal(callTool("treynor", { rp: 0.18 }).isError, true); // 缺 beta
+  assert.equal(callTool("treynor", { rp: "x", beta: 1 }).isError, true); // rp 非法
+  assert.equal(callTool("treynor", { rp: 0.18, beta: 0 }).isError, true); // beta 为 0
+  assert.equal(callTool("treynor", { rp: 0.18, beta: 1, bogus: 1 }).isError, true); // 未知字段
 });
