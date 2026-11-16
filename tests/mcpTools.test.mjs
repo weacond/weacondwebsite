@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 56 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 56);
+test("注册 59 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 59);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -24,11 +24,12 @@ test("注册 56 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "barrier", "bond", "var", "realEstate",
     "dcf", "dca", "purchasingPower",
     "calmar", "sortino", "alpha", "infoRatio", "sharpe", "treynor", "omega", "payoff",
+    "sterling", "martin", "tailRatio",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 56);
+  assert.equal(defs.length, 59);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -672,4 +673,43 @@ test("callTool payoff 入参非法 → isError", () => {
   assert.equal(callTool("payoff", { avgWin: 3 }).isError, true); // 缺 avgLoss
   assert.equal(callTool("payoff", { avgWin: "x", avgLoss: 1 }).isError, true); // 非数字
   assert.equal(callTool("payoff", { avgWin: 3, avgLoss: 1, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool sterling 计算斯特林比率（总收益 ÷ 最长连亏）", () => {
+  const r = callTool("sterling", { totalReturn: 60, maxLosingStreak: 3 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.sterling - 20) < 1e-9); // 60 / 3 = 20
+});
+
+test("callTool sterling 入参非法 → isError", () => {
+  assert.equal(callTool("sterling", { totalReturn: 60 }).isError, true); // 缺 maxLosingStreak
+  assert.equal(callTool("sterling", { totalReturn: "x", maxLosingStreak: 3 }).isError, true); // 非数字
+  assert.equal(callTool("sterling", { totalReturn: 60, maxLosingStreak: 3, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool martin 计算马丁比率（平均 − 无风险 ÷ 下行偏差 × √freq）", () => {
+  const r = callTool("martin", { returns: "0.01,0.01,0.01,-0.02", freq: 1, rf: 0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.martin - 0.25) < 1e-9); // (0.0025 / 0.01) × 1 = 0.25
+});
+
+test("callTool martin 入参非法 → isError", () => {
+  assert.equal(callTool("martin", { freq: 12 }).isError, true); // 缺 returns
+  assert.equal(callTool("martin", { returns: "abc", freq: 12 }).isError, true); // 收益非法
+  assert.equal(callTool("martin", { returns: "0.01,0.01", freq: 12, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool tailRatio 计算尾部比率（上分位 ÷ |下分位|）", () => {
+  const r = callTool("tailRatio", { returns: "0.01,0.02,-0.01,0.03,-0.02,0.04", lowerQ: 0.05, upperQ: 0.95 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.tail - 2.142857) < 1e-4); // 0.0375 / 0.0175
+});
+
+test("callTool tailRatio 入参非法 → isError", () => {
+  assert.equal(callTool("tailRatio", { lowerQ: 0.05, upperQ: 0.95 }).isError, true); // 缺 returns
+  assert.equal(callTool("tailRatio", { returns: "abc", lowerQ: 0.05, upperQ: 0.95 }).isError, true); // 收益非法
+  assert.equal(callTool("tailRatio", { returns: "0.01,0.02", lowerQ: 0.05, upperQ: 0.95, bogus: 1 }).isError, true); // 未知字段
 });
