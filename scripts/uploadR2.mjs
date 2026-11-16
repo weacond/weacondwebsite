@@ -68,7 +68,7 @@ const CONTENT_TYPES = {
   ".pdf": "application/pdf",
 };
 
-function uploadDir(srcDir, bucket, keyPrefix, label) {
+async function uploadDir(srcDir, bucket, keyPrefix, label) {
   if (!existsSync(srcDir)) {
     console.log(`⚠ 跳过（目录不存在）：${srcDir}`);
     return 0;

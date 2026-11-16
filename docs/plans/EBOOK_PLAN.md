@@ -1,18 +1,31 @@
 # Weacond 电子书商城 — 上线手册（单一权威来源）
 
 > **电子书上线子手册。** 全局主计划见 `../../PLAN.md`（冲突时以 PLAN.md 为准）；本目录下 `GUIDE.md`、`START_HERE.md` 为快速版。
-> 最后更新：2026-10-15 ｜ 平台条款已按 2026 年核实。
+> 最后更新：2026-11-16（§0.1 内容缺口审计：25/25 健康，0 真占位）｜ 平台条款已按 2026 年核实。
 
 ---
 
 ## 0. 两件必须先解决的事
 
-### 0.1 内容缺口（已生成占位，待你替换为真文）
+### 0.1 内容缺口 — ✅ 已解决（2026-11-16 审计）
+> **审计结论**：25/25 电子书全部健康 —— preview(25) + content 中英(各 25) + PDF 双语(各 25) 均在位；
+> **0 个真占位**、**0 目录不一致**（`index.json` / `lib/stripe.js` / `preview/` / `content/` / `files/`
+> 五处 25 个 slug 完全对齐）。早先标记的「12 本占位」已替换为真实内容；唯二命中
+> "illustrative placeholder" 的两本（`the-nature-of-money` / `financial-statements-accounting`）
+> 其匹配仅来自正文里的「教育性 / 示例」免责声明，并非空壳。
+>
+> 仍待你做的（**非代码**，需真实凭据）：把 25 本成品 `.pdf/.epub/.html` 放进
+> `private/ebooks/files/` 并同步 R2 私有桶。上传脚本 `scripts/uploadR2.mjs` 的 `async` 缺失
+> 已于 2026-11-16 修复，`node scripts/uploadR2.mjs --dry` 现可正常预演 151 个对象。
+
+<details><summary>📜 历史归档（2026-10-15，当时状态，已不适用）</summary>
+
 - 3 本有真实内容：`rational-101`、`black-swan`、`options-selling`（各有 preview + content）。
 - 其余 **22 本已用 `node scripts/genEbooks.mjs` 生成中英双语【占位】preview + content**（点进去能读、不 404）。
 - `index.json` 25 本已补齐 `desc_cn / desc_en / number / type`。
 - 仍缺：**`private/ebooks/files/*.pdf|epub|html` 成品**（25 本）。你说过做好了但仓库里没有 .pdf/.epub（我搜过桌面）——需你放进 `private/ebooks/files/` 并同步到 R2 私有桶。
 → **动作**：把 25 本真文按 5.6 节写进 `content/*.md`（覆盖占位）+ 成品放进 `files/`；占位可安全删除。
+</details>
 
 ### 0.2 安全修复（本次已完成，需你配合）
 - `pages/api/ebook-content.js`：全文**只从私有桶**取、强制购买校验（service_role 查 purchases，绕开 RLS，不泄漏记录）。

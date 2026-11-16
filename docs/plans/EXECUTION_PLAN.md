@@ -159,7 +159,7 @@
 ## 6. 下一步可执行清单（按优先级，今天就能开始）
 
 ### P1 — 本周（低风险、高价值）
-- [x] **电子书双语 PDF + 安全 bug + 25 本 index.json**（✅ 本次完成，待提交/部署，见 §8 告警）。
+- [x] **电子书双语 PDF + 安全 bug + 25 本 index.json**（✅ 完成，catalog 已对齐，见 §8「已解决」）。
 - [x] **全站免责声明 Footer**（✅ 本次完成，构建已验证 EXIT=0）。
 - [ ] **本地 AI 真跑**：`npm i @mlc-ai/web-llm` → 改 `lib/ai.js` `loadLocalModel` 用 `Chat.create`（见 §3）。
 - [ ] **接 Alpha Vantage 免费 key**：填 GitHub Secret，`/api/marketdata.js` 调 `fetchRealCandles` 并加缓存。
@@ -198,24 +198,33 @@ public/ebooks/index.json       重写为新 25 本目录（清下划线、字段
 
 ---
 
-## 8. ⚠️ 目录不一致告警（提交前必读）
+## 8. ✅ 目录不一致告警 — 已解决（2026-11-16 审计）
+> **审计结论**：五处 catalog 现已完全一致 —— `public/ebooks/index.json`(25) ==
+> `lib/stripe.js BOOK_CATALOG`(25) == `preview/`(25) == `content/`(25 中英) == `files/`(25 双语)，
+> **0 目录不一致、0 真占位**。早先「index.json 新 25 vs content 23、缺 2 本」的告警已消除
+> （`global-fx-geopolitics` / `options-and-derivatives` 等现已补入 content/ 与 files/）。
+> 仍待你做的（**非代码**）：把 25 本成品 `.pdf/.epub/.html` 放进 `private/ebooks/files/`
+> 并同步 R2 双桶（`scripts/uploadR2.mjs` 的 `async` 缺失已于 2026-11-16 修复，`--dry` 可预演）。
+
+<details><summary>📜 历史归档（2026-10-15，当时状态，已不适用）</summary>
 
 **`public/ebooks/index.json` 现在是「新 25 本」catalog**（来自 `/Users/kendrick/投资电子书/`：`the-nature-of-money`…），但仓库其余部分仍是「旧 25 本」catalog：
 - `lib/stripe.js` `BOOK_CATALOG` = 旧 slug（`rational-101`…）+ Stripe 产品 id（`paid-01..paid-25`）。
 - `public/ebooks/preview/` + `private/ebooks/content/` = 旧 slug 文件（26 个）。
 - `ebooks/[slug].js` `getStaticPaths` 用 `BOOK_CATALOG` → 只生成旧 26 个 slug 页面。
 
-**后果（若现在直接 push 上线）**：
+**后果（若当时直接 push 上线）**：
 - 列表页 `/ebooks` 显示**新** 25 本（来自 index.json）；
 - 点新书 → `/ebooks/the-nature-of-money` → **404**（不在 getStaticPaths）；
 - 新书「购买」按钮 → `getBook(slug)` 返回 undefined → 抛 `Invalid book slug`；
 - 旧 slug 详情页 meta 为空 → 空白页。
 
-**推荐修复（锁步迁移，三选一并确认 Stripe 产品归属后再做）**：
-- 方案①（推荐，新 catalog 为准）：把 `lib/stripe.js` `BOOK_CATALOG` 的 25 条 slug/标题改为新 slug，**保留原 Stripe 产品 id**（或重新在 Stripe 后台建 25 个产品并对齐 id）；同时把新 25 本的 `preview/*.md`、`preview/*.cn.md`、`content/*.md`、`content/*.cn.md`、`*.pdf`、`*.cn.pdf` 拷进 `public/ebooks/`（仅预览）与 `private/ebooks/`（全文/PDF），并同步上传到 R2 双桶。这样「150 文件一起上」就是这一步。
+**当时的修复建议（锁步迁移，三选一并确认 Stripe 产品归属后再做）**：
+- 方案①（推荐，新 catalog 为准）：把 `lib/stripe.js` `BOOK_CATALOG` 的 25 条 slug/标题改为新 slug，**保留原 Stripe 产品 id**（或重新在 Stripe 后台建 25 个产品并对齐 id）；同时把新 25 本的 `preview/*.md`、`preview/*.cn.md`、`content/*.md`、`content/*.cn.md`、`*.pdf`、`*.cn.pdf` 拷进 `public/ebooks/`（仅预览）与 `private/ebooks/`（全文/PDF），并同步上传到 R2 双桶。
 - 方案②（回退，旧 catalog 为准）：把 `index.json` 改回旧 25 本 slug（与现有 stripe/preview/content 一致）。
 - 方案③（双 catalog 并存）：不推荐，易乱。
 
-> 因为涉及 **Stripe 产品 id 归属**（商业决策），我未擅自改 `lib/stripe.js` 或拷贝 150 文件。确认方案后我可直接执行方案①的锁步迁移。
+> 当时因涉及 **Stripe 产品 id 归属**（商业决策）未擅自改动；审计确认 catalog 现已对齐，此告警解除。
+</details>
 
 <!-- 文档结束 -->

@@ -7,6 +7,7 @@
 // 单一事实源：复用 lib/email.js + lib/digest.js。
 
 import { buildDigestEmail, buildWelcomeEmail } from "../../lib/email.js";
+import { buildOnboardingEmail } from "../../lib/onboarding.js";
 import { buildDailyDigest } from "../../lib/digest.js";
 
 export const config = { runtime: "edge" };
@@ -18,14 +19,31 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const to = String(body.to || "").trim();
     const lang = body.lang === "en" ? "en" : "zh";
-    const template = body.template === "welcome" ? "welcome" : "digest";
+    const template =
+      body.template === "welcome"
+        ? "welcome"
+        : body.template === "onboarding"
+        ? "onboarding"
+        : "digest";
     const isEmail = EMAIL_RE.test(to);
 
     // 渲染邮件内容（与前端 /digest 同一事实源）
-    const email =
-      template === "welcome"
-        ? buildWelcomeEmail(body.name || "", { lang })
-        : buildDigestEmail(buildDailyDigest({ generatedAt: new Date().toISOString() }), { lang });
+    let email;
+    if (template === "welcome") {
+      email = buildWelcomeEmail(body.name || "", { lang });
+    } else if (template === "onboarding") {
+      const day = Number.isFinite(Number(body.day)) ? Number(body.day) : 0;
+      email = buildOnboardingEmail(day, {
+        lang,
+        name: body.name || "",
+        plan: body.plan || "free",
+      });
+    } else {
+      email = buildDigestEmail(
+        buildDailyDigest({ generatedAt: new Date().toISOString() }),
+        { lang }
+      );
+    }
 
     // 投递：配了 EMAIL_SEND_URL + TOKEN 才真正发；否则返回预览（诚实降级）
     let delivery = { sent: false, reason: "provider_not_configured", preview: true };
