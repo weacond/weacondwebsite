@@ -108,6 +108,22 @@
 
 ---
 
+## 0g. 2026-11-17 更新（已落地：订阅状态查询端点，消费权益查询层）
+
+**承接 §0f**：把 `getUserSubscriptions` 接到一个 HTTP 端点，让订阅权益「可被前端查询」。
+
+- **新增 `pages/api/subscription-status.js`**（`GET`，镜像 `/api/purchases.js` 的安全设计）：
+  - 非 GET → 405；无 Supabase → 200 `{dev:true}`（前端降级）；生产模式无 token → 401（绝不信任 `query.email`）。
+  - 消费 `lib/ebookStore.js` 的 `getUserSubscriptions(email)`（内部用 `isSubscriptionActive` 过滤，仅 active/trialing）。
+  - 返回 `{ email, plans: [...有效订阅方案...], subscriptions: [...] }`；canceled/past_due 一律不进 `plans`。
+  - 这让 §0f 的 `getUserSubscriptions` 有了真实消费方（不再悬空）。
+- 验证：新增 `tests/subscriptionStatusApi.test.mjs`（6 断言：405 / 无库 dev / 生产无 token 401 / 有效订阅→plans / 仅 canceled 被过滤 / 本地 query.email 兜底）；全量 **1514/1514** 通过；`npm run build` EXIT=0（`/api/subscription-status` 动态路由已编译）。
+- **订阅后端现已完整**：结账（§0d）→ 生命周期落库（§0e）→ 权益查询（§0f）→ 状态端点（§0g）。**唯一剩下的缺口是「消费点」**：把 `hasActiveSubscription(email, "proquant")` 接到某个真正受保护的付费功能/页面（需产品决策——ProQuant 到底解锁什么）。
+
+> 一句话：订阅后端链路已闭环且全程可测；只剩「哪个付费功能吃这个 gate」这最后一个产品决策。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |
