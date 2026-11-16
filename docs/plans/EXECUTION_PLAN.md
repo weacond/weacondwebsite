@@ -94,6 +94,20 @@
 
 ---
 
+## 0f. 2026-11-17 更新（已落地：订阅权益查询层，与 hasPurchased 对称）
+
+**承接 §0e**：把订阅权益判定做成可查询原语，消费 §0e 的 `isSubscriptionActive` + `subscriptions` 表。
+
+- **`lib/ebookStore.js` 新增**（与 `hasPurchased`/`getUserPurchases` 对称，服务账号直查、绕过 RLS）：
+  - `getUserSubscriptions(email)`：查 `subscriptions` 表、用 `isSubscriptionActive` 只留 active/trialing；无 Supabase / 出错 → `[]`（安全降级）。
+  - `hasActiveSubscription(email, [plan])`：是否有有效订阅；省略 plan = 任意有效订阅；空邮箱 → `false`（不触网）。
+- 验证：新增 `tests/subscriptionStatus.test.mjs`（8 断言：无库→`[]` / 只留 active·trialing / 出错→`[]` / 匹配→true / 英拼 cancelled→false / 省略 plan / 空邮箱→false）；全量 **1508/1508** 通过；`npm run build` EXIT=0。
+- **仍缺消费方（下一步）**：这两个查询尚无调用点。下一步把 `hasActiveSubscription(email, "proquant")` 接到受保护页面或 `/api/subscription-status`（如 ProQuant 仪表盘放行）；并给 Stripe 后台增订 `customer.subscription.*` 三事件让 `subscriptions` 表有数据可查。
+
+> 一句话：订阅权益现在「可查」了（`hasActiveSubscription` 与 `hasPurchased` 对称），只待一个消费点把它真正接到某付费功能上。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |
