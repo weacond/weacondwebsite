@@ -6,7 +6,7 @@ export const runtime = "edge";
 // 购买记录写入 purchases 表（按 email 去重，唯一索引 email+book_slug）
 // 套装逻辑：is_bundle=true 时，写入 bundle-all + 全部 25 本书 slug
 
-import { BOOK_CATALOG } from "../../../lib/stripe.js";
+import { BOOK_CATALOG, buildSubscriptionRow } from "../../../lib/stripe.js";
 import { getSupabaseServiceClient } from "../../../lib/supabase.js";
 
 const BUNDLE_SLUG = "bundle-all";
@@ -68,31 +68,10 @@ async function verifyStripeWebhook(rawBody, signatureHeader, secret) {
 
   return JSON.parse(rawBody);
 }
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
-    return res.status(503).json({ error: "Stripe not configured" });
-  }
-
-  // Edge 运行时下 req.body 是原始请求体流，先取成字符串用于验签
-  // （Stripe 要求对原始字节做 HMAC，不能是已解析的 JSON 对象）
-  const rawBody = await req.text();
-  const sig = req.headers["stripe-signature"];
-  let event;
-
-  try {
-    event = await verifyStripeWebhook(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error("Webhook signature error:", err.message);
-    return res.status(400).json({ error: "Invalid signature" });
-  }
-
-  const supabase = getSupabaseServiceClient();
-
+// recordEvent — 把已验签事件写入 Supabase（purchases / subscriptions）。
+// supabase 可注入 mock（测试）；为 null 时跳过写入（仅记录日志）。
+// 抽成纯函数（supabase 作入参），使 webhook 落库逻辑可无网络单测。
+export async function recordEvent(event, supabase) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;
@@ -131,6 +110,25 @@ export default async function handler(req, res) {
       break;
     }
 
+    // 订阅生命周期：created / updated（续费/改档/取消）/ deleted → upsert 一行订阅状态。
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      const row = buildSubscriptionRow(event);
+      if (!row) {
+        console.log(`Skip subscription event ${event.type}: no attributable row`);
+        break;
+      }
+      if (supabase) {
+        const { error } = await supabase
+          .from("subscriptions")
+          .upsert(row, { onConflict: "stripe_subscription_id" });
+        if (error) console.error(`Supabase subscription write failed:`, error.message);
+        else console.log(`✓ Subscription ${row.status} for ${row.email} (${row.plan})`);
+      }
+      break;
+    }
+
     case "invoice.payment_failed": {
       const invoice = event.data.object;
       console.log(`⚠ Payment failed for customer: ${invoice.customer}`);
@@ -141,6 +139,34 @@ export default async function handler(req, res) {
     default:
       console.log(`Unhandled event type: ${event.type}`);
   }
+}
+
+
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).json({ error: "Stripe not configured" });
+  }
+
+  // Edge 运行时下 req.body 是原始请求体流，先取成字符串用于验签
+  // （Stripe 要求对原始字节做 HMAC，不能是已解析的 JSON 对象）
+  const rawBody = await req.text();
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    event = await verifyStripeWebhook(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error("Webhook signature error:", err.message);
+    return res.status(400).json({ error: "Invalid signature" });
+  }
+
+  // 验签通过后再落库；落库逻辑抽成纯函数 recordEvent(event, supabase)（supabase 可注入 mock，便于单测）。
+  await recordEvent(event, getSupabaseServiceClient());
 
   res.status(200).json({ received: true });
 }

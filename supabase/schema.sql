@@ -77,3 +77,31 @@ drop trigger if exists trigger_subscriptions_updated on public.subscriptions;
 create trigger trigger_subscriptions_updated
   before update on public.subscriptions
   for each row execute function update_updated_at();
+
+-- 5. 订阅生命周期字段 + 幂等唯一索引 + 权益判定函数
+--    createSubscriptionSession 把 plan/interval/email 透传到 checkout session 的 metadata，
+--    Stripe 会带到 customer.subscription 对象，/api/checkout/webhook 据此 upsert subscriptions。
+alter table public.subscriptions add column if not exists interval text;
+alter table public.subscriptions add column if not exists current_period_end timestamptz;
+alter table public.subscriptions add column if not exists cancel_at_period_end boolean default false;
+
+-- 幂等：同一 Stripe 订阅只保留一行（webhook 用 stripe_subscription_id 做 onConflict upsert）
+create unique index if not exists uq_subscriptions_stripe_sub
+  on public.subscriptions(stripe_subscription_id);
+
+-- 订阅权益判定函数（与 check_purchase 同款 SECURITY DEFINER）：
+--   anon 可调用、只返回布尔、不暴露行数据。判断该 email 是否有「有效」的某方案订阅
+--   （active / trialing 视为有权；其余状态一律无权）。
+create or replace function public.check_subscription(p_email text, p_plan text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1 from public.subscriptions
+    where email = p_email
+      and plan = p_plan
+      and status in ('active', 'trialing')
+  );
+$$;

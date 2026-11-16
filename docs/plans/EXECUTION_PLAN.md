@@ -73,6 +73,27 @@
 ---
 
 
+## 0e. 2026-11-17 更新（已落地：订阅生命周期跟踪 + 权益判定原语）
+
+**承接 §0d 的「后续增量」**：订阅能「发起」了，本增量让订阅能「持续跟踪 + 判定权益」。
+
+- **`lib/stripe.js` 新增纯函数（可单测、无网络、Edge 安全）**：
+  - `createSubscriptionSession` 把 `email` 透传到 checkout session 的 `metadata`（Stripe 会带到 `customer.subscription` 对象，webhook 据此把订阅归属到邮箱）。
+  - `SUBSCRIPTION_EVENTS` / `isSubscriptionEvent`：识别 created/updated/deleted 三类生命周期事件。
+  - `normalizeSubStatus`（`canceled`/`cancelled` 两拼写归一 + 全小写）、`isSubscriptionActive`（仅 `active`/`trialing` 有权）。
+  - `buildSubscriptionRow(event)`：从订阅事件提取 `subscriptions` 表行（email 归一小写、`current_period_end` 转 ISO、`cancel_at_period_end` 归一）；非订阅事件 / 缺 email → `null`（绝不写无主记录）。
+- **`pages/api/checkout/webhook.js` 抽 `recordEvent(event, supabase)`**（`supabase` 可注入 mock，便于单测；为 `null` 时跳过写入）：
+  - `customer.subscription.created/updated/deleted` → upsert `subscriptions`（`onConflict: stripe_subscription_id` 幂等；created 插、updated/deleted 改状态，`update_updated_at` 触发器刷新 `updated_at`）。
+  - `checkout.session.completed`（既有 `purchases` 写入）+ `invoice.payment_failed`（仅日志）保持不变。
+- **`supabase/schema.sql` 扩 `subscriptions`**：加 `interval`/`current_period_end`/`cancel_at_period_end` 列 + `stripe_subscription_id` 唯一索引（幂等 upsert）+ `check_subscription(email, plan)` 权益判定函数（与 `check_purchase` 同款 `SECURITY DEFINER`，anon 可调、只返布尔、不暴露行数据）。
+- 验证：新增 `tests/subscriptionLifecycle.test.mjs`（13 断言：事件识别 / 状态归一 / 行提取 / `recordEvent` 落库·跳过·不写无主·非事件不写·checkout 写 purchases·payment_failed 不写）；全量 **1500/1500** 通过；`npm run build` EXIT=0。
+- **下一步增量（权益门控）**：`check_subscription` 目前是就绪原语、尚未接消费方。下一步把 `check_subscription(email, plan)` 接到受保护页面或 `/api/subscription-status`，让 ProQuant 等付费功能按有效订阅放行。
+- 仍待你做的（**非代码**）：在 Stripe 后台给 `https://weacond.com/api/checkout/webhook` 增订 `customer.subscription.created/updated/deleted` 三个事件；在 Supabase 跑 `schema.sql` 让 `subscriptions` 表带上新列。
+
+> 一句话：订阅从「能发起」升级到「能持续跟踪 + 可判定权益」——续费/改档/取消都会幂等落库，`check_subscription` 已就绪等接门控。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |
