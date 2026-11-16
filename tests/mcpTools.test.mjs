@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 54 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 54);
+test("注册 55 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 55);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -23,12 +23,12 @@ test("注册 54 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "fairValue", "staking", "lotSize", "avgEntry",
     "barrier", "bond", "var", "realEstate",
     "dcf", "dca", "purchasingPower",
-    "calmar", "sortino", "alpha", "infoRatio", "sharpe", "treynor",
+    "calmar", "sortino", "alpha", "infoRatio", "sharpe", "treynor", "omega",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 54);
+  assert.equal(defs.length, 55);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -646,4 +646,17 @@ test("callTool treynor 入参非法 → isError", () => {
   assert.equal(callTool("treynor", { rp: "x", beta: 1 }).isError, true); // rp 非法
   assert.equal(callTool("treynor", { rp: 0.18, beta: 0 }).isError, true); // beta 为 0
   assert.equal(callTool("treynor", { rp: 0.18, beta: 1, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool omega 计算欧米伽比率（上行 ÷ 下行）", () => {
+  const r = callTool("omega", { returns: "0.1,-0.05,0.1,0.1", threshold: 0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.omega - 6) < 1e-9);
+});
+
+test("callTool omega 入参非法 → isError", () => {
+  assert.equal(callTool("omega", { threshold: 0 }).isError, true); // 缺 returns
+  assert.equal(callTool("omega", { returns: "abc", threshold: 0 }).isError, true); // 收益非法
+  assert.equal(callTool("omega", { returns: "0.1,0.1", bogus: 1 }).isError, true); // 未知字段
 });

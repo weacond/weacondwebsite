@@ -84,7 +84,7 @@ const MATRIX = [
     dim: "AI 可调用 (MCP / API)",
     dimEn: "AI-callable (MCP / API)",
     cells: {
-      weacond: { mark: "✓", zh: "/api/mcp 暴露 54 个工具", en: "/api/mcp exposes 54 tools" },
+      weacond: { mark: "✓", zh: "/api/mcp 暴露 55 个工具", en: "/api/mcp exposes 55 tools" },
       investopedia: { mark: "—", zh: "内容站，非工具端点", en: "Content site, not a tool endpoint" },
       toolkit: { mark: "—", zh: "通常无公开 API", en: "Usually no public API" },
       generic: { mark: "—", zh: "无", en: "No" },
@@ -176,8 +176,8 @@ const WHY = [
   {
     zh: "AI 可调用",
     en: "AI-callable",
-    zhDesc: "54 个计算器经 /api/mcp 暴露为 MCP 工具",
-    enDesc: "54 calculators exposed as MCP tools via /api/mcp",
+    zhDesc: "55 个计算器经 /api/mcp 暴露为 MCP 工具",
+    enDesc: "55 calculators exposed as MCP tools via /api/mcp",
   },
   {
     zh: "隐私优先",
@@ -215,7 +215,7 @@ const zh = {
   subtitle:
     "Weacond 与 Investopedia、Finance Toolkit、在线计算器/电子表格的能力对比 + 场景指南。定位：确定性 · 双语 · 教育 · 可被 AI 调用 · 本地隐私 · 双运行时。",
   whatTitle: "Weacond 是什么",
-  what: "Weacond 是一层双语、确定性、可被 AI 调用的金融计算：把 54 个量化计算器（Kelly、ATR 止损、破产概率、风险预算、回撤规模、杠杆/强平、滑点、止盈、追踪止损、外汇点值/交叉汇率、再平衡、组合 beta、NPV 等）做成纯函数 + 全量单测，并链接术语库与相关概念；同一套引擎同时供人（网页）与 AI 助手（/api/mcp MCP 工具）使用。",
+  what: "Weacond 是一层双语、确定性、可被 AI 调用的金融计算：把 55 个量化计算器（Kelly、ATR 止损、破产概率、风险预算、回撤规模、杠杆/强平、滑点、止盈、追踪止损、外汇点值/交叉汇率、再平衡、组合 beta、NPV 等）做成纯函数 + 全量单测，并链接术语库与相关概念；同一套引擎同时供人（网页）与 AI 助手（/api/mcp MCP 工具）使用。",
   matrixTitle: "能力对比",
   matrixHint: "按能力维度横向对比；标记为 ✓ 提供 / ~ 部分或视情况 / — 该类工具通常不提供或未公开。",
   dimCol: "能力维度",
@@ -249,7 +249,7 @@ const zh = {
     },
     {
       q: "Weacond 的 MCP 端点是什么？",
-      a: "/api/mcp 把 54 个计算器暴露为 MCP 工具，经无状态 JSON-RPC 2.0 over HTTP（Vercel + Cloudflare Edge 双运行时），AI 助手可直接调用。详见 /mcp。",
+      a: "/api/mcp 把 55 个计算器暴露为 MCP 工具，经无状态 JSON-RPC 2.0 over HTTP（Vercel + Cloudflare Edge 双运行时），AI 助手可直接调用。详见 /mcp。",
     },
     {
       q: "这个对比是投资建议吗？",
@@ -263,7 +263,7 @@ const en = {
     "Capability comparison + use-case guide: Weacond vs Investopedia, Finance Toolkit, and online calculators/spreadsheets. Positioning: deterministic · bilingual · educational · AI-callable · private · cross-runtime.",
   whatTitle: "What is Weacond",
   what:
-    "Weacond is a bilingual, deterministic, AI-callable layer of financial calculation: 54 quant calculators (Kelly, ATR stop, risk of ruin, risk budget, drawdown sizing, leverage/liquidation, slippage, take-profit, trailing stop, FX pip/cross-rate, rebalancing, portfolio beta, NPV, and more) as pure functions with full unit tests, each linked to a glossary and related concepts. The same engine serves both people (web pages) and AI assistants (/api/mcp MCP tools).",
+    "Weacond is a bilingual, deterministic, AI-callable layer of financial calculation: 55 quant calculators (Kelly, ATR stop, risk of ruin, risk budget, drawdown sizing, leverage/liquidation, slippage, take-profit, trailing stop, FX pip/cross-rate, rebalancing, portfolio beta, NPV, and more) as pure functions with full unit tests, each linked to a glossary and related concepts. The same engine serves both people (web pages) and AI assistants (/api/mcp MCP tools).",
   matrixTitle: "Capability comparison",
   matrixHint:
     "Compared by capability dimension. Marks: ✓ provided / ~ partial or depends / — not typical for this category or not public.",
@@ -298,7 +298,7 @@ const en = {
     },
     {
       q: "What is Weacond's MCP endpoint?",
-      a: "/api/mcp exposes 54 calculators as MCP tools over stateless JSON-RPC 2.0 on HTTP (dual-runtime on Vercel + Cloudflare Edge); AI assistants can call them directly. See /mcp.",
+      a: "/api/mcp exposes 55 calculators as MCP tools over stateless JSON-RPC 2.0 on HTTP (dual-runtime on Vercel + Cloudflare Edge); AI assistants can call them directly. See /mcp.",
     },
     {
       q: "Is this comparison investment advice?",
