@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 52 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 52);
+test("注册 53 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 53);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -23,12 +23,12 @@ test("注册 52 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "fairValue", "staking", "lotSize", "avgEntry",
     "barrier", "bond", "var", "realEstate",
     "dcf", "dca", "purchasingPower",
-    "calmar", "sortino", "alpha", "infoRatio",
+    "calmar", "sortino", "alpha", "infoRatio", "sharpe",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 52);
+  assert.equal(defs.length, 53);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -619,4 +619,17 @@ test("callTool infoRatio 入参非法 → isError", () => {
   assert.equal(callTool("infoRatio", { portfolio: "0.05,0.07", benchmark: "0.04", freq: 1 }).isError, true); // 长度不一致
   assert.equal(callTool("infoRatio", { portfolio: "0.05,0.07", freq: 1 }).isError, true); // 缺 benchmark
   assert.equal(callTool("infoRatio", { portfolio: "0.05,0.07", benchmark: "0.04,0.04", freq: 1, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool sharpe 计算夏普比率（(CAGR−Rf)÷波动率）", () => {
+  const r = callTool("sharpe", { returns: "0.1,-0.05,0.1,0.1", freq: 4, rf: 0 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Number.isFinite(r.structuredContent.sharpe));
+});
+
+test("callTool sharpe 入参非法 → isError", () => {
+  assert.equal(callTool("sharpe", { returns: "0.1,0.1" }).isError, true); // 缺 freq
+  assert.equal(callTool("sharpe", { returns: "abc", freq: 4 }).isError, true); // 收益非法
+  assert.equal(callTool("sharpe", { returns: "0.1,0.1", freq: 4, bogus: 1 }).isError, true); // 未知字段
 });

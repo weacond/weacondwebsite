@@ -1,4 +1,4 @@
-// tests/mcpPageFilter.test.mjs — /mcp 页 52 工具客户端过滤守卫（防回退）
+// tests/mcpPageFilter.test.mjs — /mcp 页 53 工具客户端过滤守卫（防回退）
 //
 // 锁定 /mcp 页的客户端搜索/过滤：必须保留 query 状态、对 name/category/title/
 // description 的过滤（中英双语命中）、结果计数 + 空态 + 清空按钮。

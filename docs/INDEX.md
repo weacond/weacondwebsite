@@ -16,7 +16,7 @@
 - [docs/plans/DEPLOY.md](plans/DEPLOY.md) — 部署清单（`npm run check:deploy` 会引用此路径）。
 
 ## 接口 / Endpoints
-- [docs/mcp.md](mcp.md) — Weacond MCP 端点集成指南（端点 / 协议 / 鉴权 / 限流 / 52 个工具 / 双运行时）。公开双语文档：<https://weacond.com/mcp>。
+- [docs/mcp.md](mcp.md) — Weacond MCP 端点集成指南（端点 / 协议 / 鉴权 / 限流 / 53 个工具 / 双运行时）。公开双语文档：<https://weacond.com/mcp>。
 
 ## 其它
 - [docs/pricing-standalone.html](pricing-standalone.html) — 定价页独立 HTML。
