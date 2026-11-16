@@ -57,6 +57,22 @@
 
 ---
 
+## 0d. 2026-11-16 更新（已落地：订阅结账 + 修复 Stripe 序列化 latent bug）
+
+- **`pricing.js` CTA 接 Stripe 订阅（P3 #1）**：付费档不再死链 `/login`。
+  - 新增 `lib/stripe.js` 的 `PLAN_CATALOG`（5 档、动态定价、免后台建产品）+ `createSubscriptionSession`（Edge 兼容、`mode:"subscription"` + `recurring`、月/年切换；入参在发请求前逐项校验，free/企业/未知绝不发起支付）。
+  - 新增 `pages/api/subscribe.js`：POST `{plan,interval,email}` → 200 URL；405/503/400 守护，镜像 `/api/checkout`。
+  - 新增 `lib/subscribeClient.js`：取邮箱 → POST → 跳转（镜像 `checkoutClient.js`，未配后端自动降级弹窗）。
+  - 新增 `components/PlanCta.js`（`"use client"`：免费→`/login`、企业→`/contact`、付费档月/年切换→Stripe）；`pricing.js` 已接入。
+- **修复 `serializeStripeParams` 历史 latent bug**：原实现递归返回「已 join 的字符串」却 `parts.push(...字符串)`，把嵌套字段逐字符展开成畸形 form body（`payment_method_types` / `line_items[...]` 全部损坏）。因 Stripe 从未配置、且既有测试只校验入参不校验 body，此 bug 潜伏未爆；本次订阅测试断言 body 内容时触发，已改为「递归返回数组、仅顶层 join」，同时惠及一次性 book 结账。
+- 验证：新增 `tests/subscribe.test.mjs`（17 断言：方案守护 / 月年价 / 非法入参 network-free 抛错 / mock-fetch 成功路径 / 端点 405·503·400·200 / 目录一致性）；全量 **1487/1487** 通过；`npm run build` EXIT=0（`/pricing` 静态、`/api/subscribe` 动态均编译通过）。
+- 仍待你做的（**非代码**）：在 GitHub Secrets 填 `STRIPE_SECRET_KEY`（并在 Stripe 后台建 Webhook 端点 `https://weacond.com/api/checkout/webhook`、事件 `checkout.session.completed`）即自动生效；首次扣款走既有 webhook 写 `purchases`。订阅续费/取消（`customer.subscription.*`）的持续授权处理为后续增量。
+
+> 一句话：定价页现在能真正发起 Stripe 订阅（月/年切换、动态定价），并顺手修掉了一个会让**所有** Stripe 请求 body 变形的历史 bug。
+
+---
+
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |
@@ -86,7 +102,7 @@
 | 回测 + 蒙特卡洛 | 自有引擎 | `lib/backtest.js`、`lib/marketdata.js`、`pages/backtest.js`、`/api/backtest.js` | ✅ 骨架 | P2：把 `generateMockCandles` 换成真实 K 线 |
 | 本地 AI（WebGPU/Qwen） | 浏览器 WebGPU | `pages/ai.js`、`lib/ai.js` | ⚠️ 模拟推理 | P1：接 `@mlc-ai/web-llm` 真跑（见 §3） |
 | 黑天鹅 / 尾部对冲 | 自有 + 宏观数据 | `lib/signals.js` `detectBlackSwan`、`pages/black-swan.js`、`lib/macro.js` | ✅ 骨架(demo) | P2：VIX/利差接真实源（CBOE VIX、FRED） |
-| 定价五档 | Stripe | `pages/pricing.js`、`lib/stripe.js` | ✅ 已落地 | P3：`pricing.js` 的 CTA 从「跳 /login」改成「起 Stripe 订阅」 |
+| 定价五档 | Stripe | `pages/pricing.js`、`lib/stripe.js`、`components/PlanCta.js`、`pages/api/subscribe.js` | ✅ 已落地 | P3：`pricing.js` 的 CTA 已接 Stripe 订阅（月/年切换，见 §0d） |
 | 任务系统（3 天体验） | Supabase + 邮件 | `pages/dashboard.js`（`TASKS` 硬编码） | ⚠️ 模拟 | P3：进度写 Supabase，完成即发邮件 |
 | 投资书房（双语电子书） | R2 + Stripe | `pages/ebooks.js`、`pages/ebooks/[slug].js`、`lib/ebookStore.js`、`lib/r2.js` | ✅ 已落地(本次修双语PDF+安全bug+25本index.json) | ✅ 完成 |
 | 策略市场 / 创作者分成 | Supabase + 审核 | `pages/strategies.js` | 🚧 仅页面 | P4：上架表 + 审核 + 分润结算 |
@@ -171,7 +187,7 @@
 - [ ] 黑天鹅接 **CBOE VIX / FRED** 真实值。
 
 ### P3 — 2–4 周
-- [ ] `pricing.js` CTA 接 **Stripe 订阅**（Free/Basic/PutSeller/ProQuant 的 price_id），不再只跳 /login。
+- [x] `pricing.js` CTA 接 **Stripe 订阅**（✅ 已落地，2026-11-16，见 §0d）：新增 `lib/stripe.js` 的 `PLAN_CATALOG` + `createSubscriptionSession`（Edge 兼容、动态 recurring 定价、免后台建产品）+ `pages/api/subscribe.js` + `lib/subscribeClient.js` + `components/PlanCta.js`（免费→/login、企业→/contact、付费档月/年切换→Stripe）。**并修复 `serializeStripeParams` 历史 latent bug**：递归返回已 join 的字符串再 `push(...)` 会把嵌套字段逐字符展开成畸形 body（曾影响 book 一次性结账，因 Stripe 未配置从未暴露，本次订阅测试触发后修复）。
 - [ ] 任务系统进度写 **Supabase**，完成即发 **7 天邮件序列**（接 Resend/Brevo）。
 - [ ] Web Push 真发（`public/sw.js` 已注册，补服务端订阅 + 推送）。
 

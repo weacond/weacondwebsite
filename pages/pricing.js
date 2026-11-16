@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import { useLanguage } from "../contexts/LanguageContext";
 import Head from "next/head";
+import PlanCta from "../components/PlanCta";
 
 export const metadata = {
   title: "定价方案 — Weacond",
@@ -13,15 +14,15 @@ export default function PricingPage() {
   const L = lang === "en" ? en : zh;
 
   const plans = [
-    { key:"free", name:"Free", price_month:0, price_year:0, badge:null,
+    { key:"free", name:"Free", price_month:0, price_year:0, badge:null, type:"free",
       features:L.plans.free, cta:L.ctaFree, ctaHref:"/login", hl:false },
-    { key:"basic", name:"Basic", price_month:9.9, price_year:99, badge:null,
+    { key:"basic", name:"Basic", price_month:9.9, price_year:99, badge:null, type:"paid",
       features:L.plans.basic, cta:L.ctaStart, ctaHref:"/login", hl:false },
-    { key:"putseller", name:"PutSeller", price_month:29.9, price_year:299, badge:L.rec,
+    { key:"putseller", name:"PutSeller", price_month:29.9, price_year:299, badge:L.rec, type:"paid",
       features:L.plans.putseller, cta:L.ctaStart, ctaHref:"/login", hl:true },
-    { key:"proquant", name:"ProQuant", price_month:149, price_year:1490, badge:null,
+    { key:"proquant", name:"ProQuant", price_month:149, price_year:1490, badge:null, type:"paid",
       features:L.plans.proquant, cta:L.ctaStart, ctaHref:"/login", hl:false },
-    { key:"enterprise", name:"Enterprise", price_month:999, price_year:null, badge:null,
+    { key:"enterprise", name:"Enterprise", price_month:999, price_year:null, badge:null, type:"contact",
       features:L.plans.enterprise, cta:L.ctaContact, ctaHref:"/contact", hl:false },
   ];
 
@@ -65,10 +66,7 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <a href={p.ctaHref}
-                  className={`block text-center py-2.5 rounded-lg font-semibold text-sm transition-colors ${p.hl?"bg-white text-indigo-600 hover:bg-indigo-50":"bg-indigo-600 text-white hover:bg-indigo-500"}`}>
-                  {p.cta}
-                </a>
+                <PlanCta plan={p} lang={lang} highlight={p.hl} />
               </div>
             ))}
           </div>
