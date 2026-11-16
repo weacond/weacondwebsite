@@ -155,6 +155,27 @@
 
 ---
 
+## 0i. 2026-11-17 更新（已落地：抽取共享 resolveEmail，消除 5 份安全不变量副本）
+
+**重构**：订阅链路越做越长，`resolveEmail`（从请求解析【真实】用户 email 的安全逻辑）已在
+`purchases / subscription-status / manage-subscription / download / ebook-content` 5 个端点各存一份
+（逐字重复 + 注释略有漂移）。这是安全敏感逻辑，必须单点维护。
+
+- 新增 **`lib/resolveEmail.js`**：导出 `resolveEmail(req)`——cookie 的 Supabase access token →
+  `auth.getUser` 验真取 email；**生产环境（已配 `SUPABASE_SERVICE_ROLE_KEY`）绝不信任 `?email=`**
+  （否则可被 `?email=已付费邮箱` 窥探/白嫖）；仅本地未配 Supabase 才退回 `query.email` 方便调试。
+- 5 个端点改为 `import { resolveEmail } from "../../lib/resolveEmail.js"`，删除各自副本；
+  其中 `purchases / ebook-content / subscription-status` 的 handler 仍直接用到 `getSupabaseServiceClient`
+  故保留其 import，`manage-subscription / download` 经 `resolveEmail`/`getUserSubscriptions` 间接使用、
+  无需直接 import。
+- 验证：新增 `tests/resolveEmail.test.mjs`（5 断言：token 解析、生产不信 query.email、本地退回 query、
+  空→null、token 失败双模式）。全量 **1528/1528** 通过；`npm run build` EXIT=0。
+
+> 一句话：把「绝不信任 ?email=」这条安全不变量从 5 份副本收敛为 1 个有测试的单一来源，
+> 杜绝未来任一端点漂移导致的安全回退。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |

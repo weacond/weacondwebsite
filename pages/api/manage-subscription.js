@@ -11,28 +11,11 @@ export const runtime = "edge";
 //   - 未登录/无法解析 email → 401；
 //   - 无有效订阅 → 409（没有可管理的对象，前端引导去定价页订阅）。
 
-import { getSupabaseServiceClient } from "../../lib/supabase.js";
+import { resolveEmail } from "../../lib/resolveEmail.js";
 import { getUserSubscriptions } from "../../lib/ebookStore.js";
 import { createBillingPortalSession } from "../../lib/stripe.js";
 
-// 与 /api/purchases.js 同款：生产用 cookie token 验真实 email，绝不信任 query.email。
-async function resolveEmail(req) {
-  const cookie = req.headers.cookie || "";
-  const match = cookie.match(/sb-access-token=([^;]+)/);
-  if (match) {
-    try {
-      const supabase = getSupabaseServiceClient();
-      if (supabase) {
-        const { data, error } = await supabase.auth.getUser(match[1]);
-        if (!error && data?.user?.email) return data.user.email;
-      }
-    } catch (e) {
-      console.warn("resolveEmail via token failed:", e.message);
-    }
-  }
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
-  return req.query?.email || null;
-}
+// 安全设计集中在 lib/resolveEmail.js：生产用 cookie token 验真实 email，绝不信任 query.email。
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

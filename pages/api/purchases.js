@@ -12,26 +12,7 @@ export const runtime = "edge";
 // 返回：{ email, slugs: ["equity-pricing", "bundle-all", ...] }
 
 import { getSupabaseServiceClient } from "../../lib/supabase.js";
-
-async function resolveEmail(req) {
-  const cookie = req.headers.cookie || "";
-  const match = cookie.match(/sb-access-token=([^;]+)/);
-  if (match) {
-    try {
-      const supabase = getSupabaseServiceClient();
-      if (supabase) {
-        const { data, error } = await supabase.auth.getUser(match[1]);
-        if (!error && data?.user?.email) return data.user.email;
-      }
-    } catch (e) {
-      console.warn("resolveEmail via token failed:", e.message);
-    }
-  }
-  // 生产环境（已配 SUPABASE_SERVICE_ROLE_KEY）绝不信任 URL 里的 ?email=，
-  // 否则已购列表可被 "?email=已付款邮箱" 窥探；仅本地未配 Supabase 时才退回 query.email 方便调试
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
-  return req.query.email || null;
-}
+import { resolveEmail } from "../../lib/resolveEmail.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {

@@ -4,30 +4,10 @@ export const runtime = "edge";
 // 验证用户购买记录，返回 R2 签名 URL 或重定向
 // 需要 Cookie 中的 Supabase access token 或 query param email
 
-import { getSupabaseServiceClient } from "../../lib/supabase.js";
+import { resolveEmail } from "../../lib/resolveEmail.js";
 import { getDownloadUrl, isFreeBook } from "../../lib/ebookStore.js";
 
-// 从 cookie 的 Supabase access token 解析出【真实邮箱】；取不到退回 query.email（仅本地调试）
-async function resolveEmail(req) {
-  const cookie = req.headers.cookie || "";
-  const match = cookie.match(/sb-access-token=([^;]+)/);
-  if (match) {
-    try {
-      const supabase = getSupabaseServiceClient();
-      if (supabase) {
-        // 关键：用 auth.getUser 验证 token 并取出 email，而不是把 JWT 当 email
-        const { data, error } = await supabase.auth.getUser(match[1]);
-        if (!error && data?.user?.email) return data.user.email;
-      }
-    } catch (e) {
-      console.warn("resolveEmail via token failed:", e.message);
-    }
-  }
-  // 生产环境（已配 SUPABASE_SERVICE_ROLE_KEY）绝不信任 URL 里的 ?email=，
-  // 否则付费下载可被 "?email=已付款邮箱" 白嫖；仅本地未配 Supabase 时才退回 query.email 方便调试
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
-  return req.query.email || null;
-}
+// 安全设计集中在 lib/resolveEmail.js：生产用 cookie token 验真实 email，绝不信任 query.email。
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
