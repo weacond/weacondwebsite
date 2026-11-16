@@ -9,8 +9,8 @@ import {
 } from "../lib/mcp/tools.js";
 import { stdNormalQuantile } from "../lib/var.js";
 
-test("注册 51 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
-  assert.equal(TOOLS.length, 51);
+test("注册 52 个高风险意图工具，公开定义含 inputSchema 且无 run", () => {
+  assert.equal(TOOLS.length, 52);
   const names = TOOLS.map((t) => t.name);
   for (const n of [
     "kelly", "atr_stop", "risk_of_ruin", "risk_budget", "drawdown_sizing", "leverage",
@@ -23,12 +23,12 @@ test("注册 51 个高风险意图工具，公开定义含 inputSchema 且无 ru
     "fairValue", "staking", "lotSize", "avgEntry",
     "barrier", "bond", "var", "realEstate",
     "dcf", "dca", "purchasingPower",
-    "calmar", "sortino", "alpha",
+    "calmar", "sortino", "alpha", "infoRatio",
   ]) {
     assert.ok(names.includes(n), `缺少工具 ${n}`);
   }
   const defs = listToolDefs();
-  assert.equal(defs.length, 51);
+  assert.equal(defs.length, 52);
   for (const d of defs) {
     assert.ok(d.name && d.title && d.description);
     assert.ok(d.inputSchema && d.inputSchema.type === "object");
@@ -606,4 +606,17 @@ test("callTool alpha 入参非法 → isError", () => {
   assert.equal(callTool("alpha", { rp: 0.18 }).isError, true); // 缺 rm
   assert.equal(callTool("alpha", { rp: "x", rm: 0.1 }).isError, true); // rp 非法
   assert.equal(callTool("alpha", { rp: 0.18, rm: 0.1, bogus: 1 }).isError, true); // 未知字段
+});
+
+test("callTool infoRatio 计算信息比率（年化主动÷追踪误差）", () => {
+  const r = callTool("infoRatio", { portfolio: "0.05,0.07", benchmark: "0.04,0.04", freq: 1 });
+  assert.equal(r.isError, false);
+  assert.equal(r.structuredContent.valid, true);
+  assert.ok(Math.abs(r.structuredContent.ir - Math.SQRT2) < 1e-6);
+});
+
+test("callTool infoRatio 入参非法 → isError", () => {
+  assert.equal(callTool("infoRatio", { portfolio: "0.05,0.07", benchmark: "0.04", freq: 1 }).isError, true); // 长度不一致
+  assert.equal(callTool("infoRatio", { portfolio: "0.05,0.07", freq: 1 }).isError, true); // 缺 benchmark
+  assert.equal(callTool("infoRatio", { portfolio: "0.05,0.07", benchmark: "0.04,0.04", freq: 1, bogus: 1 }).isError, true); // 未知字段
 });

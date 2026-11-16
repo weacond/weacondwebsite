@@ -43,6 +43,7 @@ const COVERED = [
   "calmar",
   "sortino",
   "alpha",
+  "info-ratio",
 ];
 
 // 三处都齐才算“已铺开”：HowTo JSON-LD 注入、BreadcrumbList 注入、且面包屑首项为 Home；
