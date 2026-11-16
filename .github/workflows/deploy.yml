@@ -121,6 +121,7 @@ jobs:
     needs: deploy-worker
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -137,6 +138,11 @@ jobs:
           echo "✓ 公开桶无全文文件，安全。"
       - name: Sync preview + index to R2 public bucket
         run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "⚠️ 未配置 R2 同步密钥（CLOUDFLARE_API_TOKEN/CF_ACCOUNT_ID）→ 跳过公开桶同步（不阻断部署）。"
+            exit 0
+          fi
+          export CF_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-}"
           # 只上传 preview/ 下的文件（第1章预览），key 前缀保留 preview/
           for f in $(find ./public/ebooks/preview -type f 2>/dev/null); do
             key="preview/$(basename "$f")"
@@ -163,6 +169,7 @@ jobs:
     needs: deploy-worker
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -170,6 +177,10 @@ jobs:
           node-version: 20
       - name: Sync full content to R2 private bucket
         run: |
+          if [ -z "${R2_API_TOKEN:-}" ] || [ -z "${R2_ACCOUNT_ID:-}" ]; then
+            echo "⚠️ 未配置 R2 密钥（R2_API_TOKEN/R2_ACCOUNT_ID）→ 跳过私有桶同步（不阻断部署）。"
+            exit 0
+          fi
           if [ -d ./private/ebooks/content ]; then
             for f in $(find ./private/ebooks/content -type f 2>/dev/null); do
               key="content/$(basename "$f")"
@@ -199,9 +210,13 @@ jobs:
       - name: Resolve deployment URL & smoke-test key routes
         run: |
           # 取最近一次部署的 URL（Pages API 需 Pages:Read 权限；缺则跳过，不阻断）
-          URL=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/weacond/deployments" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            | grep -o '"url":"[^"]*"' | head -1 | sed 's/"url":"//;s/"//')
+          # 优先抓 .pages.dev 主机名，避免误取嵌套/worker 的 url；取不到再回退通用解析
+          DEP_JSON=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/weacond/deployments" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+          URL=$(echo "$DEP_JSON" | grep -o '[A-Za-z0-9-]\+\.pages\.dev' | head -1)
+          if [ -z "$URL" ]; then
+            URL=$(echo "$DEP_JSON" | grep -o '"url":"[^"]*"' | head -1 | sed 's/"url":"//;s/"//')
+          fi
           if [ -z "$URL" ]; then
             echo "⚠️ 无法解析部署 URL（token 缺 Pages:Read 或部署未完成），跳过冒烟测试。"
             exit 0
