@@ -1,4 +1,7 @@
-export const runtime = "edge";
+export const config = { runtime: "edge" };
+import { toEdge } from "../../lib/edge-res.js";
+export default toEdge(handler);
+// 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
 // POST /api/manage-subscription — 为当前用户创建 Stripe Billing Portal 会话（管理/取消/升级订阅）。
 //
@@ -17,7 +20,7 @@ import { createBillingPortalSession } from "../../lib/stripe.js";
 
 // 安全设计集中在 lib/resolveEmail.js：生产用 cookie token 验真实 email，绝不信任 query.email。
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed", url: null });
   }

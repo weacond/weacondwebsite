@@ -9,7 +9,10 @@
 // 限流：env MCP_RATE_LIMIT_PER_MIN（默认 120，每分钟 / 每 key-或-IP）。
 //       无状态运行时的内存桶为「每实例」计数；生产全局限流需接共享存储。
 // 版本：env MCP_PROTOCOL_VERSION（默认见 lib/mcp/protocol.js）。
-export const runtime = "edge";
+export const config = { runtime: "edge" };
+import { toEdge } from "../../lib/edge-res.js";
+export default toEdge(handler);
+// 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
 import { handleMcpRequest } from "../../lib/mcp/server.js";
 import { RPC, fail, SERVER_INFO, PROTOCOL_VERSION } from "../../lib/mcp/protocol.js";
@@ -29,7 +32,7 @@ function apiKeyFrom(req) {
   return h["x-api-key"] || "";
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key");
 

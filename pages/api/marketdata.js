@@ -6,7 +6,10 @@
 // 原注释称 edge 下 res.status().json() 不支持——但项目内 subscription-status.js 等
 // 已转 edge 的路由同样用 res.status().json() 且构建/运行正常，故该顾虑已过时；
 // 缓存 Map 在 edge 下随 isolate 存活（日线 15min / FRED 1h 足够），Node 18+/edge 原生 fetch 够用。
-export const runtime = "edge";
+export const config = { runtime: "edge" };
+import { toEdge } from "../../lib/edge-res.js";
+export default toEdge(handler);
+// 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
 import { fetchRealCandles, fetchFundamentals, fetchFredSeries } from "../../lib/marketdata_real";
 
@@ -26,7 +29,7 @@ function cacheSet(key, v, ttl) {
   cache.set(key, { v, t: Date.now(), ttl });
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }

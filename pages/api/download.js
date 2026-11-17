@@ -1,4 +1,7 @@
-export const runtime = "edge";
+export const config = { runtime: "edge" };
+import { toEdge } from "../../lib/edge-res.js";
+export default toEdge(handler);
+// 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
 // GET /api/download?slug=xxx&format=pdf
 // 验证用户购买记录，返回 R2 签名 URL 或重定向
@@ -9,7 +12,7 @@ import { getDownloadUrl, isFreeBook } from "../../lib/ebookStore.js";
 
 // 安全设计集中在 lib/resolveEmail.js：生产用 cookie token 验真实 email，绝不信任 query.email。
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }

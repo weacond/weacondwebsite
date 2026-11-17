@@ -11,10 +11,13 @@ import { buildOnboardingEmail } from "../../lib/onboarding.js";
 import { buildDailyDigest } from "../../lib/digest.js";
 
 export const config = { runtime: "edge" };
+import { toEdge } from "../../lib/edge-res.js";
+export default toEdge(handler);
+// 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     const body = req.body || {};
     const to = String(body.to || "").trim();

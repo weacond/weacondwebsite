@@ -1,4 +1,7 @@
-export const runtime = "edge";
+export const config = { runtime: "edge" };
+import { toEdge } from "../../lib/edge-res.js";
+export default toEdge(handler);
+// 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
 // /api/errors — 客户端错误上报（轻量、零外部依赖）
 // 由 ErrorBoundary 在捕获渲染异常时 fire-and-forget 调用。
@@ -42,7 +45,7 @@ function truncate(s, n) {
   return s.length > n ? s.slice(0, n) + "…(truncated)" : s;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
