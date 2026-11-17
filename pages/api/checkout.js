@@ -1,5 +1,5 @@
 export const config = { runtime: "edge" };
-import { toEdge } from "../../lib/edge-res.js";
+import { toEdge, readJsonBody } from "../../lib/edge-res.js";
 export default toEdge(handler);
 // 修复 Cloudflare edge 下 res.status().json() 的 500：包一层 toEdge，业务逻辑不变。见 lib/edge-res.js。
 
@@ -21,12 +21,7 @@ async function handler(req, res) {
     return res.status(503).json({ error: "Stripe not configured" });
   }
 
-  let body = {};
-  try {
-    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
-  } catch {
-    body = {};
-  }
+  const body = await readJsonBody(req);
   const { bookSlug, email } = body;
   if (!bookSlug || !email) {
     return res.status(400).json({ error: "Missing bookSlug or email" });

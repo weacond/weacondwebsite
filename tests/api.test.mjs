@@ -52,16 +52,16 @@ test("health: 任意请求 → 200 + status ok + no-store 头", async () => {
 });
 
 // ---------- /api/backtest ----------
-test("backtest: 非 POST → 405 Method Not Allowed", () => {
+test("backtest: 非 POST → 405 Method Not Allowed", async () => {
   const res = makeRes();
-  backtestHandler({ method: "GET", body: {} }, res);
+  await backtestHandler({ method: "GET", body: {} }, res);
   assert.equal(res.statusCode, 405);
   assert.equal(res.body.error, "Method Not Allowed");
 });
 
-test("backtest: POST 缺 strategy → 400", () => {
+test("backtest: POST 缺 strategy → 400", async () => {
   const res = makeRes();
-  backtestHandler({ method: "POST", body: {} }, res);
+  await backtestHandler({ method: "POST", body: {} }, res);
   assert.equal(res.statusCode, 400);
   assert.equal(res.body.error, "strategy is required");
 });
@@ -77,6 +77,29 @@ test("backtest: POST 合法策略 → 200 + 完整结果（trades/metrics）", a
   assert.ok(Array.isArray(res.body.trades), "应返回 trades 数组");
   assert.ok("metrics" in res.body, "应含 metrics");
   assert.ok("candles" in res.body, "应含 candles 摘要");
+});
+
+// 锁定 Cloudflare/浏览器 edge 兼容：body 是字符串流，必须经 req.json() 解析
+// （而非 Node 风格的 req.body 对象）。这是 readJsonBody 修复的核心场景。
+test("backtest: Web 标准 req（经 req.json() 解析 body，模拟 Cloudflare/浏览器）→ 200", async () => {
+  const res = makeRes();
+  const req = {
+    method: "POST",
+    json: async () => ({ strategy: "ma_cross", preset: "SPY_2023" }),
+  };
+  await backtestHandler(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.strategy, "ma_cross");
+  assert.ok(Array.isArray(res.body.trades), "经 req.json() 解析后仍应返回 trades 数组");
+});
+
+// 缺 strategy 的 Web 标准 req（req.json() 返回空对象）→ 400
+test("backtest: Web 标准 req 缺 strategy → 400", async () => {
+  const res = makeRes();
+  const req = { method: "POST", json: async () => ({}) };
+  await backtestHandler(req, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error, "strategy is required");
 });
 
 test("backtest: POST 未知策略 → 400（runFullBacktest 抛错被 catch 捕获）", async () => {
