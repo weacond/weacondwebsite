@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "../contexts/LanguageContext";
+import { getToolBySlug, CATEGORIES } from "../lib/toolsIndex";
 
 const navItems = [
   { href: "/", key: "home" },
@@ -196,6 +197,7 @@ const labels = {
     closeMenu: "关闭菜单",
     language: "语言",
     more: "更多",
+    allTools: "全部工具",
   },
   en: {
     home: "Home",
@@ -295,6 +297,7 @@ const labels = {
     closeMenu: "Close menu",
     language: "Language",
     more: "More",
+    allTools: "All tools",
   },
 };
 
@@ -305,12 +308,35 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   // 桌面端：核心页内联展示，其余深度链接收进「更多 ▾」下拉，避免导航随工具增长溢出。
-  const PRIMARY_KEYS = new Set([
-    "home", "signals", "watchlist", "backtest", "paper", "options", "risk",
-    "search", "calculators", "ai", "strategies", "pricing", "about",
-  ]);
-  const primaryItems = navItems.filter((i) => PRIMARY_KEYS.has(i.key));
-  const moreItems = navItems.filter((i) => !PRIMARY_KEYS.has(i.key));
+  // 桌面主导航只保留 7 项（Hick/Miller 定律：可见选项 ≤ 7±2，选项越少选择越快、认知负荷越低）
+  const MENU_PRIMARY = ["home", "signals", "watchlist", "calculators", "backtest", "search", "about"];
+  const primaryItems = navItems.filter((i) => MENU_PRIMARY.includes(i.key));
+  // 其余 ~70 项不直接铺在导航上，收进「全部工具」并按 toolsIndex 类别分块（chunking / progressive disclosure）
+  const moreItems = navItems.filter((i) => !MENU_PRIMARY.includes(i.key));
+
+  // 把「更多」项按类别分组：属于 TOOLS 的按其 category 归组，其余归「功能」组。
+  // 用 7±2 个分组头把 70+ 条扁平列表压成 ~8 组，符合认知分块原则。
+  const CATEGORY_ORDER = Object.keys(CATEGORIES).sort((a, b) => CATEGORIES[a].order - CATEGORIES[b].order);
+  const CORE_LABEL = { zh: "功能与页面", en: "Features & Pages" };
+  function groupMoreItems(items, lng) {
+    const buckets = {};
+    for (const it of items) {
+      const slug = it.href.split("?")[0].replace(/^\//, "");
+      const tool = getToolBySlug(slug);
+      const cat = tool ? tool.category : "core";
+      if (!buckets[cat]) buckets[cat] = [];
+      buckets[cat].push(it);
+    }
+    return ["core", ...CATEGORY_ORDER]
+      .filter((k) => buckets[k] && buckets[k].length)
+      .map((k) => {
+        const label =
+          k === "core"
+            ? (lng === "en" ? CORE_LABEL.en : CORE_LABEL.zh)
+            : (lng === "en" ? CATEGORIES[k].labelEn : CATEGORIES[k].label);
+        return { key: k, label, items: buckets[k] };
+      });
+  }
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -337,34 +363,41 @@ export default function Navbar() {
               {t[item.key]}
             </Link>
           ))}
-          {moreItems.length > 0 && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setMoreOpen((v) => !v)}
-                aria-expanded={moreOpen}
-                aria-controls="more-menu"
-                className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors font-medium text-slate-700">
-                {t.more}
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d={moreOpen ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                </svg>
-              </button>
-              {moreOpen && (
-                <div id="more-menu"
-                  className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 shadow-lg rounded-xl p-1 grid grid-cols-1 gap-0.5 max-h-96 overflow-y-auto z-50">
-                  {moreItems.map((item) => (
-                    <Link key={item.href} href={item.href}
-                      onClick={() => setMoreOpen(false)}
-                      className="px-3 py-2 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors text-slate-700">
-                      {t[item.key]}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              aria-controls="more-menu"
+              className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors font-medium text-slate-700">
+              {t.allTools}
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d={moreOpen ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+              </svg>
+            </button>
+            {moreOpen && (
+              <div id="more-menu"
+                className="absolute right-0 mt-2 w-[min(80vw,52rem)] bg-white border border-slate-100 shadow-lg rounded-xl p-4 grid grid-cols-3 gap-x-6 gap-y-3 max-h-[70vh] overflow-y-auto z-50">
+                {groupMoreItems(moreItems, lang).map((g) => (
+                  <div key={g.key}>
+                    <div className="text-[11px] font-semibold text-indigo-500 mb-1.5 uppercase tracking-wide whitespace-nowrap">
+                      {g.label}
+                    </div>
+                    <div className="grid grid-cols-1 gap-0.5">
+                      {g.items.map((item) => (
+                        <Link key={item.href} href={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className="px-2 py-1.5 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors text-slate-700 text-[13px]">
+                          {t[item.key]}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
         <div className="flex items-center gap-3">
           <Link href="/login"
@@ -397,13 +430,42 @@ export default function Navbar() {
       {menuOpen && (
         <nav id="mobile-menu" aria-label="Mobile" className="lg:hidden border-t border-slate-100 bg-white">
           <div className="max-w-6xl mx-auto px-6 py-3 flex flex-col gap-2 text-sm">
-            {navItems.map((item) => (
+            {primaryItems.map((item) => (
               <Link key={item.href} href={item.href}
                 onClick={() => setMenuOpen(false)}
                 className="py-2 px-3 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors font-medium">
                 {t[item.key]}
               </Link>
             ))}
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-more"
+              className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+              <span>{t.allTools}</span>
+              <svg className={`w-4 h-4 transition-transform ${moreOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {moreOpen && (
+              <div id="mobile-more" className="flex flex-col gap-2 pl-1">
+                {groupMoreItems(moreItems, lang).map((g) => (
+                  <div key={g.key} className="mt-1">
+                    <div className="text-[11px] font-semibold text-indigo-500 mb-1">{g.label}</div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                      {g.items.map((item) => (
+                        <Link key={item.href} href={item.href}
+                          onClick={() => setMenuOpen(false)}
+                          className="py-1.5 px-2 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors text-[13px] text-slate-700">
+                          {t[item.key]}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="border-t border-slate-100 mt-1 pt-2">
               <Link href="/login" onClick={() => setMenuOpen(false)}
                 className="block py-2 px-3 rounded-lg hover:bg-indigo-50 text-indigo-600 font-medium">
