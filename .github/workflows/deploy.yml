@@ -78,11 +78,11 @@ jobs:
       # 第 0 步：确保 Pages 项目 weacond 存在（wrangler 偶发不自动创建，先手动 POST 建一次）
       - name: Ensure Pages project exists
         run: |
-          echo "Creating/ensuring Pages project 'weacond' in account ${CLOUDFLARE_ACCOUNT_ID} ..."
+          echo "Creating/ensuring Pages project 'weacondwebsite' in account ${CLOUDFLARE_ACCOUNT_ID} ..."
           curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            --data '{"name":"weacond","production_branch":"main"}' | head -c 600
+            --data '{"name":"weacondwebsite","production_branch":"main"}' | head -c 600
           echo ""
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -96,7 +96,8 @@ jobs:
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           # 显式 --branch main：不指定分支时 wrangler 默认进“预览”，旧生产部署不会被覆盖 → weacond.com 一直停留在旧版。
           # 指定 main(=生产分支) 后，每次部署都会顶到 weacond.com 生产域名。
-          command: "pages deploy .vercel/output/static --project-name weacond --branch main"
+          # 注意：weacond.com 绑定的 Pages 项目是 weacondwebsite（非 weacond），部署必须指向 weacondwebsite 才会更新线上。
+          command: "pages deploy .vercel/output/static --project-name weacondwebsite --branch main"
 
       # 第 2 步：写入运行时密钥（非阻断）。token 权限不足时本步失败，
       # 但 continue-on-error 不让它阻断——站点由第 1 步成功部署。权限修好后本步自动写入密钥。
@@ -114,7 +115,7 @@ jobs:
             R2_ACCOUNT_ID
             R2_API_TOKEN
             R2_PUBLIC_URL
-          command: "pages deploy .vercel/output/static --project-name weacond --branch main"
+          command: "pages deploy .vercel/output/static --project-name weacondwebsite --branch main"
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -219,7 +220,7 @@ jobs:
         run: |
           # 取最近一次部署的 URL（Pages API 需 Pages:Read 权限；缺则跳过，不阻断）
           # 优先抓 .pages.dev 主机名，避免误取嵌套/worker 的 url；取不到再回退通用解析
-          DEP_JSON=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/weacond/deployments" \
+          DEP_JSON=$(curl -s "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/weacondwebsite/deployments" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
           URL=$(echo "$DEP_JSON" | grep -o '[A-Za-z0-9-]\+\.pages\.dev' | head -1)
           if [ -z "$URL" ]; then
