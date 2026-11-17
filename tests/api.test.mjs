@@ -37,14 +37,18 @@ function makeRes() {
 }
 
 // ---------- /api/health ----------
-test("health: 任意请求 → 200 + status ok + no-store 头", () => {
-  const res = makeRes();
-  healthHandler({ method: "GET" }, res);
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.status, "ok");
-  assert.equal(res.body.service, "weacond");
-  assert.equal(res.headers["Cache-Control"], "no-store");
-  assert.ok(typeof res.body.time === "string", "应含 ISO 时间戳");
+// health 路由已对齐 Cloudflare edge【可运行】写法：
+//   export const config = { runtime: "edge" } + 返回 Web 标准 new Response()（不再用 res.status().json()）。
+// 故测试改为检查返回的 Response 对象（status / headers / body），而非旧的 res mock。
+test("health: 任意请求 → 200 + status ok + no-store 头", async () => {
+  const resp = healthHandler({ method: "GET" }); // 新签名忽略入参，返回 Response
+  assert.ok(resp instanceof Response, "应返回 Web 标准 Response 对象");
+  assert.equal(resp.status, 200);
+  assert.equal(resp.headers.get("Cache-Control"), "no-store");
+  const body = JSON.parse(await resp.text());
+  assert.equal(body.status, "ok");
+  assert.equal(body.service, "weacond");
+  assert.ok(typeof body.time === "string", "应含 ISO 时间戳");
 });
 
 // ---------- /api/backtest ----------
