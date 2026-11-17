@@ -210,18 +210,17 @@ export default function Home() {
             <div>
               <h4 className="text-white font-semibold mb-4">{L.navLinks}</h4>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/signals" className="hover:text-white">信号仪表盘</Link>
-                <Link href="/ebooks" className="hover:text-white">投资书房</Link>
-                <Link href="/pricing" className="hover:text-white">定价方案</Link>
-                <Link href="/contact" className="hover:text-white">联系我们</Link>
+                {L.footerNav.map((n) => (
+                  <Link key={n.href} href={n.href} className="hover:text-white">{n.label}</Link>
+                ))}
               </div>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">{L.legalLinks}</h4>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/terms" className="hover:text-white">服务条款</Link>
-                <Link href="/privacy" className="hover:text-white">隐私政策</Link>
-                <Link href="/about" className="hover:text-white">关于我们</Link>
+                {L.footerLegal.map((n) => (
+                  <Link key={n.href} href={n.href} className="hover:text-white">{n.label}</Link>
+                ))}
               </div>
             </div>
           </div>
@@ -352,6 +351,18 @@ const zh = {
   localAIDesc: "WebGPU+Qwen模型在你的设备本地运行。交易数据永不上传服务器。",
   footerAbout: "AI驱动的金融决策平台。",
   navLinks: "导航", legalLinks: "法律",
+  footerNav: [
+    { label: "信号仪表盘", href: "/signals" },
+    { label: "资源中心", href: "/resources" },
+    { label: "投资书房", href: "/ebooks" },
+    { label: "定价方案", href: "/pricing" },
+    { label: "联系我们", href: "/contact" },
+  ],
+  footerLegal: [
+    { label: "服务条款", href: "/terms" },
+    { label: "隐私政策", href: "/privacy" },
+    { label: "关于我们", href: "/about" },
+  ],
   disclaimer: "免责声明：仅供教育与研究用途，不构成投资建议。",
 };
 
@@ -472,5 +483,17 @@ const en = {
   localAIDesc: "WebGPU + Qwen runs on your device. Data never touches a server.",
   footerAbout: "AI-powered financial platform.",
   navLinks: "Navigate", legalLinks: "Legal",
+  footerNav: [
+    { label: "Signals", href: "/signals" },
+    { label: "Resource Hub", href: "/resources" },
+    { label: "Reading Room", href: "/ebooks" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Contact", href: "/contact" },
+  ],
+  footerLegal: [
+    { label: "Terms", href: "/terms" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "About", href: "/about" },
+  ],
   disclaimer: "For educational purposes only. Not financial advice.",
 };
