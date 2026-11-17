@@ -70,21 +70,13 @@ export default function Home() {
             {L.heroSubtitle}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/pricing"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30">
-              {L.ctaPricing}
-            </Link>
             <Link href="/signals"
-              className="bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-8 rounded-xl transition-all border border-white/20 backdrop-blur">
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-8 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30">
               {L.ctaSignals}
             </Link>
-            <Link href="/backtest"
+            <Link href="/pricing"
               className="bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-8 rounded-xl transition-all border border-white/20 backdrop-blur">
-              {L.ctaBacktest}
-            </Link>
-            <Link href="/ai"
-              className="bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-8 rounded-xl transition-all border border-white/20 backdrop-blur">
-              {L.ctaAI}
+              {L.ctaPricing}
             </Link>
           </div>
           <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
@@ -113,17 +105,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 计算工具 */}
+      {/* 计算工具：渐进披露——首屏只放 9 张精选入口，其余收进 /calculators（按 7 类分组） */}
       <section className="max-w-5xl mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12 text-slate-900">{L.toolsTitle}</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {L.tools.map((f, i) => (
+        <h2 className="text-3xl font-bold text-center mb-3 text-slate-900">{L.toolsTitle}</h2>
+        <p className="text-center text-slate-500 mb-12 max-w-2xl mx-auto">{L.toolsSubtitle}</p>
+        <div className="grid md:grid-cols-3 gap-6">
+          {L.tools.slice(0, 9).map((f, i) => (
             <Link key={i} href={f.href} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow block">
               <div className="text-3xl mb-3">{f.icon}</div>
               <h3 className="font-semibold text-slate-900 mb-2">{f.title}</h3>
               <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
             </Link>
           ))}
+        </div>
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <Link href="/calculators"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            {L.toolsAll} ({L.tools.length})
+          </Link>
+          <Link href="/search"
+            className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold py-3 px-6 rounded-lg transition-colors">
+            {L.toolsSearch}
+          </Link>
         </div>
       </section>
 
@@ -221,6 +224,9 @@ const zh = {
     { icon: "🛡️", title: "黑天鹅模块", desc: "尾部风险检测+对冲建议+教育" },
   ],
   toolsTitle: "计算工具",
+  toolsSubtitle: "先用最常用的高频工具；全部工具与 7 大分类在「计算工具集」里",
+  toolsAll: "查看全部工具",
+  toolsSearch: "搜索工具",
   tools: [
     { icon: "🧭", title: "学习路径", desc: "入门→进阶→高级，串联全部工具的循序渐进课程", href: "/learning" },
     { icon: "🎯", title: "支点计算器", desc: "经典/伍迪/卡马拉拉/斐波那契日内支撑阻力位", href: "/pivots" },
@@ -333,6 +339,9 @@ const en = {
     { icon: "🛡️", title: "Black Swan", desc: "Tail risk detection & hedging" },
   ],
   toolsTitle: "Calculators",
+  toolsSubtitle: "Start with the ones you use most; the full set and 7 categories live in the Calculators hub",
+  toolsAll: "See all tools",
+  toolsSearch: "Search tools",
   tools: [
     { icon: "🧭", title: "Learning Path", desc: "Beginner→advanced: a guided course chaining every tool", href: "/learning" },
     { icon: "🎯", title: "Pivot Points", desc: "Classic / Woodie / Camarilla / Fibonacci intraday levels", href: "/pivots" },
