@@ -176,6 +176,30 @@
 
 ---
 
+## 0j. 2026-11-17 更新（预推送评审：修复 Billing Portal 永远 409 的真实生产 bug）
+
+**预推送评审发现真实 bug**：`/api/manage-subscription`（§0h 自助管理）在**任何有有效订阅的用户**
+都会返回 `409 No active subscription to manage`，用户永远拿不到「管理/取消」链接。
+
+- **根因**：§0e `buildSubscriptionRow` 落库列名是 `stripe_customer_id`（`subscriptions` 表同名列），
+  但 `getUserSubscriptions` 的 `.select(...)` **没选它**，且 `manage-subscription.js` 读的是
+  `s.customer_id`（**错误列名**）→ 取出的 `customerId` 恒为 `undefined` → 恒 409。
+- **为何测试没抓到**：旧 `makeFakeClient` 的 `.select()` 无视列清单、直接返回塞进来的整行，
+  于是 mock 里塞 `customer_id` 就被读到了，掩盖了「列名写错」。
+- **修复**（三层联动）：
+  1. `lib/ebookStore.js` `getUserSubscriptions` 的 `.select()` 增加 `stripe_customer_id`；
+  2. `pages/api/manage-subscription.js` 改为读 `s.stripe_customer_id`（真实列名）；
+  3. `tests/billingPortal.test.mjs` 的 `makeFakeClient` 改为**忠实投影**（只返回 `.select()` 声明的列，
+     模拟 Supabase 真实行为），200 用例改用真实列名 `stripe_customer_id`，并新增一条回归断言
+     「有 active 订阅但缺 customer id → 409 且绝不触网建 Portal」。**变异测试已验证**：把读者改回错误的
+     `s.customer_id` 会使套件 9/10 失败、还原后 10/10 通过——证明该测试真正守护此类 bug。
+- 验证：全量 **1529/1529** 通过；`npm run build` EXIT=0。
+
+> 一句话：预推送评审把「订阅自助管理」从一个**对所有付费用户都失效的死路**修成真正可用，
+> 并加固测试 mock 使其今后能抓住「列名漂移」类 bug。
+
+---
+
 ## 1. 平台验证（你问的「用什么平台」）
 
 | 手册建议 | 当前实际（已落地） | 是否要改 |

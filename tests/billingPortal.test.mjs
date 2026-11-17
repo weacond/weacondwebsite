@@ -25,7 +25,10 @@ function makeRes() {
   return res;
 }
 
-// 假 service client：auth.getUser→用户；from().select().eq()→{ data: subs }
+// 假 service client：auth.getUser→用户；from().select(cols).eq()→{ data: subs 投影到 cols }
+// 关键：【忠实投影】只保留 select() 声明的列（模拟 Supabase 真实行为）。否则读取未 select 的
+// 列本应拿到 undefined，但旧 mock 直接返回塞进来的整行，会掩盖「列名写错」类 bug
+// （如 customer_id vs stripe_customer_id → manage-subscription 永远拿不到 customer id → 恒 409）。
 function makeFakeClient({ subs = [], email = "buyer@example.com" }) {
   return {
     auth: {
@@ -35,10 +38,17 @@ function makeFakeClient({ subs = [], email = "buyer@example.com" }) {
     },
     from() {
       return {
-        select() {
+        select(colStr = "*") {
+          const cols = String(colStr).trim().split(",").map((c) => c.trim()).filter(Boolean);
+          const project = (row) => {
+            if (cols.length === 0) return row;
+            const out = {};
+            for (const c of cols) out[c] = row[c];
+            return out;
+          };
           return {
             eq() {
-              return Promise.resolve({ data: subs, error: null });
+              return Promise.resolve({ data: subs.map(project), error: null });
             },
           };
         },
@@ -199,7 +209,7 @@ test("manage-subscription: 有有效订阅 → 200 + url（透传 customer_id �
   });
   __setTestServiceClient(
     makeFakeClient({
-      subs: [{ plan: "putseller", status: "active", customer_id: "cust_999", stripe_subscription_id: "sub_999" }],
+      subs: [{ plan: "putseller", status: "active", stripe_customer_id: "cust_999", stripe_subscription_id: "sub_999" }],
     })
   );
   let capturedCustomer;
@@ -219,4 +229,32 @@ test("manage-subscription: 有有效订阅 → 200 + url（透传 customer_id �
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.url, "https://billing.stripe.com/p/session/q");
   assert.equal(capturedCustomer, "cust_999", "端点把有效订阅的 customer_id 透传给 Billing Portal");
+});
+
+// 回归守护：忠实投影 mock 下，行里【没有】stripe_customer_id → 绝不伪造 customer id → 409。
+// 这条断言确保「列名写错」类 bug（旧版读 s.customer_id）不会再让有效订阅用户恒被挡在 409。
+test("manage-subscription: 有效订阅但缺 customer id → 409（绝不伪造 customer_id）", async () => {
+  const restore = withEnv(() => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_dummy";
+  });
+  // 有 active 订阅行，但 stripe_customer_id 缺失（投影后为 undefined）
+  __setTestServiceClient(
+    makeFakeClient({ subs: [{ plan: "putseller", status: "active", stripe_subscription_id: "sub_x" }] })
+  );
+  let touchedFetch = false;
+  const restoreFetch = mockFetch(async () => {
+    touchedFetch = true;
+    return { ok: true, status: 200, json: async () => ({ url: "x" }) };
+  });
+  const res = makeRes();
+  await manageHandler(
+    { method: "POST", headers: { cookie: "sb-access-token=tok" }, query: {} },
+    res
+  );
+  restoreFetch();
+  __setTestServiceClient(null);
+  restore();
+  assert.equal(res.statusCode, 409, "无 customer id 时返 409 引导订阅，绝不带空 id 去建 Portal");
+  assert.equal(res.body.url, null);
+  assert.equal(touchedFetch, false, "缺 customer id 时绝不触网创建 Portal 会话");
 });

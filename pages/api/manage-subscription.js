@@ -31,9 +31,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized", url: null });
   }
 
-  // 取用户【有效订阅】的 customer_id（§0e 落库；无有效订阅 → 无可管理对象）
+  // 取用户【有效订阅】的 customer_id（§0e 落库；列名是 stripe_customer_id，见 buildSubscriptionRow /
+  // subscriptions 表；无有效订阅或无 customer id → 无可管理对象）
   const subs = await getUserSubscriptions(email);
-  const customerId = subs.find((s) => s && s.customer_id)?.customer_id;
+  const customerId = subs.find((s) => s && s.stripe_customer_id)?.stripe_customer_id;
   if (!customerId) {
     return res.status(409).json({ error: "No active subscription to manage", url: null });
   }
