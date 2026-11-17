@@ -30,6 +30,12 @@ jobs:
   r2-gate:
     needs: test
     runs-on: ubuntu-latest
+    # 软门禁（continue-on-error）：R2 绑定在 wrangler.toml 当前是注释状态，
+    # 部署（静态站 + 边缘函数）本身不依赖 R2；缺桶时只告警、不阻断上线，
+    # 与下游 sync-public-r2 / sync-private-r2 的 continue-on-error 行为一致。
+    # 等 R2 双桶在 Cloudflare 建好、并取消 wrangler.toml 的 [[r2_buckets]] 注释后，
+    # 再把本行 continue-on-error 删掉，恢复为“缺桶即阻止上线”的硬门禁。
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
