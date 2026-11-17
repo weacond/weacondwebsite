@@ -1,6 +1,8 @@
 // /api/health — 轻量健康检查端点
 // 用途：uptime 监控 / 负载均衡探活 / 冒烟测试。始终返回 200 + 服务时间戳。
 // 对 Node 与 Cloudflare Edge 双运行时都安全（process 在 Edge 下可能缺失，已做守卫）。
+// next-on-pages 要求所有非静态路由声明 edge runtime，否则构建拒绝出包。
+export const runtime = "edge";
 export default function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const uptime =

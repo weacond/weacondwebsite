@@ -5,6 +5,9 @@
 import { assessReadiness } from "../../lib/launchReadiness.js";
 import { PLATFORM_JURISDICTION } from "../../lib/legalContent.js";
 
+// next-on-pages 要求所有非静态路由声明 edge runtime，否则构建拒绝出包。
+// 本路由仅做配置存在性判断、不回传密钥值，process.env 已做守卫，edge 安全。
+export const runtime = "edge";
 export default function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow"); // 运营端点，勿被搜索引擎收录

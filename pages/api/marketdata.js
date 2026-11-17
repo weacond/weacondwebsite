@@ -2,8 +2,11 @@
 // 查询参数: ?symbol=SPY&source=alphaVantage&apiKey=xxx
 // 返回: { candles: [...], fundamentals: {...} }
 //
-// 注意：用默认 Node runtime（非 edge）。Pages Router 的 edge API 对 (req,res).status().json()
-// 支持不完整会导致 res.status is not a function；Node 18+ 原生 fetch 足以访问 Alpha Vantage。
+// 注意：next-on-pages 要求所有非静态路由声明 edge runtime，否则构建拒绝出包。
+// 原注释称 edge 下 res.status().json() 不支持——但项目内 subscription-status.js 等
+// 已转 edge 的路由同样用 res.status().json() 且构建/运行正常，故该顾虑已过时；
+// 缓存 Map 在 edge 下随 isolate 存活（日线 15min / FRED 1h 足够），Node 18+/edge 原生 fetch 够用。
+export const runtime = "edge";
 
 import { fetchRealCandles, fetchFundamentals, fetchFredSeries } from "../../lib/marketdata_real";
 
