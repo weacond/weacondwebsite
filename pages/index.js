@@ -91,13 +91,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 信任条：真实数字，不编造（反幻觉） */}
+      <section className="bg-white border-y border-slate-100">
+        <div className="max-w-5xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {[
+            { v: `${TOOL_COUNT}`, l: L.trustTools },
+            { v: "3", l: L.trustEngines },
+            { v: "100%", l: L.trustLocal },
+            { v: L.trustFreeV, l: L.trustFreeL },
+          ].map((s, i) => (
+            <div key={i} className="flex flex-col">
+              <div className="text-3xl font-bold text-indigo-600">{s.v}</div>
+              <div className="text-sm text-slate-500 mt-1">{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* 核心功能 */}
       <section className="max-w-5xl mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center mb-12 text-slate-900">{L.featuresTitle}</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {L.features.map((f, i) => (
             <div key={i} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-              <div className="text-3xl mb-3">{f.icon}</div>
+              <div className="text-3xl mb-3 w-12 h-12 flex items-center justify-center rounded-lg bg-indigo-50">{f.icon}</div>
               <h3 className="font-semibold text-slate-900 mb-2">{f.title}</h3>
               <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
             </div>
@@ -121,7 +138,7 @@ export default function Home() {
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link href="/calculators"
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-            {L.toolsAll} ({L.tools.length})
+            {L.toolsAll} · {TOOL_COUNT}
           </Link>
           <Link href="/search"
             className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold py-3 px-6 rounded-lg transition-colors">
@@ -159,9 +176,25 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-6 text-slate-900">{L.localAITitle}</h2>
           <p className="text-slate-600 leading-relaxed mb-8">{L.localAIDesc}</p>
           <div className="flex justify-center gap-4 flex-wrap">
-            {["🔒 数据不出本地","⚡ 零推理成本","📱 浏览器/桌面运行","🧠 Qwen 7B/14B"].map((tag, i) => (
+            {L.aiTags.map((tag, i) => (
               <span key={i} className="bg-white text-sm px-4 py-2 rounded-full shadow-sm border border-slate-200">{tag}</span>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 收尾 CTA */}
+      <section className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-20">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">{L.ctaBandTitle}</h2>
+          <p className="text-indigo-100 mb-8 text-lg">{L.ctaBandSubtitle}</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/signals" className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold py-3 px-6 rounded-lg transition-colors">
+              {L.ctaSignals}
+            </Link>
+            <Link href="/pricing" className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-lg transition-colors border border-white/30 backdrop-blur">
+              {L.ctaPricing}
+            </Link>
           </div>
         </div>
       </section>
@@ -207,6 +240,11 @@ const zh = {
   heroTitle: "让投资变得轻松、便捷、稳健",
   heroSubtitle: "三引擎信号（基本面+技术面+波动面）· 宏观情绪 · 本地AI · 多策略对比 · 模拟交易 · 任务引导",
   ctaPricing: "查看方案", ctaSignals: "今日信号", ctaBacktest: "策略回测", ctaAI: "AI助手",
+  trustTools: "金融工具", trustEngines: "引擎信号", trustLocal: "本地 AI · 数据不出设备",
+  trustFreeV: "免费", trustFreeL: "永久起步",
+  ctaBandTitle: "准备好开始理性投资了吗？",
+  ctaBandSubtitle: "免费体验三引擎信号与全部金融计算工具，本地 AI 全程守护隐私。",
+  aiTags: ["🔒 数据不出本地", "⚡ 零推理成本", "📱 浏览器/桌面运行", "🧠 Qwen 7B/14B"],
   engine1: { title: "基础面", desc: "公允价值模型，识别被低估资产" },
   engine2: { title: "技术面", desc: "突破位/支撑位/趋势评分" },
   engine3: { title: "波动面", desc: "IV Rank / Theta / 黑天鹅对冲" },
@@ -322,6 +360,11 @@ const en = {
   heroTitle: "Make Investing Simple, Smart, Stable",
   heroSubtitle: "3-Engine Signals · Macro Sentiment · Local AI · Strategy Compare · Paper Trading · Task-Guided",
   ctaPricing: "View Plans", ctaSignals: "Today's Signals", ctaBacktest: "Backtest", ctaAI: "AI Assistant",
+  trustTools: "Financial Tools", trustEngines: "Engine Signals", trustLocal: "Local AI · data on device",
+  trustFreeV: "Free", trustFreeL: "to start",
+  ctaBandTitle: "Ready to invest rationally?",
+  ctaBandSubtitle: "Start free with three-engine signals and every calculator. Local AI keeps your data private.",
+  aiTags: ["🔒 Data on device", "⚡ Zero cost", "📱 Browser/desktop", "🧠 Qwen 7B/14B"],
   engine1: { title: "Fundamental", desc: "Fair value model" },
   engine2: { title: "Technical", desc: "Breakout/support scoring" },
   engine3: { title: "Volatility", desc: "IV Rank / Theta / Black Swan" },
